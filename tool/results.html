@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GTM Readiness Results</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --text: #182235;
+      --muted: #5d6b7c;
+      --border: #d4dce7;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --soft: #eaf1ff;
+      --strong: #15803d;
+      --mid: #b45309;
+      --low: #b91c1c;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 28px auto;
+    }
+
+    header,
+    section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      font-size: 32px;
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    h3 {
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    p,
+    li {
+      line-height: 1.5;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .score-layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .score-box {
+      border-radius: 8px;
+      background: var(--soft);
+      padding: 18px;
+      text-align: center;
+    }
+
+    .score {
+      color: var(--accent-dark);
+      font-size: 48px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .field {
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #ffffff;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--border);
+      padding: 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+
+    .pill {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 9px;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .pill.high {
+      background: var(--strong);
+    }
+
+    .pill.medium {
+      background: var(--mid);
+    }
+
+    .pill.low {
+      background: var(--low);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    a,
+    button {
+      border: 0;
+      border-radius: 6px;
+      padding: 11px 16px;
+      background: var(--accent);
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    a.secondary,
+    button.secondary {
+      background: var(--soft);
+      color: var(--accent-dark);
+    }
+
+    @media (max-width: 780px) {
+      main {
+        width: min(100% - 20px, 1120px);
+        margin: 16px auto;
+      }
+
+      .score-layout,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1 id="companyName">GTM Readiness Results</h1>
+      <p class="muted" id="companyMeta"></p>
+      <div class="actions">
+        <a href="index.html">Edit Intake</a>
+        <button class="secondary" id="copyButton" type="button">Copy Plan</button>
+      </div>
+    </header>
+
+    <section class="score-layout">
+      <div class="score-box">
+        <div class="score" id="overallScore">0</div>
+        <div class="muted">GTM readiness score</div>
+      </div>
+      <div>
+        <h2 id="readinessStage">Readiness stage</h2>
+        <p id="recommendation"></p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Scorecard</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Score</th>
+            <th>Interpretation</th>
+            <th>Next move</th>
+          </tr>
+        </thead>
+        <tbody id="scorecardBody"></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Improvement Suggestions</h2>
+      <ul id="suggestions"></ul>
+    </section>
+
+    <section>
+      <h2>90-Day GTM Plan</h2>
+      <div id="plan"></div>
+    </section>
+
+    <section>
+      <h2>Intake Summary</h2>
+      <div class="grid" id="summary"></div>
+    </section>
+  </main>
+
+  <script src="intake-schema.js"></script>
+  <script>
+    const schema = window.GTM_INTAKE_SCHEMA;
+    const STORAGE_KEY = schema.storageKey;
+    const RECORDS_KEY = `${STORAGE_KEY}:records`;
+    const ACTIVE_RECORD_KEY = `${STORAGE_KEY}:activeRecordId`;
+
+    const categoryDefinitions = [
+      {
+        name: "Market and ICP",
+        fields: ["marketUrgency", "icpClarity"],
+        lowMove: "Narrow the market and validate the best-fit customer with interviews, win/loss notes, and public research."
+      },
+      {
+        name: "Positioning and Offer",
+        fields: ["positioningClarity", "offerClarity", "pricingConfidence"],
+        lowMove: "Rewrite the positioning around the most urgent buyer pain, then package one clear offer with proof and pricing logic."
+      },
+      {
+        name: "Channels and Sales Motion",
+        fields: ["channelFocus", "salesMotion", "contentAssets"],
+        lowMove: "Pick one primary channel and define the assets, handoffs, and conversion steps needed to test it."
+      },
+      {
+        name: "Data and Learning",
+        fields: ["funnelTracking", "experimentReadiness"],
+        lowMove: "Set up a simple scorecard for traffic, leads, conversion, pipeline, sales, and experiment learning."
+      },
+      {
+        name: "Execution Capacity",
+        fields: ["budget", "teamCapacity"],
+        lowMove: "Assign a GTM owner, confirm budget boundaries, and set a weekly operating rhythm."
+      }
+    ];
+
+    function collectFieldLabels() {
+      const labels = {};
+
+      schema.sections.forEach((section) => {
+        (section.fields || []).forEach((field) => {
+          labels[field.id] = field.label;
+
+          if (field.type === "repeatableList") {
+            Array.from({ length: 25 }).forEach((_, index) => {
+              labels[`${field.id}__item-${index + 1}`] = `${field.label} #${index + 1}`;
+            });
+          }
+        });
+
+        (section.tables || []).forEach((table) => {
+          (table.rows || []).forEach((row) => {
+            const rowId = row.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+            table.columns.forEach((column) => {
+              labels[`${table.id}__${rowId}__${column.id}`] = `${table.title}: ${row} - ${column.label}`;
+            });
+          });
+        });
+      });
+
+      return labels;
+    }
+
+    const labels = collectFieldLabels();
+
+    function readData() {
+      const activeId = localStorage.getItem(ACTIVE_RECORD_KEY) || "";
+
+      try {
+        const records = JSON.parse(localStorage.getItem(RECORDS_KEY)) || [];
+        const activeRecord = records.find((record) => record.id === activeId);
+
+        if (activeRecord && activeRecord.data) {
+          return activeRecord.data;
+        }
+
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+      } catch (error) {
+        return {};
+      }
+    }
+
+    function scoreValue(data, field) {
+      const value = Number.parseInt(data[field], 10);
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function categoryScore(data, category) {
+      const total = category.fields.reduce((sum, field) => sum + scoreValue(data, field), 0);
+      return total / category.fields.length;
+    }
+
+    function scoreClass(score) {
+      if (score >= 4) {
+        return "high";
+      }
+
+      if (score >= 2.75) {
+        return "medium";
+      }
+
+      return "low";
+    }
+
+    function stageForScore(score) {
+      if (score >= 82) {
+        return "Scale-ready";
+      }
+
+      if (score >= 66) {
+        return "Validation-ready";
+      }
+
+      if (score >= 46) {
+        return "Foundation needed";
+      }
+
+      return "Early diagnostic";
+    }
+
+    function recommendationForScore(score) {
+      if (score >= 82) {
+        return "The company appears ready to scale a focused GTM motion. Prioritize channel economics, repeatable sales execution, and expansion of the strongest acquisition path.";
+      }
+
+      if (score >= 66) {
+        return "The company has enough GTM structure to run disciplined validation. Focus on the weakest scorecard areas before increasing spend or broadening channels.";
+      }
+
+      if (score >= 46) {
+        return "The company needs stronger GTM foundations before scaling. Clarify the ICP, offer, channel focus, and measurement system first.";
+      }
+
+      return "The company is not ready for broad GTM execution yet. Start with research, positioning, offer definition, and a small validation plan.";
+    }
+
+    function interpretation(score) {
+      if (score >= 4) {
+        return "Strong";
+      }
+
+      if (score >= 3) {
+        return "Usable but needs sharpening";
+      }
+
+      if (score >= 2) {
+        return "Partially defined";
+      }
+
+      if (score > 0) {
+        return "Weak or inconsistent";
+      }
+
+      return "Missing";
+    }
+
+    function buildSuggestions(data, categories) {
+      const lowCategories = categories
+        .filter((item) => item.score < 3.5)
+        .sort((a, b) => a.score - b.score);
+
+      if (!lowCategories.length) {
+        return [
+          "Document the current winning motion so it can be repeated by the team.",
+          "Increase investment only where funnel economics and buyer evidence are already strongest.",
+          "Use experiments to improve conversion and efficiency instead of adding more unfocused channels."
+        ];
+      }
+
+      return lowCategories.slice(0, 5).map((item) => item.lowMove);
+    }
+
+    function buildPlan(data, categories) {
+      const sorted = [...categories].sort((a, b) => a.score - b.score);
+      const first = sorted[0];
+      const second = sorted[1] || sorted[0];
+      const third = sorted[2] || sorted[0];
+
+      return [
+        {
+          title: "Days 1-30: Diagnose and focus",
+          items: [
+            `Resolve the biggest gap first: ${first.name}.`,
+            "Complete missing intake data, public research, buyer evidence, and competitor notes.",
+            "Define the priority ICP, core buyer pain, primary offer, and one success metric."
+          ]
+        },
+        {
+          title: "Days 31-60: Build the GTM test",
+          items: [
+            `Strengthen the next constraint: ${second.name}.`,
+            "Create the minimum assets needed for one channel and one buyer journey.",
+            "Launch a focused experiment with a clear audience, message, offer, channel, and measurement plan."
+          ]
+        },
+        {
+          title: "Days 61-90: Learn and operationalize",
+          items: [
+            `Turn learning into an operating rhythm, especially around ${third.name}.`,
+            "Review funnel metrics weekly and decide whether to iterate, scale, or stop the experiment.",
+            "Package the validated GTM motion into a repeatable playbook for the team."
+          ]
+        }
+      ];
+    }
+
+    function renderList(element, items) {
+      element.innerHTML = "";
+      items.forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        element.appendChild(li);
+      });
+    }
+
+    function renderPlan(plan) {
+      const container = document.getElementById("plan");
+      container.innerHTML = "";
+
+      plan.forEach((phase) => {
+        const wrapper = document.createElement("div");
+        const heading = document.createElement("h3");
+        const list = document.createElement("ul");
+
+        heading.textContent = phase.title;
+        renderList(list, phase.items);
+        wrapper.appendChild(heading);
+        wrapper.appendChild(list);
+        container.appendChild(wrapper);
+      });
+    }
+
+    function renderSummary(data) {
+      const container = document.getElementById("summary");
+      container.innerHTML = "";
+
+      Object.entries(data).forEach(([key, value]) => {
+        const label = labels[key];
+
+        if (!label || key === "savedAt") {
+          return;
+        }
+
+        if (!value) {
+          return;
+        }
+
+        const field = document.createElement("div");
+        const heading = document.createElement("h3");
+        const text = document.createElement("p");
+
+        field.className = "field";
+        heading.textContent = label;
+        text.textContent = value;
+        field.appendChild(heading);
+        field.appendChild(text);
+        container.appendChild(field);
+      });
+    }
+
+    function buildCopyText(data, score, categories, suggestions, plan) {
+      const lines = [
+        `${data.companyName || "Company"} GTM Readiness Plan`,
+        `Score: ${score}/100`,
+        `Stage: ${stageForScore(score)}`,
+        "",
+        "Scorecard:"
+      ];
+
+      categories.forEach((category) => {
+        lines.push(`- ${category.name}: ${category.score.toFixed(1)}/5`);
+      });
+
+      lines.push("", "Improvement suggestions:");
+      suggestions.forEach((suggestion) => lines.push(`- ${suggestion}`));
+
+      lines.push("", "90-day plan:");
+      plan.forEach((phase) => {
+        lines.push(phase.title);
+        phase.items.forEach((item) => lines.push(`- ${item}`));
+      });
+
+      return lines.join("\n");
+    }
+
+    function render() {
+      const data = readData();
+      const categories = categoryDefinitions.map((category) => ({
+        ...category,
+        score: categoryScore(data, category)
+      }));
+      const total = categories.reduce((sum, item) => sum + item.score, 0);
+      const readinessScore = Math.round((total / categories.length) * 20);
+      const suggestions = buildSuggestions(data, categories);
+      const plan = buildPlan(data, categories);
+
+      document.getElementById("companyName").textContent = data.companyName
+        ? `${data.companyName} GTM Readiness Results`
+        : "GTM Readiness Results";
+      document.getElementById("companyMeta").textContent = [data.industry, data.businessModel, data.companyStage]
+        .filter(Boolean)
+        .join(" | ");
+      document.getElementById("overallScore").textContent = readinessScore;
+      document.getElementById("readinessStage").textContent = stageForScore(readinessScore);
+      document.getElementById("recommendation").textContent = recommendationForScore(readinessScore);
+
+      const body = document.getElementById("scorecardBody");
+      body.innerHTML = "";
+      categories.forEach((category) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${category.name}</td>
+          <td><span class="pill ${scoreClass(category.score)}">${category.score.toFixed(1)} / 5</span></td>
+          <td>${interpretation(category.score)}</td>
+          <td>${category.lowMove}</td>
+        `;
+        body.appendChild(row);
+      });
+
+      renderList(document.getElementById("suggestions"), suggestions);
+      renderPlan(plan);
+      renderSummary(data);
+
+      document.getElementById("copyButton").addEventListener("click", async () => {
+        const copyText = buildCopyText(data, readinessScore, categories, suggestions, plan);
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(copyText);
+        }
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>
