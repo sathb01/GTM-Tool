@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GTM Readiness Intake</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --text: #182235;
+      --muted: #5d6b7c;
+      --border: #d4dce7;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --field-bg: #f8fafc;
+      --soft: #eaf1ff;
+      --warn: #b45309;
+      --shadow: 0 8px 24px rgba(24, 34, 53, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+    }
+
+    main {
+      width: min(1280px, calc(100% - 32px));
+      margin: 24px auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      font-size: 32px;
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 21px;
+      margin-bottom: 8px;
+    }
+
+    h3 {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    p,
+    li {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    nav {
+      position: sticky;
+      top: 16px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 12px;
+    }
+
+    nav a {
+      display: block;
+      color: var(--text);
+      text-decoration: none;
+      border-radius: 6px;
+      padding: 9px 10px;
+      font-size: 14px;
+      line-height: 1.25;
+    }
+
+    nav a:hover {
+      background: var(--soft);
+      color: var(--accent-dark);
+    }
+
+    form {
+      display: grid;
+      gap: 16px;
+    }
+
+    section,
+    .action-bar {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .section-heading {
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      display: block;
+      color: var(--text);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--field-bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+      font-size: 15px;
+      padding: 10px;
+    }
+
+    .money-input {
+      align-items: stretch;
+      display: flex;
+      width: 100%;
+    }
+
+    .money-prefix {
+      align-items: center;
+      background: var(--soft);
+      border: 1px solid var(--border);
+      border-radius: 6px 0 0 6px;
+      border-right: 0;
+      color: var(--accent-dark);
+      display: flex;
+      font-weight: 700;
+      padding: 0 10px;
+    }
+
+    .money-input input {
+      border-radius: 0 6px 6px 0;
+    }
+
+    .other-field {
+      margin-top: 8px;
+    }
+
+    .other-field[hidden] {
+      display: none;
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: 2px solid var(--accent);
+      border-color: var(--accent);
+      background: #ffffff;
+    }
+
+    .required {
+      color: var(--warn);
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+      margin-top: 5px;
+    }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .checkbox-option {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--field-bg);
+      padding: 9px;
+      font-weight: 400;
+    }
+
+    .checkbox-option input {
+      width: auto;
+      margin-top: 2px;
+    }
+
+    .repeatable-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .repeatable-item {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .repeatable-item input,
+    .repeatable-item textarea {
+      flex: 1;
+    }
+
+    .repeatable-item textarea {
+      min-height: 64px;
+    }
+
+    .table-wrap {
+      margin-top: 18px;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      min-width: 900px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--border);
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    td:first-child {
+      min-width: 180px;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    td input,
+    td select {
+      min-width: 120px;
+      font-size: 14px;
+      padding: 8px;
+    }
+
+    .table-actions {
+      margin-top: 10px;
+    }
+
+    .actions,
+    .action-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .company-manager {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 10px;
+      grid-template-columns: minmax(220px, 1fr) auto auto auto auto;
+      margin-bottom: 16px;
+      padding: 14px;
+    }
+
+    .company-manager label {
+      margin: 0;
+    }
+
+    .company-manager .record-field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .brand-browser {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      display: none;
+      margin: -8px 0 16px;
+      padding: 14px;
+    }
+
+    .brand-browser.open {
+      display: block;
+    }
+
+    .brand-list {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-top: 10px;
+    }
+
+    .brand-list button {
+      background: var(--field-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      text-align: left;
+    }
+
+    .brand-list button:hover {
+      background: var(--soft);
+      color: var(--accent-dark);
+    }
+
+    button,
+    .secondary-link {
+      border: 0;
+      border-radius: 6px;
+      padding: 11px 16px;
+      font-family: Arial, sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    button {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    button:hover {
+      background: var(--accent-dark);
+    }
+
+    button.secondary,
+    .secondary-link {
+      background: var(--soft);
+      color: var(--accent-dark);
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        width: min(100% - 20px, 1280px);
+        margin: 16px auto;
+      }
+
+      header,
+      .layout {
+        grid-template-columns: 1fr;
+        display: block;
+      }
+
+      nav {
+        position: static;
+        margin-bottom: 16px;
+      }
+
+      .grid,
+      .checkbox-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .company-manager {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>ICP &amp; GTM Readiness Intake</h1>
+        <p>An online intake workbook for ICP definition, GTM strategy, sales activity review, target prioritization, and readiness scoring.</p>
+      </div>
+      <div class="actions">
+        <button type="button" class="secondary" id="researchButton">AI Research</button>
+        <span class="status" id="researchStatus">Researches and prefills when an AI endpoint is configured.</span>
+      </div>
+    </header>
+
+    <div class="company-manager" aria-label="Company records">
+      <div class="record-field">
+        <label for="brandSearch">Brand</label>
+        <input id="brandSearch" list="savedBrandOptions" placeholder="Search saved brands">
+        <datalist id="savedBrandOptions"></datalist>
+      </div>
+      <button type="button" class="secondary" id="browseBrandsButton">Browse</button>
+      <button type="button" class="secondary" id="newCompanyButton">New Blank Company</button>
+      <button type="button" class="secondary" id="saveCompanyButton">Save Company</button>
+      <button type="button" class="secondary" id="clearFormButton">Clear Form</button>
+    </div>
+
+    <div class="brand-browser" id="brandBrowser" aria-label="Saved brands">
+      <h2>Saved Brands</h2>
+      <div class="brand-list" id="brandList"></div>
+    </div>
+
+    <div class="layout">
+      <nav id="sectionNav" aria-label="Intake sections"></nav>
+      <form id="intakeForm">
+        <div id="sections"></div>
+        <div class="action-bar">
+          <button type="submit">Generate GTM Readiness Plan</button>
+          <button type="button" class="secondary" id="saveDraftButton">Save Company</button>
+          <a class="secondary-link" href="results.html">View Last Results</a>
+          <span class="status" id="saveStatus"></span>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script src="intake-schema.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
