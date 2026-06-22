@@ -420,7 +420,10 @@ async function serveStatic(response, pathname) {
   try {
     const content = await readFile(filePath);
     const extension = path.extname(filePath).toLowerCase();
-    response.writeHead(200, { "Content-Type": contentTypes[extension] || "application/octet-stream" });
+    response.writeHead(200, {
+      "Content-Type": contentTypes[extension] || "application/octet-stream",
+      "Cache-Control": "no-store, max-age=0"
+    });
     response.end(content);
   } catch (error) {
     sendJson(response, 404, { error: "Not found" });

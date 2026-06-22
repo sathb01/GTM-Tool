@@ -7,7 +7,7 @@ The tool is a reusable GTM readiness diagnostic for any prospective client. It s
 The intended workflow is:
 
 1. Enter a prospective client's company name and website.
-2. Use AI-assisted public research to pre-populate as many intake fields as possible.
+2. Generate a reusable ChatGPT research prompt that the user can run manually.
 3. Let the user review and complete the intake using consistent dropdown options wherever possible.
 4. Generate a GTM readiness score.
 5. Surface GTM improvement suggestions.
@@ -19,7 +19,7 @@ The current app is a static browser-based MVP. It stores intake data in `localSt
 
 The Word intake form has been converted into an online intake workbook in `index.html`, driven by `intake-schema.js`. The schema preserves the major sections, controlled answer options, checklists, scoring fields, and table-style inventories from the document.
 
-Live AI research requires a backend or API endpoint. The intake page now supports an optional `window.GTM_RESEARCH_ENDPOINT` value. If configured, the page will send company name and website to that endpoint and apply returned field suggestions. If no endpoint exists, the UI creates a reusable AI research prompt in the notes field.
+Live API-backed AI research is intentionally paused for the MVP to avoid surprise usage costs. The intake page now creates a reusable ChatGPT research prompt and copies it to the clipboard when possible. The prompt asks ChatGPT to return paste-friendly tables for public presence, field suggestions, source URLs, research notes, and open questions.
 
 ## Core intake sections
 
@@ -49,7 +49,9 @@ The results page should include:
 - 90-day GTM plan
 - Intake summary for review
 
-## Future AI prefill endpoint contract
+## Deferred AI prefill endpoint contract
+
+This is not active in the current MVP. Revisit only if API spend controls, caching, and section-level opt-in are added.
 
 Request:
 
