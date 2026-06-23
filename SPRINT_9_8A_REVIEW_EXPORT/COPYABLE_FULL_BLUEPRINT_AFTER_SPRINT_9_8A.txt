@@ -1,0 +1,7 @@
+Sprint 9.8A full blueprint export should include Executive Insights, working blueprint sections, appendix sections, report metadata, and intake summary.
+
+Expected quality:
+- Executive-facing content is advisor-grade.
+- Metadata is available but no longer the lead page.
+- Browser headers and footers still require print-dialog settings if using browser print.
+

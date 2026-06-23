@@ -1,0 +1,9 @@
+Sprint 9.5 executive export should copy the executive blueprint only.
+
+Quality expectations:
+- No raw internal IDs.
+- No raw placeholder values.
+- Recommendation inputs are advisor-quality bullets.
+- Target-list recommendations include where to find accounts and look-for signals.
+- Export controls are not included in printed output.
+

@@ -1,0 +1,9 @@
+Sprint 9.8A executive export should begin with Executive Insights.
+
+Expected quality:
+- Current readiness is visible immediately.
+- Top opportunity and biggest risk are visible immediately.
+- The most important action is clear.
+- Administrative metadata does not dominate page one.
+- Raw placeholders and internal IDs are suppressed.
+

@@ -1,0 +1,8 @@
+Sprint 9.5 working blueprint export should copy the executive sections plus execution assets, coaching plans, decision briefs, risks, open questions, and 30/60/90 plan.
+
+Quality expectations:
+- Target List Criteria Sheet includes account-finding methods.
+- Proof Asset Brief includes suggested proof candidates when customer evidence exists.
+- Buyer Conversation Guide includes role-specific discovery questions.
+- CRM hygiene rules render as readable statements.
+

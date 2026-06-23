@@ -258,6 +258,58 @@
       margin-top: 14px;
     }
 
+    .export-menu {
+      background: var(--soft);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: none;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 10px;
+    }
+
+    .export-menu.open {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .export-note {
+      color: var(--muted);
+      flex-basis: 100%;
+      font-size: 13px;
+      margin: 2px 0 0;
+    }
+
+    .file-mode-warning {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 8px;
+      color: #7c2d12;
+      margin-bottom: 16px;
+      padding: 16px;
+    }
+
+    .file-mode-warning h2 {
+      color: #7c2d12;
+      margin-bottom: 8px;
+    }
+
+    .file-mode-warning p {
+      margin-bottom: 10px;
+    }
+
+    .card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .card-actions button {
+      font-size: 14px;
+      padding: 9px 12px;
+    }
+
     a,
     button {
       border: 0;
@@ -302,6 +354,7 @@
       }
 
       .actions,
+      .export-menu,
       .no-print,
       .appendix,
       .removed-section {
@@ -348,18 +401,20 @@
       <p class="muted">Generated from GTM Readiness Intake</p>
       <p class="muted" id="companyMeta"></p>
       <div class="actions">
-        <a href="index.html">Edit Intake</a>
-        <button class="secondary" id="copyButton" type="button">Copy Executive Blueprint</button>
-        <button class="secondary" id="copyFullButton" type="button">Copy Full Blueprint + Appendix</button>
-        <button class="secondary" id="pdfButton" type="button">Download / Print Executive Blueprint</button>
-        <button class="secondary" id="pdfFullButton" type="button">Download / Print Full Blueprint With Appendix</button>
-        <button class="secondary" id="docButton" type="button">Download Word / Google Doc</button>
+        <a href="index.html">Edit</a>
+        <button class="secondary" id="exportButton" type="button" aria-expanded="false" aria-controls="exportMenu">Export Report</button>
+      </div>
+      <div class="export-menu" id="exportMenu">
+        <button class="secondary" id="exportPdfButton" type="button">PDF</button>
+        <button class="secondary" id="exportDocButton" type="button">Word / Google Doc</button>
+        <button class="secondary" id="exportCopyButton" type="button">Copy Text</button>
+        <p class="export-note">For clean PDF export, disable browser headers and footers in the print dialog.</p>
       </div>
     </header>
 
     <section>
-      <h2>Blueprint Header</h2>
-      <div class="grid" id="blueprintHeader"></div>
+      <h2>Executive Insights</h2>
+      <div id="executiveInsights"></div>
     </section>
 
     <section>
@@ -569,6 +624,11 @@
       <h2>Intake Summary</h2>
       <div class="grid" id="summary"></div>
     </section>
+
+    <section class="appendix">
+      <h2>Appendix: Report Metadata</h2>
+      <div class="grid" id="blueprintHeader"></div>
+    </section>
   </main>
 
   <script>
@@ -587,6 +647,8 @@
     const STORAGE_KEY = schema.storageKey;
     const RECORDS_KEY = `${STORAGE_KEY}:records`;
     const ACTIVE_RECORD_KEY = `${STORAGE_KEY}:activeRecordId`;
+    const IMPROVEMENT_FOCUS_KEY = `${STORAGE_KEY}:improvementFocus`;
+    const API_BASE = window.location.protocol.startsWith("http") ? window.location.origin : "";
 
     const categoryDefinitions = [
       {
@@ -777,8 +839,65 @@
       container.appendChild(field);
     }
 
-    function readData() {
-      const activeId = localStorage.getItem(ACTIVE_RECORD_KEY) || "";
+    function requestedRecordId() {
+      return new URLSearchParams(window.location.search).get("recordId") || "";
+    }
+
+    function cacheRecord(record) {
+      if (!record || !record.id) {
+        return;
+      }
+
+      let records = [];
+
+      try {
+        records = JSON.parse(localStorage.getItem(RECORDS_KEY)) || [];
+      } catch (error) {
+        records = [];
+      }
+
+      const existingIndex = records.findIndex((item) => item.id === record.id);
+
+      if (existingIndex >= 0) {
+        records[existingIndex] = record;
+      } else {
+        records.push(record);
+      }
+
+      localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+      localStorage.setItem(ACTIVE_RECORD_KEY, record.id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(record.data || {}));
+    }
+
+    async function fetchRecordFromBackend(recordId) {
+      if (!API_BASE || !recordId) {
+        return null;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/api/records/${encodeURIComponent(recordId)}`);
+
+        if (!response.ok) {
+          return null;
+        }
+
+        const result = await response.json();
+        const record = result.record || null;
+
+        if (record && record.data) {
+          cacheRecord(record);
+          return record.data;
+        }
+      } catch (error) {
+        console.warn(error.message);
+      }
+
+      return null;
+    }
+
+    async function readData() {
+      const activeId = requestedRecordId() || localStorage.getItem(ACTIVE_RECORD_KEY) || "";
+      let fallbackData = {};
 
       try {
         const records = JSON.parse(localStorage.getItem(RECORDS_KEY)) || [];
@@ -788,10 +907,40 @@
           return activeRecord.data;
         }
 
-        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        fallbackData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
       } catch (error) {
-        return {};
+        fallbackData = {};
       }
+
+      const backendData = await fetchRecordFromBackend(activeId);
+
+      if (backendData) {
+        return backendData;
+      }
+
+      return fallbackData;
+    }
+
+    function showFileModeWarning() {
+      if (window.location.protocol !== "file:") {
+        return;
+      }
+
+      const main = document.querySelector("main");
+
+      if (!main) {
+        return;
+      }
+
+      const warning = document.createElement("section");
+      warning.className = "file-mode-warning no-print";
+      warning.innerHTML = `
+        <h2>Open the app version to load saved records</h2>
+        <p>This report is open as a local file, so it cannot see the saved Blacksmith International record from the running app.</p>
+        <p>Use the app link below, then select the saved record if needed.</p>
+        <a href="http://127.0.0.1:8787/results.html?v=20260622-export-menu-edit">Open App Report</a>
+      `;
+      main.prepend(warning);
     }
 
     function scoreValue(data, field) {
@@ -2605,12 +2754,31 @@
     function appendBlueprintField(container, label, value) {
       const field = document.createElement("div");
       const heading = document.createElement("h3");
-      const text = document.createElement("p");
       field.className = "field";
       heading.textContent = label;
-      text.textContent = valueOrMissing(value);
       field.appendChild(heading);
-      field.appendChild(text);
+
+      if (Array.isArray(value)) {
+        const values = normalizeList(value);
+        if (values.length) {
+          const list = document.createElement("ul");
+          values.forEach((item) => {
+            const li = document.createElement("li");
+            li.textContent = item;
+            list.appendChild(li);
+          });
+          field.appendChild(list);
+        } else {
+          const text = document.createElement("p");
+          text.textContent = missingText;
+          field.appendChild(text);
+        }
+      } else {
+        const text = document.createElement("p");
+        text.textContent = valueOrMissing(value);
+        field.appendChild(text);
+      }
+
       container.appendChild(field);
     }
 
@@ -2862,18 +3030,84 @@
       ]);
     }
 
+    function executiveInsightOpportunity(model) {
+      const insights = buildStrategicInsights(model);
+      const opportunity = insights.find((item) => /opportunity|pattern/i.test(item.type));
+      if (opportunity) return opportunity.recommendedAction || opportunity.title;
+      const priority = buildRevenueImpactPriorities(model)[0];
+      return priority?.recommendedAction || priority?.priority || "Use the strongest ICP, offer, and proof evidence to run one focused revenue motion.";
+    }
+
+    function executiveInsightRisk(model) {
+      const insights = buildStrategicInsights(model);
+      const risk = insights.find((item) => /risk|contradiction/i.test(item.type) || item.severity === "High");
+      if (risk) return risk.title || risk.observation;
+      const risks = buildRisksGapsAssumptions(model);
+      return risks[0]?.risk || "The main risk is scaling activity before focus, proof, and revenue motion discipline are clear.";
+    }
+
+    function executiveInsightAction(model) {
+      const recommendation = buildPrescriptiveRecommendations(model)[0];
+      return recommendation?.title || "Run one weekly focused revenue motion against the priority ICP list.";
+    }
+
+    function executiveInsightMeaning(model) {
+      const company = cleanText(model.data.companyName) || "The company";
+      const icp = cleanRecommendation(model.priorityGroup?.values.groupName || model.data.bestFitCustomerGroup || model.data.quickBestFitCustomer, "one priority customer group");
+      const motion = readableRevenueMotion(model);
+      if (model.readinessScore < 50) {
+        return `${company} should not broaden GTM activity yet. The next 90 days should focus on ${icp.toLowerCase()}, one sellable offer, ${motion.toLowerCase()}, and a weekly review rhythm before scaling.`;
+      }
+      if (model.readinessScore < 70) {
+        return `${company} has enough signal to run a focused GTM test, but the plan still depends on sharper proof, clearer ownership, and consistent weekly execution.`;
+      }
+      return `${company} appears ready to validate the current GTM motion, provided the team keeps focus narrow and reviews evidence every week.`;
+    }
+
+    function renderExecutiveInsights(model) {
+      renderBlueprintGrid(document.getElementById("executiveInsights"), [
+        ["Current Readiness", `${model.readinessScore}/100 - ${model.readinessStage}`],
+        ["Top Opportunity", executiveInsightOpportunity(model)],
+        ["Biggest Risk", executiveInsightRisk(model)],
+        ["90-Day Goal", concrete90DayOutcome(model)],
+        ["Most Important Action", executiveInsightAction(model)],
+        ["Confidence", model.scoreConfidence || "Medium"],
+        ["What this means", executiveInsightMeaning(model)]
+      ]);
+    }
+
 
     function isPlaceholderValue(value) {
       const text = String(value || "").trim().toLowerCase();
       return !text
-        || ["not sure yet", "na", "n/a", "none", "primary signal play", "primary revenue motion"].includes(text)
+        || [
+          "not sure",
+          "not sure yet",
+          "na",
+          "n/a",
+          "none",
+          "other",
+          "pain",
+          "ai",
+          "ai please",
+          "ai recommendation",
+          "ai recomendation",
+          "this needs ai recomendations",
+          "this needs to be a ai recomendation",
+          "not filled yet",
+          "no one",
+          "not defined yet",
+          "primary targeting strategy",
+          "primary signal play",
+          "primary revenue motion"
+        ].includes(text)
         || /^play-\d+$/.test(text)
         || /^motion-\d+$/.test(text)
         || /^offer-\d+$/.test(text);
     }
 
     function cleanRecommendation(value, fallback = "Not yet defined - requires user input") {
-      return isPlaceholderValue(value) ? fallback : value;
+      return isPlaceholderValue(value) ? fallback : cleanText(value);
     }
 
     function cleanSentence(value) {
@@ -2907,10 +3141,10 @@
       const data = model.data;
       const play = model.signalPlay?.values || {};
       const raw = play.playName || repeatableListItems(data, "buyingTriggersSummary")[0];
-      if (!isPlaceholderValue(raw)) return raw;
+      if (!isPlaceholderValue(raw)) return humanizeTriggerSignal(raw);
       const trigger = model.signalTriggers[0]?.values.triggerEvent || data.bestFitTrigger || data.quickUrgencyNow;
       const fit = model.signalFits[0]?.values.signal;
-      return cleanRecommendation([trigger, fit].filter(Boolean).join(" / "), "Not yet defined - requires user input");
+      return cleanRecommendation(humanizeTriggerSignal([trigger, fit].filter(Boolean).join(" / ")), "Not yet defined - requires user input");
     }
 
     function supportedBullets(items) {
@@ -3005,6 +3239,66 @@
         return humanizeBuyerRisk(riskItems);
       }
       return "The buyer may not act unless the cost of inaction, expected outcome, and proof are made explicit.";
+    }
+
+    function buyerMap(model) {
+      const data = model.data;
+      const role = (id, field) => cleanRecommendation(field || roleCardValues(data, id).commonTitles, "");
+      return [
+        ["Economic buyer", role("economic-buyer", data.budgetOwner || model.buyer.label)],
+        ["Executive sponsor", role("executive-sponsor", data.execValueDrivers || data.budgetOwner)],
+        ["Champion", role("champion", data.bestFitChampion || data.painOwner)],
+        ["Finance / approval concern", role("procurement-finance", data.financeDrivers || data.reviewRequirements)],
+        ["Likely blocker", role("likely-blocker", data.dealBlocker || data.mostImportantPersonaRisk)],
+        ["Day-to-day user", role("day-to-day-user", data.endUserDrivers || data.painOwner)]
+      ].filter(([, value]) => value && value !== "Not yet defined - requires user input");
+    }
+
+    function buyerMapText(model) {
+      const map = buyerMap(model);
+      return map.length ? sentenceList(map.map(([label, value]) => `${label}: ${value}`)) : missingText;
+    }
+
+    function buyerMapBullets(model) {
+      return buyerMap(model).map(([label, value]) => `${label}: ${value}`);
+    }
+
+    function proofNeededByRole(model) {
+      const data = model.data;
+      const roleProof = buyerPersonaRoles
+        .map(([roleId, label]) => {
+          const values = roleCardValues(data, roleId);
+          const proof = cleanText(values.proofNeeded || values.valueDrivers || "");
+          return proof ? `${label}: ${proof}` : "";
+        })
+        .filter(Boolean);
+
+      if (roleProof.length) {
+        return roleProof.slice(0, 6);
+      }
+
+      const fallback = [];
+      if (data.budgetOwner || /finance|roi|business case/i.test(buyingRiskStatement(model))) fallback.push("Finance / approval: cost justification and approval rationale");
+      if (model.buyer.label || data.budgetOwner) fallback.push("Executive buyer: ROI story and risk-reduction proof");
+      if (data.painOwner || data.bestFitChampion) fallback.push("Champion / product team: case story, testimonial, and onboarding confidence");
+      return fallback;
+    }
+
+    function roleSpecificDiscoveryQuestions(model) {
+      const mapText = buyerMap(model).map(([, value]) => value).join(" ");
+      const questions = [];
+      if (/coo|operations|economic|ceo|founder|executive/i.test(mapText) || hasSourcingPattern(model)) {
+        questions.push("For the economic buyer: where is margin pressure, execution risk, or delay showing up most clearly?");
+        questions.push("For the economic buyer: what does delay or supplier risk cost the business?");
+      }
+      if (/product|champion|operations|user/i.test(mapText) || hasSourcingPattern(model)) {
+        questions.push("For the champion or product team: what part of production or change management consumes the most time?");
+        questions.push("For the champion or product team: what would make implementation feel less risky?");
+      }
+      if (/finance|approval|budget|roi/i.test(mapText + " " + buyingRiskStatement(model))) {
+        questions.push("For finance or approval: what proof would make this easier to approve?");
+      }
+      return normalizeList([...questions, ...buyerDiscoveryQuestions(model)]).slice(0, 7);
     }
 
     function renderExecutiveSummary(model) {
@@ -3876,6 +4170,26 @@
           <div class="field"><h3>Example of a stronger answer</h3><p>${escapeHtml(area.example)}</p></div>
           <div class="field"><h3>How this improves the blueprint</h3><p>${escapeHtml(area.improves)}</p></div>
         `;
+        const actions = document.createElement("div");
+        const copyButton = document.createElement("button");
+        const improveButton = document.createElement("button");
+        actions.className = "card-actions no-print";
+        copyButton.type = "button";
+        copyButton.className = "secondary";
+        copyButton.textContent = "Copy Questions";
+        copyButton.addEventListener("click", async () => {
+          const copied = await copyTextToClipboard(remediationActionText(area));
+          copyButton.textContent = copied ? "Copied" : "Copy Failed";
+          window.setTimeout(() => {
+            copyButton.textContent = "Copy Questions";
+          }, 1800);
+        });
+        improveButton.type = "button";
+        improveButton.textContent = "Workshop";
+        improveButton.addEventListener("click", () => openIntakeForRemediation(area));
+        actions.appendChild(copyButton);
+        actions.appendChild(improveButton);
+        card.appendChild(actions);
         list.appendChild(card);
       });
       container.appendChild(list);
@@ -3899,6 +4213,71 @@
         lines.push(`How this improves the blueprint: ${area.improves}`);
       });
       return lines;
+    }
+
+    function remediationSectionId(areaName) {
+      const area = String(areaName || "").toLowerCase();
+      if (area.includes("icp")) return "quickIcp";
+      if (area.includes("revenue motion") || area.includes("crm")) return "pipeline";
+      if (area.includes("proof")) return "offer";
+      if (area.includes("buyer")) return "personas";
+      if (area.includes("revenue assumptions")) return "goals";
+      return "executiveQuickReview";
+    }
+
+    function remediationActionText(area) {
+      return [
+        `Improve: ${area.area}`,
+        "",
+        "Why confidence is not higher:",
+        area.why,
+        "",
+        "What is missing or unclear:",
+        ...area.missing.map((item) => `- ${item}`),
+        "",
+        "Questions to answer:",
+        ...area.questions.map((item, index) => `${index + 1}. ${item}`),
+        "",
+        "Example of a stronger answer:",
+        area.example,
+        "",
+        "How this improves the blueprint:",
+        area.improves
+      ].join("\n");
+    }
+
+    async function copyTextToClipboard(text) {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand("copy");
+      textarea.remove();
+      return copied;
+    }
+
+    function openIntakeForRemediation(area) {
+      const sectionId = remediationSectionId(area.area);
+      localStorage.setItem(IMPROVEMENT_FOCUS_KEY, JSON.stringify({
+        type: "remediation",
+        area: area.area,
+        sectionId,
+        why: area.why,
+        missing: area.missing,
+        questions: area.questions,
+        example: area.example,
+        improves: area.improves,
+        createdAt: new Date().toISOString()
+      }));
+      window.location.href = `index.html?focus=${encodeURIComponent(sectionId)}#${encodeURIComponent(sectionId)}`;
     }
 
     function escapeHtml(value) {
@@ -3959,11 +4338,15 @@
       let text = String(value || "").trim().replace(/\s+/g, " ");
       if (!text) return "";
       const lower = text.toLowerCase();
-      if (["not sure", "not sure yet", "none", "n/a", "na", "pain", "other", "select one"].includes(lower)) return "";
+      if (isPlaceholderValue(text) || ["select one"].includes(lower)) return "";
       if (/^(play|motion|offer|customer-group)-\d+$/i.test(text)) return "";
       text = text
         .replace(/\bno executive mandate\b/gi, "no executive sponsorship")
         .replace(/\bfactory direct or competitor\b/gi, "currently using factory-direct sourcing or another sourcing partner")
+        .replace(/\bfounder-led network referrals\b/gi, "founder-led network and referral motion")
+        .replace(/\bnetwork referrals\b/gi, "network and referral-led opportunities")
+        .replace(/\bno dedicated selling capacity\b/gi, "limited dedicated selling capacity")
+        .replace(/\brevenue motion foundation needed\b/gi, "revenue motion maturity is low and needs structure")
         .replace(/\blonger than 90 days\b/gi, "longer than a 90-day buying cycle")
         .replace(/\bmulti-sku\b/gi, "multi-SKU")
         .replace(/\bgeo-political\b/gi, "geopolitical");
@@ -3992,8 +4375,98 @@
       return `${values.slice(0, -1).join(", ")}, and ${values[values.length - 1]}`;
     }
 
+    function sentenceList(items, fallback = missingText) {
+      const values = normalizeList(items).map((item) => item.endsWith(".") ? item : `${item}.`);
+      return values.length ? values.join(" ") : fallback;
+    }
+
+    function humanizeCapacity(value) {
+      const text = cleanText(value);
+      if (!text) return "";
+      if (/no dedicated|limited dedicated/i.test(text)) return "The company has limited dedicated selling capacity.";
+      if (/founder|part-time/i.test(text)) return "Founder-led selling capacity must be protected each week.";
+      if (/^3\s*-\s*5$/.test(text) || /^3\s*to\s*5$/i.test(text)) return "Founder can protect 3-5 revenue hours per week.";
+      if (/^\d+\s*-\s*\d+$/.test(text) || /^\d+\s*to\s*\d+$/i.test(text)) return "";
+      if (/hour/i.test(text)) return `Available revenue capacity: ${text}.`;
+      return text;
+    }
+
+    function humanizeTriggerSignal(signalData) {
+      const text = cleanText(signalData);
+      if (!text) return "";
+      if (/^(other|pain)\b/i.test(text) || /\bother\s*\/\s*pain\b/i.test(text)) return "";
+      if (/margin|erosion|tariff|cost|freight|profit/i.test(text)) return "Margin pressure";
+      if (/product launch|sku|new product|launch cadence|launch/i.test(text)) return "Product-launch urgency";
+      if (/supplier|factory|manufactur|sourcing|reliability/i.test(text)) return "Supplier or sourcing risk";
+      if (/no owner|no tracking|no monitoring|not operational|process/i.test(text)) return "Signal process not yet operational";
+      return text;
+    }
+
+    function humanizeMotionInput(value) {
+      const text = cleanText(value);
+      if (!text) return "";
+      if (/founder-led network|network and referral/i.test(text)) return "The current motion is founder-led through network and referral opportunities.";
+      if (/foundation needed|maturity is low/i.test(text)) return "Revenue motion maturity is low and needs structure.";
+      return text;
+    }
+
+    function humanizeConfidenceDriver(value) {
+      const text = cleanText(value);
+      if (!text) return "";
+      if (/focus/i.test(text)) return "Focus is the primary execution constraint.";
+      if (/data quality|low|incomplete/i.test(text)) return "Revenue data quality needs cleanup before the team can learn from the motion.";
+      return text;
+    }
+
+    function humanizeBuyerInput(value) {
+      const text = cleanText(value);
+      if (!text) return "";
+      if (/c level|c-level|ceo|coo|founder/i.test(text)) return "Executive-level buyer involvement is likely required.";
+      if (/finance|roi|business case|budget/i.test(text)) return "Finance or budget approval will need a clear business case.";
+      return text;
+    }
+
+    function humanizeProofInput(value) {
+      const text = cleanText(value);
+      if (!text) return "";
+      if (/testimonial|reference|case study/i.test(text)) return "Customer proof can be shaped into a testimonial, reference, or case story.";
+      if (/reduced cost|margin|risk|quality|delivery/i.test(text)) return `Proof should support ${text.toLowerCase()}.`;
+      return text;
+    }
+
+    function humanizeInputLabel(value) {
+      const text = cleanText(value);
+      if (!text) return "";
+      return humanizeCapacity(text)
+        || humanizeMotionInput(text)
+        || humanizeConfidenceDriver(text)
+        || humanizeBuyerInput(text)
+        || humanizeProofInput(text)
+        || text;
+    }
+
+    function formatInputsUsed(items) {
+      return normalizeList(items)
+        .map(humanizeInputLabel)
+        .filter(Boolean)
+        .slice(0, 6);
+    }
+
+    function cleanBullets(items) {
+      const seen = new Set();
+      return (items || [])
+        .map(cleanText)
+        .filter(Boolean)
+        .filter((item) => {
+          const key = item.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+    }
+
     function humanizeFitSignal(signal) {
-      const text = cleanText(signal);
+      const text = humanizeTriggerSignal(signal);
       if (!text) return "";
       if (/factory-direct|sourcing partner/i.test(text)) return "Currently using factory-direct sourcing or another sourcing partner";
       if (/sku/i.test(text)) return "Multiple SKUs or recurring product launches";
@@ -4088,12 +4561,71 @@
       ].map(humanizeDisqualifier)).slice(0, 6);
     }
 
+    function accountFindingMethods(model) {
+      const methods = [
+        "LinkedIn company search",
+        "Industry directories",
+        "Existing customer referrals",
+        "Supplier, logistics, partner, or founder-network referrals"
+      ];
+
+      if (hasSourcingPattern(model)) {
+        methods.push(
+          "Consumer product trade show exhibitor lists",
+          "Retail brand directories",
+          "Shopify or DTC brand lists",
+          "Outdoor, gifting, apparel, accessories, wellness, or specialty retail categories",
+          "LinkedIn searches for founders, COOs, product leaders, sourcing, operations, or supply chain roles"
+        );
+      } else {
+        methods.push("Trade show exhibitor lists", "Partner ecosystems", "Relevant category or association lists");
+      }
+
+      return cleanBullets(methods).slice(0, 8);
+    }
+
+    function accountLookForSignals(model) {
+      const data = model.data;
+      const supported = normalizeList([
+        ...repeatableListItems(data, "icpMustHaveSignals"),
+        ...model.signalFits.map((row) => row.values.signal),
+        data.bestFitTrigger,
+        data.bestFitCurrentWorkaround
+      ].map(humanizeFitSignal));
+      const defaults = hasSourcingPattern(model)
+        ? [
+          "Recent product launches",
+          "SKU expansion",
+          "New retail distribution",
+          "Hiring operations, sourcing, supply chain, or product roles",
+          "Margin pressure signals",
+          "Supplier reliability complaints",
+          "Freight, tariff, quality, or delivery timing concerns",
+          "Small teams managing complex physical products"
+        ]
+        : [
+          "Recent growth or change event",
+          "Visible current workaround",
+          "Hiring or budget activity related to the problem",
+          "Executive sponsor or budget owner visibility",
+          "Observable pain that connects to the offer"
+        ];
+
+      return cleanBullets([...supported, ...defaults]).slice(0, 8);
+    }
+
     function targetListCriteria(model) {
       const ideal = idealTargetAccountBullets(model);
       const avoid = avoidAccountBullets(model);
+      const find = accountFindingMethods(model);
+      const lookFor = accountLookForSignals(model);
       return {
         intro: "Ideal target accounts should look like:",
         bullets: ideal.length ? ideal : ["Companies matching the selected priority ICP", "A clear buyer problem", "A timing trigger that makes action urgent"],
+        findIntro: "Where to find these accounts:",
+        findBullets: find,
+        lookForIntro: "Look for:",
+        lookForBullets: lookFor,
         avoidIntro: "Avoid accounts that:",
         avoidBullets: avoid.length ? avoid : ["Do not match the priority ICP", "Lack urgency, budget authority, or executive sponsorship"]
       };
@@ -4127,14 +4659,57 @@
       return "";
     }
 
+    function proofAssetCandidates(model) {
+      const data = model.data;
+      const rows = [
+        ...meaningfulRows(data, "proofReferenceCandidates", ["customerName", "proofTypes", "outcomeProven", "resultStory", "permissionStatus"]),
+        ...meaningfulRows(data, "customerEvidenceInventory", ["customerName", "whyGoodFit", "outcomeAchieved", "proofOpportunity", "permissionStatus"]),
+        ...meaningfulRows(data, "expansionOpportunities", ["customerName", "opportunity", "nextAction"]),
+        ...meaningfulRows(data, "deliveryFitRisks", ["customerName", "risk", "mitigation"])
+      ];
+
+      return rows.map((row) => {
+        const values = row.values || {};
+        const customerProject = cleanText(values.customerName || values.projectName || values.accountName || "Customer or project to confirm");
+        const outcome = cleanText(values.outcomeProven || values.outcomeAchieved || values.resultStory || values.opportunity || values.mitigation);
+        const proofType = cleanText(values.proofTypes || values.proofType || values.proofOpportunity || values.availableProof);
+        const permission = cleanText(values.permissionStatus || values.referencePermission || values.canUsePublicly);
+        const whyFit = cleanText(values.whyGoodFit || values.reason || values.notes || values.gtmLesson);
+        const nextAction = cleanText(values.nextAction || values.followUpAction || values.permissionNextStep);
+        let angle = synthesizedOfferMessage(model) || (outcome ? `Use this story to show ${outcome.toLowerCase()} without inventing numeric results.` : "Use qualitative proof until numeric results are confirmed.");
+
+        if (/grounded brand/i.test(customerProject)) {
+          angle = "Grounded Brand appears to support a proof angle around keeping overhead low while launching new products.";
+        } else if (/little poppy/i.test(customerProject)) {
+          angle = "Little Poppy supports a proof angle around managing manufacturing and logistics with a small internal team.";
+        } else if (/mission belt/i.test(customerProject)) {
+          angle = "Mission Belt supports a proof angle around saving time and money for recurring product orders.";
+        } else if (hasSourcingPattern(model)) {
+          angle = "Use customer evidence showing that lean product brands can launch and manage products without building a larger internal sourcing or production team.";
+        }
+
+        return {
+          customerProject,
+          outcome: outcome || "Use qualitative proof until numeric results are confirmed.",
+          whyFit: whyFit || "This appears to match the priority ICP, buyer problem, or proof need.",
+          proofType: proofType || "Customer story, testimonial, referral introduction, or internal project evidence.",
+          permission: permission || "Permission not yet confirmed.",
+          angle,
+          nextAction: nextAction || "Ask permission to turn the story into a one-page proof asset."
+        };
+      }).filter((candidate) => !isPlaceholderValue(candidate.customerProject)).slice(0, 4);
+    }
+
     function proofAssetBuild(model) {
       const outcome = humanizeOutcome(model.valueClaim?.values.outcome || model.valueClaim?.values.improvement || model.data.quickPrimaryOutcome || "the primary measurable outcome");
       const problem = humanizeOfferProblem(model.data.bestFitPrimaryPain || model.data.quickBuyerProblem || offerScopedValue(model.data, model.primaryOffer?.rowId, "offerBuyerProblem", ""));
+      const candidates = proofAssetCandidates(model);
       return {
         intro: "Build:",
         bullets: [
           `Margin / risk reduction proof sheet: show the business problem${problem ? ` (${problem})` : ""}, the measurable impact${outcome ? ` (${outcome})` : ""}, and why acting now matters.`,
-          "Customer proof story: show the buyer situation before, what changed, and the measurable result or operational improvement."
+          "Customer proof story: show the buyer situation before, what changed, and the measurable result or operational improvement.",
+          ...(candidates.length ? [`Start with: ${candidates[0].customerProject}.`] : ["Use qualitative proof until numeric results are confirmed."])
         ]
       };
     }
@@ -4201,7 +4776,7 @@
     }
 
     function inputBullets(items) {
-      return normalizeList(items).slice(0, 6);
+      return formatInputsUsed(items);
     }
 
     function addRecommendation(recommendations, item) {
@@ -4377,6 +4952,10 @@
         return [
           value.intro ? `<p>${escapeHtml(value.intro)}</p>` : "",
           value.bullets ? `<ul>${value.bullets.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : "",
+          value.findIntro ? `<p>${escapeHtml(value.findIntro)}</p>` : "",
+          value.findBullets ? `<ul>${value.findBullets.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : "",
+          value.lookForIntro ? `<p>${escapeHtml(value.lookForIntro)}</p>` : "",
+          value.lookForBullets ? `<ul>${value.lookForBullets.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : "",
           value.avoidIntro ? `<p>${escapeHtml(value.avoidIntro)}</p>` : "",
           value.avoidBullets ? `<ul>${value.avoidBullets.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : "",
           value.after ? `<p>${escapeHtml(value.after)}</p>` : ""
@@ -4421,6 +5000,10 @@
         const lines = [];
         if (value.intro) lines.push(`     ${value.intro}`);
         if (value.bullets) value.bullets.forEach((item) => lines.push(`     - ${item}`));
+        if (value.findIntro) lines.push(`     ${value.findIntro}`);
+        if (value.findBullets) value.findBullets.forEach((item) => lines.push(`     - ${item}`));
+        if (value.lookForIntro) lines.push(`     ${value.lookForIntro}`);
+        if (value.lookForBullets) value.lookForBullets.forEach((item) => lines.push(`     - ${item}`));
         if (value.avoidIntro) lines.push(`     ${value.avoidIntro}`);
         if (value.avoidBullets) value.avoidBullets.forEach((item) => lines.push(`     - ${item}`));
         if (value.after) lines.push(`     ${value.after}`);
@@ -4500,6 +5083,7 @@
             "Accounts with a timing trigger that makes action urgent"
           ]),
           executionAssetSection("Signals to look for", supportedSignals.length ? supportedSignals.slice(0, 6) : genericSignals),
+          executionAssetSection("Where to find these accounts", accountFindingMethods(model)),
           executionAssetSection("Who to exclude", avoidAccountBullets(model).length ? avoidAccountBullets(model) : [
             "No executive sponsorship",
             "No budget authority",
@@ -4553,10 +5137,10 @@
         purpose: "Determine whether the buyer has enough urgency, budget, and operational pain to act in the next 90 days.",
         sections: [
           executionAssetSection("Primary conversation goal", ["Confirm pain, urgency, budget owner, proof needs, and the next buyer action."]),
-          executionAssetSection("Discovery questions", buyerDiscoveryQuestions(model).concat([
+          executionAssetSection("Discovery questions", roleSpecificDiscoveryQuestions(model).concat([
             "Who else needs to care before this becomes a priority?",
             "What proof would make this easier to approve?"
-          ]).slice(0, 6)),
+          ]).slice(0, 7)),
           executionAssetSection("Qualification signals", [
             "Buyer can describe the business impact.",
             "Buyer has urgency within the next 90 days.",
@@ -4581,18 +5165,28 @@
       const data = model.data;
       const problem = humanizeOfferProblem(data.bestFitPrimaryPain || data.quickBuyerProblem || offerScopedValue(data, model.primaryOffer?.rowId, "offerBuyerProblem", ""));
       const outcome = humanizeOutcome(model.valueClaim?.values.outcome || model.valueClaim?.values.improvement || data.quickPrimaryOutcome);
+      const candidates = proofAssetCandidates(model);
       return {
         title: "Asset 4: Proof Asset Brief",
         purpose: "Create two proof assets that reduce buyer risk without inventing customer results.",
         sections: [
+          ...(candidates.length ? candidates.map((candidate, index) => executionAssetSection(`Suggested proof asset candidate ${index + 1}`, [
+            `Customer / project: ${candidate.customerProject}`,
+            `Outcome proven: ${candidate.outcome}`,
+            `Why they are a good fit: ${candidate.whyFit}`,
+            `Available proof type: ${candidate.proofType}`,
+            `Permission status: ${candidate.permission}`,
+            `Suggested proof angle: ${candidate.angle}`,
+            `Next action: ${candidate.nextAction}`
+          ])) : []),
           executionAssetSection("Proof Asset A: Margin / Risk Reduction Proof Sheet", [
             "Purpose: Show that the buyer problem has measurable business impact and that the offer reduces risk.",
             `Buyer problem: ${problem || "Use the buyer problem from discovery."}`,
-            "Cost of inaction",
-            "What changed",
+            "Cost of inaction: confirm through customer discovery or project evidence.",
+            "What changed: use verified customer or internal delivery evidence.",
             `Measurable result: ${outcome || "Use verified qualitative or quantitative evidence."}`,
-            "Buyer quote or customer evidence",
-            "Next step"
+            "Buyer quote or customer evidence: use only approved language.",
+            "Next step: ask permission to package the evidence."
           ]),
           executionAssetSection("Proof Asset B: Customer Proof Story", [
             "Purpose: Give the buyer confidence that a similar company has solved a similar problem.",
@@ -5046,11 +5640,13 @@
       ]);
       renderBlueprintGrid(document.getElementById("icpPlaybook"), [
         ["Recommended ICP", cleanRecommendation(group?.values.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer)],
-        ["Why We Chose This ICP", listText(chosen)],
+        ["Why We Chose This ICP", sentenceList(chosen)],
         ["Buying pain", polishedText(data.bestFitPrimaryPain || group?.values.problem || data.quickBuyerProblem)],
         ["Why now", polishedText(data.bestFitTrigger || group?.values.whyNow || data.quickUrgencyNow)],
         ["How to identify accounts", icpIdentificationGuidance(model)],
-        ["Disqualification rules", listText(repeatableListItems(data, "icpDisqualificationRules"))],
+        ["Where to find these accounts", accountFindingMethods(model)],
+        ["Look for", accountLookForSignals(model)],
+        ["Disqualification rules", avoidAccountBullets(model).length ? avoidAccountBullets(model) : repeatableListItems(data, "icpDisqualificationRules")],
         ["First target list action", "Build a first-pass list of 50 accounts that match the identification guidance and exclude disqualified accounts."],
         ["Related recommendation", recommendationReference(model, "Target List Recommendation")]
       ]);
@@ -5058,12 +5654,14 @@
 
     function renderBuyerPersonaSummary(model) {
       const data = model.data;
-      const proofNeeded = buyerPersonaRoles.map(([roleId]) => roleCardValues(data, roleId).proofNeeded).filter(Boolean)[0];
+      const proofNeeded = proofNeededByRole(model);
       renderBlueprintGrid(document.getElementById("buyerPersonaBlueprint"), [
+        ["Buyer Map", buyerMapBullets(model)],
         ["Economic buyer", cleanRecommendation(data.budgetOwner || roleCardValues(data, "economic-buyer").commonTitles)],
         ["Champion", cleanRecommendation(data.bestFitChampion || roleCardValues(data, "champion").commonTitles)],
         ["Primary buying risk", buyingRiskStatement(model)],
-        ["Proof needed", cleanRecommendation(proofNeeded, "Proof asset not yet defined.")],
+        ["Proof needed by role", proofNeeded.length ? proofNeeded : ["Proof asset not yet defined."]],
+        ["Role-specific discovery questions", roleSpecificDiscoveryQuestions(model)],
         ["Sales process implication", cleanRecommendation(data.salesProcessChangeNeeded, "Clarify budget owner, champion, blocker, and proof before scaling outreach.")],
         ["Next buyer-facing asset", "Create a one-page proof asset that connects buyer pain, expected outcome, credibility, and next step."],
         ["Related recommendation", recommendationReference(model, "Buyer Conversation Recommendation")]
@@ -5093,12 +5691,12 @@
     function renderTriggerSignalStrategy(model) {
       const data = model.data;
       const play = model.signalPlay;
-      const triggers = model.signalTriggers.map((row) => [row.values.triggerEvent, row.values.whyUrgent, row.values.priority].filter(Boolean).join(" | "));
-      const fitSignals = model.signalFits.map((row) => [row.values.signalCategory, row.values.signal, row.values.source].filter(Boolean).join(" | "));
-      const negatives = model.signalNegatives.map((row) => [row.values.negativeSignal, row.values.action].filter(Boolean).join(" | "));
+      const triggers = model.signalTriggers.map((row) => [humanizeTriggerSignal(row.values.triggerEvent), row.values.whyUrgent, row.values.priority].filter(Boolean).join(" | "));
+      const fitSignals = model.signalFits.map((row) => [row.values.signalCategory, humanizeFitSignal(row.values.signal), row.values.source].filter(Boolean).join(" | "));
+      const negatives = model.signalNegatives.map((row) => [humanizeTriggerSignal(row.values.negativeSignal), row.values.action].filter(Boolean).join(" | "));
       const actions = play?.rowId ? signalRows(data, play.rowId, "signalActionPlan").map((row) => [row.values.highPrioritySignal, row.values.outreachAngle, row.values.channel, row.values.followUpAction].filter(Boolean).join(" | ")) : [];
       renderBlueprintGrid(document.getElementById("triggerSignalStrategy"), [
-        ["Primary signal play", play?.values.playName || repeatableListItems(data, "buyingTriggersSummary")[0]],
+        ["Primary signal play", readableSignal(model)],
         ["Customer group", play?.values.newCustomerGroup || play?.values.customerGroup],
         ["Offer/use case", play?.values.newOfferOrUseCase || play?.values.offerOrUseCase],
         ["Buyer persona", play?.values.primaryBuyerPersona],
@@ -5159,6 +5757,14 @@
         if (parsed) return { value: parsed, source: String(value || "").trim() };
       }
       return { value: null, source: "" };
+    }
+
+    function hasRevenueCapacityInput(data) {
+      return Boolean(humanizeCapacity(data.weeklyRevenueHours) || humanizeCapacity(data.sellingCapacity));
+    }
+
+    function revenueCapacityDisplay(data) {
+      return cleanBullets([humanizeCapacity(data.weeklyRevenueHours), humanizeCapacity(data.sellingCapacity)]).join(" | ");
     }
 
     function activityLabelForMotion(motion) {
@@ -5364,7 +5970,7 @@
       if (!revenueGoal.value) missingInputs.push("Numeric 90-day revenue goal");
       if (!averageDealSize.value) missingInputs.push("Average deal size");
       if (!primaryMotion) missingInputs.push("Primary revenue motion");
-      if (!data.sellingCapacity && !data.weeklyRevenueHours) missingInputs.push("Selling capacity or weekly revenue hours");
+      if (!hasRevenueCapacityInput(data)) missingInputs.push("Selling capacity or weekly revenue hours");
       if (assumptions.conversionSource === "Default assumption") missingInputs.push("Actual conversion rates");
       let totals = null;
       if (revenueGoal.value && averageDealSize.value) {
@@ -5384,8 +5990,8 @@
         };
       }
       const activityLabel = activityLabelForMotion(primaryMotion);
-      const capacityText = [data.sellingCapacity, data.weeklyRevenueHours].filter(Boolean).join(" | ");
-      const weeklyHours = parseAmount(data.weeklyRevenueHours || data.sellingCapacity);
+      const capacityText = revenueCapacityDisplay(data);
+      const weeklyHours = parseAmount(data.weeklyRevenueHours);
       const capacityRisk = totals && weeklyHours && totals.weeklyActivity > weeklyHours * 8
         ? "Capacity may be insufficient to support the stated goal."
         : totals ? "Capacity should be reviewed weekly against meeting and activity targets." : "Capacity risk cannot be calculated until average deal size and revenue goal are provided.";
@@ -5431,10 +6037,10 @@
       renderBlueprintGrid(container, [
         ["CRM system", model.data.revenueTrackingSystem],
         ["Immediate CRM objective", "Track the priority ICP, source, offer, pipeline stage, next action, and proof gap for every active opportunity."],
-        ["Top 5 required fields", listText(requiredFields)],
+        ["Top 5 required fields", requiredFields],
         ["Required pipeline stages", crm.dealStages.map((row) => row.stage).slice(0, 8).join(" -> ")],
         ["Top 3 dashboards", crm.dashboards.slice(0, 3).map((row) => row.name).join(", ")],
-        ["Top 3 hygiene rules", listText(crm.hygiene.slice(0, 3))],
+        ["Top 3 hygiene rules", crm.hygiene.slice(0, 3)],
         ["Next setup action", "Configure the required fields and a weekly pipeline dashboard before increasing GTM volume."]
       ]);
     }
@@ -5524,6 +6130,7 @@
     }
 
     function renderBlueprint(model) {
+      safeRenderSection("Executive Insights", () => renderExecutiveInsights(model));
       safeRenderSection("Blueprint Header", () => renderBlueprintHeader(model));
       safeRenderSection("Executive Decision Summary", () => renderExecutiveSummary(model));
       safeRenderSection("Executive Action Plan", () => renderExecutiveActionPlan(model));
@@ -5784,9 +6391,15 @@
 </html>`;
     }
 
-    function downloadDoc(model) {
+    function isDetailedReport(data) {
+      return data.reviewMode === "detailed"
+        || ["offerPortfolio", "signalPlayPortfolio", "revenueMotionPortfolio", "possibleCustomerGroups", "successLooksLike", "topBlockers"]
+          .some((prefix) => Object.keys(data || {}).some((key) => key.startsWith(`${prefix}__`) && String(data[key] || "").trim()));
+    }
+
+    function downloadDoc(model, includeAppendix = false) {
       const filename = `${safeFileName(model.data.companyName)}-gtm-blueprint.doc`;
-      downloadTextFile(filename, buildDocumentHtml(model), "application/msword;charset=utf-8");
+      downloadTextFile(filename, buildDocumentHtml(model, includeAppendix), "application/msword;charset=utf-8");
     }
 
     function printBlueprint(includeAppendix = false) {
@@ -6032,8 +6645,10 @@
       return Math.round((values.reduce((sum, value) => sum + value, 0) / schema.scoreFields.length) * 20);
     }
 
-    function render() {
-      const data = readData();
+    async function render() {
+      showFileModeWarning();
+
+      const data = await readData();
       const categories = categoryDefinitions.map((category) => ({
         ...category,
         score: categoryScore(data, category)
@@ -6087,32 +6702,32 @@
       renderPlan(plan);
       renderSummary(data);
 
-      document.getElementById("copyButton").addEventListener("click", async () => {
-        const copyText = buildExecutiveCopyText(blueprintModel);
-        if (navigator.clipboard) {
-          await navigator.clipboard.writeText(copyText);
-        }
+      const includeAppendix = isDetailedReport(data);
+      const exportButton = document.getElementById("exportButton");
+      const exportMenu = document.getElementById("exportMenu");
+
+      exportButton.addEventListener("click", () => {
+        const isOpen = exportMenu.classList.toggle("open");
+        exportButton.setAttribute("aria-expanded", String(isOpen));
       });
-      document.getElementById("copyFullButton").addEventListener("click", async () => {
-        const copyText = buildFullBlueprintCopyText(blueprintModel);
-        if (navigator.clipboard) {
-          await navigator.clipboard.writeText(copyText);
-        }
+      document.getElementById("exportPdfButton").addEventListener("click", () => {
+        printBlueprint(includeAppendix);
       });
-      document.getElementById("pdfButton").addEventListener("click", () => {
-        printBlueprint(false);
+      document.getElementById("exportDocButton").addEventListener("click", () => {
+        downloadDoc(blueprintModel, includeAppendix);
       });
-      document.getElementById("pdfFullButton").addEventListener("click", () => {
-        printBlueprint(true);
-      });
-      document.getElementById("docButton").addEventListener("click", () => {
-        downloadDoc(blueprintModel);
+      document.getElementById("exportCopyButton").addEventListener("click", async () => {
+        const copyText = includeAppendix ? buildFullBlueprintCopyText(blueprintModel) : buildExecutiveCopyText(blueprintModel);
+        const copied = await copyTextToClipboard(copyText);
+        const copyButton = document.getElementById("exportCopyButton");
+        copyButton.textContent = copied ? "Copied" : "Copy Failed";
+        window.setTimeout(() => {
+          copyButton.textContent = "Copy Text";
+        }, 1800);
       });
     }
 
-    try {
-      render();
-    } catch (error) {
+    function showRenderError(error) {
       console.error("Report failed to render", error);
       const main = document.querySelector("main");
       if (main) {
@@ -6127,6 +6742,8 @@
         main.prepend(section);
       }
     }
+
+    render().catch(showRenderError);
   </script>
 </body>
 </html>

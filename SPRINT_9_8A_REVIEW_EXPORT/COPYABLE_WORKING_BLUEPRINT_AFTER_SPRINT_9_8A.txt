@@ -1,0 +1,9 @@
+Sprint 9.8A working blueprint export should include Executive Insights plus the operating sections used to run the plan.
+
+Expected quality:
+- Buyer map renders as bullets.
+- Proof needed by role renders as bullets.
+- Role-specific discovery questions render as bullets.
+- Target-list where-to-find and look-for signals render as complete bullets.
+- CRM fields and hygiene rules render as bullets.
+

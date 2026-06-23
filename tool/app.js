@@ -2,6 +2,7 @@ const schema = window.GTM_INTAKE_SCHEMA;
 const STORAGE_KEY = schema.storageKey;
 const RECORDS_KEY = `${STORAGE_KEY}:records`;
 const ACTIVE_RECORD_KEY = `${STORAGE_KEY}:activeRecordId`;
+const IMPROVEMENT_FOCUS_KEY = `${STORAGE_KEY}:improvementFocus`;
 const API_BASE = window.GTM_API_BASE || (window.location.protocol.startsWith("http") ? window.location.origin : "");
 let autosaveTimer = null;
 let intakeUiRefreshTimer = null;
@@ -2492,6 +2493,128 @@ function firstDetailedSectionId() {
   return section?.id || "company";
 }
 
+function currentImprovementFocus() {
+  try {
+    const focus = JSON.parse(localStorage.getItem(IMPROVEMENT_FOCUS_KEY) || "null");
+    return focus && focus.sectionId ? focus : null;
+  } catch (error) {
+    localStorage.removeItem(IMPROVEMENT_FOCUS_KEY);
+    return null;
+  }
+}
+
+function renderImprovementFocusCard(sectionId) {
+  const focus = currentImprovementFocus();
+
+  if (!focus || focus.sectionId !== sectionId) {
+    return null;
+  }
+
+  const card = document.createElement("div");
+  const heading = document.createElement("h3");
+  const why = document.createElement("p");
+  const missingHeading = document.createElement("h4");
+  const missingList = document.createElement("ul");
+  const questionsHeading = document.createElement("h4");
+  const questionsList = document.createElement("ol");
+  const exampleHeading = document.createElement("h4");
+  const example = document.createElement("p");
+  const actions = document.createElement("div");
+  const saveAnswers = document.createElement("button");
+  const updateModel = document.createElement("button");
+  const regenerate = document.createElement("button");
+  const dismiss = document.createElement("button");
+
+  card.className = "improvement-focus";
+  heading.textContent = `Workshop: ${focus.area || "Recommended follow-up"}`;
+  why.textContent = focus.why || "Answer the questions below to improve report confidence.";
+  missingHeading.textContent = "What is missing or unclear";
+  (focus.missing || []).forEach((item) => {
+    const li = document.createElement("li");
+    li.textContent = item;
+    missingList.appendChild(li);
+  });
+  questionsHeading.textContent = "Questions to answer";
+  (focus.questions || []).forEach((item) => {
+    const li = document.createElement("li");
+    li.textContent = item;
+    questionsList.appendChild(li);
+  });
+  exampleHeading.textContent = "Example of a stronger answer";
+  example.textContent = focus.example || "";
+  actions.className = "action-bar";
+  saveAnswers.type = "button";
+  saveAnswers.className = "secondary";
+  saveAnswers.textContent = "Save Answers";
+  saveAnswers.addEventListener("click", () => {
+    formStateData = {
+      ...formStateData,
+      ...currentVisibleFormData()
+    };
+    saveDraft(true);
+  });
+  updateModel.type = "button";
+  updateModel.className = "secondary";
+  updateModel.textContent = "Update Model";
+  updateModel.addEventListener("click", () => {
+    formStateData = {
+      ...formStateData,
+      ...currentVisibleFormData()
+    };
+    saveDraft(false);
+    renderOfferAssessmentPanels();
+    renderSignalPlayAssessmentPanels();
+    renderRevenueMotionAssessmentPanels();
+    updateConditionalFields();
+    refreshIntakeUi({ refreshPanels: true });
+    const status = document.getElementById("saveStatus");
+    if (status) {
+      status.textContent = "Model updated from workshop answers.";
+    }
+  });
+  regenerate.type = "button";
+  regenerate.textContent = "Regenerate Blueprint";
+  regenerate.addEventListener("click", () => {
+    formStateData = {
+      ...formStateData,
+      ...currentVisibleFormData()
+    };
+    saveDraft(false);
+    submitIntake("detailed");
+  });
+  dismiss.type = "button";
+  dismiss.className = "secondary";
+  dismiss.textContent = "Dismiss";
+  dismiss.addEventListener("click", () => {
+    localStorage.removeItem(IMPROVEMENT_FOCUS_KEY);
+    renderSections();
+    setFormData(formStateData);
+    refreshIntakeUi({ refreshPanels: true });
+    updateConditionalFields();
+  });
+
+  card.appendChild(heading);
+  card.appendChild(why);
+  if (missingList.children.length) {
+    card.appendChild(missingHeading);
+    card.appendChild(missingList);
+  }
+  if (questionsList.children.length) {
+    card.appendChild(questionsHeading);
+    card.appendChild(questionsList);
+  }
+  if (example.textContent) {
+    card.appendChild(exampleHeading);
+    card.appendChild(example);
+  }
+  actions.appendChild(saveAnswers);
+  actions.appendChild(updateModel);
+  actions.appendChild(regenerate);
+  actions.appendChild(dismiss);
+  card.appendChild(actions);
+  return card;
+}
+
 function syncFormStateFromDom() {
   formStateData = getFormData();
 }
@@ -2565,6 +2688,10 @@ function renderSections() {
   }
 
   sectionEl.appendChild(heading);
+  const improvementFocus = renderImprovementFocusCard(activeSection.id);
+  if (improvementFocus) {
+    sectionEl.appendChild(improvementFocus);
+  }
   renderSectionBody(activeSection, sectionEl);
 
   if (activeSection.id === "executiveQuickReview") {
@@ -2751,6 +2878,27 @@ function setActiveRecordId(id) {
     localStorage.setItem(ACTIVE_RECORD_KEY, id);
   } else {
     localStorage.removeItem(ACTIVE_RECORD_KEY);
+  }
+
+  updateResultsLink();
+}
+
+function resultsUrl(version = "20260622-record-safe-results") {
+  const id = activeRecordId();
+  const params = new URLSearchParams({ v: version });
+
+  if (id) {
+    params.set("recordId", id);
+  }
+
+  return `results.html?${params.toString()}`;
+}
+
+function updateResultsLink() {
+  const link = document.getElementById("viewResultsLink");
+
+  if (link) {
+    link.href = resultsUrl();
   }
 }
 
@@ -4124,6 +4272,7 @@ function saveDraft(showStatus = true) {
   writeRecords(records);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   renderBrandPicker();
+  updateResultsLink();
   saveRecordToBackend(savedRecord);
 
   if (showStatus) {
@@ -4467,7 +4616,7 @@ function submitIntake(mode = "detailed") {
 
   showIcpGuidanceIfEmpty(currentReportMode);
   saveDraft(false);
-  window.location.href = "results.html?v=20260622-sprint9-remediation-coaching";
+  window.location.href = resultsUrl();
 }
 
 function showDetailedSections() {
@@ -4489,6 +4638,46 @@ function showDetailedSections() {
   if (active) {
     active.scrollIntoView({ behavior: "smooth", block: "start" });
   }
+}
+
+function applyIncomingImprovementFocus() {
+  const focus = currentImprovementFocus();
+
+  if (!focus) {
+    return;
+  }
+
+  const targetSection = schema.sections.find((section) => section.id === focus.sectionId && !section.hidden && !section.deprecated);
+
+  if (!targetSection) {
+    localStorage.removeItem(IMPROVEMENT_FOCUS_KEY);
+    return;
+  }
+
+  const data = getFormData();
+  currentReportMode = "detailed";
+  detailedSectionsVisible = true;
+  activeSectionId = targetSection.id;
+  renderSections();
+  setFormData(data);
+  renderOfferAssessmentPanels();
+  renderSignalPlayAssessmentPanels();
+  renderRevenueMotionAssessmentPanels();
+  updateConditionalFields();
+  refreshIntakeUi();
+  updateDetailedActionBar();
+
+  const status = document.getElementById("saveStatus");
+  if (status) {
+    status.textContent = `Improvement focus loaded: ${focus.area || targetSection.title}.`;
+  }
+
+  window.setTimeout(() => {
+    const active = document.getElementById(activeSectionId);
+    if (active) {
+      active.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, 50);
 }
 
 function updateDetailedActionBar() {
@@ -5114,7 +5303,9 @@ async function initializeIntake() {
   updateDetailedActionBar();
   await loadBackendRecords();
   renderBrandPicker();
+  updateResultsLink();
   loadDraft();
+  applyIncomingImprovementFocus();
   renderOfferAssessmentPanels();
   renderSignalPlayAssessmentPanels();
   renderRevenueMotionAssessmentPanels();

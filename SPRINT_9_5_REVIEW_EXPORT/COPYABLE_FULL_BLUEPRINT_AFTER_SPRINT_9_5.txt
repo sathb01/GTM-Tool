@@ -1,0 +1,7 @@
+Sprint 9.5 full blueprint export should copy the working blueprint plus available appendix and intake summary content.
+
+Quality expectations:
+- Executive-facing sections remain cleaned.
+- Appendix content may be more detailed but should still avoid obvious placeholders and internal IDs where feasible.
+- Browser-controlled print headers and footers require print-dialog settings to suppress.
+

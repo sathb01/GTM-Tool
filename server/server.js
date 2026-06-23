@@ -237,6 +237,20 @@ async function handleRecords(request, response, url) {
 
   const match = url.pathname.match(/^\/api\/records\/([^/]+)$/);
 
+  if (match && request.method === "GET") {
+    const id = decodeURIComponent(match[1]);
+    const records = await readRecords();
+    const record = records.find((item) => item.id === id);
+
+    if (!record) {
+      sendJson(response, 404, { error: "Record not found" });
+      return true;
+    }
+
+    sendJson(response, 200, { record: publicRecord(record) });
+    return true;
+  }
+
   if (match && request.method === "PUT") {
     const id = decodeURIComponent(match[1]);
     const body = await readJsonBody(request);
