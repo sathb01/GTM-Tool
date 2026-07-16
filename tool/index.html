@@ -1485,6 +1485,8 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="assistant-ui.css">
+  <script src="assistant-ui.js" defer></script>
 </head>
 <body>
   <div class="app-topbar" aria-label="GTM OS workspace navigation">
@@ -1492,7 +1494,10 @@
       <strong>GTM OS</strong>
       <span>Intake Workspace</span>
     </div>
-    <div class="top-search" aria-label="Find or ask">Find or ask</div>
+    <form class="top-search workspace-find-ask" role="search" aria-label="Find or ask">
+      <input type="search" aria-label="Find or ask" placeholder="Find a section or ask a GTM question">
+      <button type="submit">Go</button>
+    </form>
     <div class="top-actions">
       <span class="top-account">Readiness Intake</span>
       <button type="button" id="topResearchButton">Research Prompt</button>

@@ -4,6 +4,15 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-16 Embedded AI Help
+
+- Replaced the nonfunctional Find or ask placeholder with a working section finder and contextual AI assistant on intake and report pages.
+- Added explicit AI actions for recommending section answers, explaining questions and recommendations, reviewing answer gaps, and identifying the next action.
+- Added an authenticated `/api/assistant` server endpoint using the OpenAI Responses API and a broadly available, cost-conscious model default.
+- Kept the API key server-side, excluded contact and credential fields from AI context, capped context and output size, and added an hourly request limit.
+- Added clear configuration, API-key, access, and billing messages when OpenAI rejects a request.
+- AI suggestions never silently write to the intake; users review and choose what to enter.
+
 ## 2026-07-16 Active Plan Overview
 
 - Replaced the four separate Active Plan overview fields with one concise bulleted summary covering Current Focus, Evidence That Matters, the end-of-cycle decision, and the review rhythm.

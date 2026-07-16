@@ -1,0 +1,180 @@
+.workspace-find-ask {
+  align-items: center;
+  background: #2e475d;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 38px;
+  overflow: hidden;
+}
+
+.workspace-find-ask input {
+  background: transparent;
+  border: 0;
+  color: #ffffff;
+  font: inherit;
+  min-width: 0;
+  outline: 0;
+  padding: 8px 12px;
+  width: 100%;
+}
+
+.workspace-find-ask input::placeholder {
+  color: #c8d2dc;
+}
+
+.workspace-find-ask button {
+  background: #ff7a59;
+  border: 0;
+  border-radius: 0;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  min-height: 38px;
+  padding: 8px 13px;
+}
+
+.workspace-find-ask button:hover {
+  background: #6b7280;
+}
+
+.workspace-assistant-backdrop {
+  background: rgba(22, 32, 51, 0.38);
+  inset: 0;
+  position: fixed;
+  z-index: 300;
+}
+
+.workspace-assistant-backdrop[hidden] {
+  display: none;
+}
+
+.workspace-assistant-panel {
+  background: #ffffff;
+  border-left: 1px solid #d6dee8;
+  box-shadow: -12px 0 36px rgba(22, 32, 51, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  margin-left: auto;
+  max-width: 520px;
+  overflow-y: auto;
+  padding: 22px;
+  width: min(100%, 520px);
+}
+
+.workspace-assistant-heading {
+  align-items: start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.workspace-assistant-heading h2,
+.workspace-assistant-heading p {
+  margin: 0;
+}
+
+.workspace-assistant-heading p {
+  color: #536174;
+  margin-top: 4px;
+}
+
+.workspace-assistant-close {
+  background: transparent;
+  border: 0;
+  color: #213343;
+  cursor: pointer;
+  font-size: 24px;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+.workspace-assistant-query {
+  display: grid;
+  gap: 10px;
+}
+
+.workspace-assistant-query textarea {
+  border: 1px solid #b6c2cf;
+  border-radius: 6px;
+  font: inherit;
+  min-height: 92px;
+  padding: 11px;
+  resize: vertical;
+  width: 100%;
+}
+
+.workspace-assistant-actions,
+.workspace-assistant-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.workspace-assistant-actions button,
+.workspace-assistant-prompts button {
+  background: #ff7a59;
+  border: 1px solid #ff7a59;
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 9px 12px;
+}
+
+.workspace-assistant-actions button.secondary,
+.workspace-assistant-prompts button {
+  background: #ffffff;
+  border-color: #b6c2cf;
+  color: #213343;
+}
+
+.workspace-assistant-actions button:hover,
+.workspace-assistant-prompts button:hover {
+  background: #6b7280;
+  border-color: #6b7280;
+  color: #ffffff;
+}
+
+.workspace-assistant-status {
+  color: #536174;
+  font-size: 14px;
+  margin: 0;
+}
+
+.workspace-assistant-results {
+  display: grid;
+  gap: 10px;
+}
+
+.workspace-assistant-results a {
+  border-bottom: 1px solid #d6dee8;
+  color: #213343;
+  display: block;
+  font-weight: 700;
+  padding: 9px 0;
+  text-decoration: none;
+}
+
+.workspace-assistant-answer {
+  background: #f4f7fb;
+  border-left: 4px solid #ff7a59;
+  border-radius: 6px;
+  color: #162033;
+  line-height: 1.55;
+  padding: 16px;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 720px) {
+  .workspace-assistant-panel {
+    border-left: 0;
+    max-width: none;
+    width: 100%;
+  }
+}

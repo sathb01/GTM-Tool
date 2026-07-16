@@ -1,10 +1,31 @@
 # GTM Tool AI Workflows
 
-Last updated: 2026-06-18
+Last updated: 2026-07-16
 
 ## Current AI Position
 
-AI API research is currently tabled for cost control. The active user workflow is prompt-based:
+Contextual intake and recommendation help is available through the explicit `Find or ask` assistant. Automatic public-company research remains tabled for cost control, and its active user workflow is still prompt-based.
+
+## Embedded Intake and Recommendation Help
+
+The intake and report pages use:
+
+```text
+POST /api/assistant
+```
+
+Behavior:
+
+- Runs only after the user selects `Ask AI`; local section search does not call AI.
+- Uses the current saved company and visible section to recommend answers, explain questions or recommendations, review gaps, and suggest a next action.
+- Distinguishes saved evidence from recommendations and does not invent customer evidence.
+- Never silently writes an AI answer into the intake or plan.
+- Keeps `OPENAI_API_KEY` on the server and defaults to `gpt-4.1-mini` unless `OPENAI_MODEL` is set.
+- Excludes contact and credential fields, caps context and output size, and applies an hourly per-network request limit.
+
+## Public Research Prompt Workflow
+
+Automatic AI research is currently tabled for cost control. The active public-research workflow is prompt-based:
 
 1. User enters company name and/or website.
 2. User clicks Copy Research Prompt.
@@ -75,7 +96,7 @@ server/server.js
 Behavior:
 
 - Requires `OPENAI_API_KEY`.
-- Uses `OPENAI_MODEL` or defaults to `gpt-4.1-mini`.
+- Uses `OPENAI_MODEL` or the current server model default.
 - Sends company name, website, current fields, and a slice of the schema to OpenAI.
 - Uses the Responses API with `web_search_preview`.
 - Expects JSON with:
@@ -250,4 +271,3 @@ This structure maps well to the current flat field model.
 - Some GTM readiness fields require internal company knowledge and should not be inferred from the web.
 - The app does not currently have server-side schema validation for AI field updates.
 - The existing `/api/research` endpoint can still be activated by environment variables, so reconnecting it should be deliberate.
-

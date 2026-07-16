@@ -46,6 +46,24 @@ In Render:
 
 The browser must not contain the API key. The `AI Research` button calls the backend endpoint, and the backend calls OpenAI.
 
+## Embedded AI Help
+
+The Find or ask control uses the authenticated server endpoint:
+
+```text
+GET /api/assistant
+POST /api/assistant
+```
+
+Set these Render environment variables:
+
+```text
+OPENAI_API_KEY=your OpenAI API key
+OPENAI_MODEL=gpt-4.1-mini
+```
+
+The browser never receives the API key. AI runs only after the user selects `Ask AI`. The server excludes contact and credential fields from the model context, limits context size, and rate-limits requests per network address.
+
 ## Access Password Setup
 
 Set this environment variable on the server before sharing the public URL:

@@ -2342,11 +2342,16 @@
 
     @page { margin: 0.6in; }
   </style>
+  <link rel="stylesheet" href="assistant-ui.css">
+  <script src="assistant-ui.js" defer></script>
 </head>
 <body>
   <div class="app-top-nav no-print">
     <div class="app-brand">GTM OS</div>
-    <div class="app-search" role="search" aria-label="Workspace search">Find or ask</div>
+    <form class="app-search workspace-find-ask" role="search" aria-label="Find or ask">
+      <input type="search" aria-label="Find or ask" placeholder="Find a section or ask a GTM question">
+      <button type="submit">Go</button>
+    </form>
     <div class="top-account" id="topAccountName">GTM Action Workspace</div>
     <div class="top-actions">
       <a id="editIntakeLink" href="index.html" target="_blank" rel="noopener">Edit Intake</a>
