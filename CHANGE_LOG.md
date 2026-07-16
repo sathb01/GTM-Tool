@@ -4,6 +4,15 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-16 User-Facing Plan Logic and Persistent Storage
+
+- Removed calculated confidence labels, source-trace rules, score weights, uncertainty penalties, and projected score lifts from user-facing plan sections.
+- Kept the overall readiness score, plain-language status, strengths, gaps, recommended actions, and user-entered operating evidence.
+- Reframed offer, targeting-strategy, and revenue-motion diagnostics as Current Readiness, What Is Ready, What Needs Work, and Next Moves.
+- Simplified Strategic Insights to Observation, Why It Matters, and Recommended Action.
+- Replaced Assessment Input Confidence with plain-language Plan Completeness guidance.
+- Configured the Render Blueprint for a paid Starter web service with a 1 GB persistent disk mounted directly at `server/data`.
+
 ## 2026-07-16 Plan Status and Active Plan Simplification
 
 - Moved Plan Status to the first visible report section by removing the user-facing Asset Quality Control panel.

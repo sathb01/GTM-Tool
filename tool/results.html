@@ -4067,11 +4067,11 @@
       renderRowsAsList(container, "Overall Pipeline Snapshot", repeatableRows(data, "opportunitySnapshot").map((row) => ({ label: row.label || row.rowId, values: { answer: row.values.answer } })), [["answer", "Current number / answer"]]);
       renderRowsAsList(container, "Revenue Motion Play Portfolio", motions.map((row, index) => ({ values: { playName: revenueMotionLabel(data, row.rowId, index), currentStatus: row.values.currentStatus, customerGroup: row.values.newCustomerGroup || row.values.customerGroup, offer: row.values.newOffer || row.values.offer, channelSource: row.values.channelSource, salesMotionType: row.values.salesMotionType, primaryBuyer: row.values.primaryBuyer, linkedSignalPlay: row.values.linkedSignalPlay, playGoal: row.values.playGoal, evidenceOrUnknowns: row.values.evidenceOrUnknowns, playPriority: row.values.playPriority, assessmentDepth: row.values.assessmentDepth } })), [["playName", "Play name"], ["currentStatus", "Current status"], ["customerGroup", "Customer group"], ["offer", "Offer"], ["channelSource", "Channel/source"], ["salesMotionType", "Sales motion"], ["primaryBuyer", "Primary buyer"], ["linkedSignalPlay", "Related signal play"], ["playGoal", "Goal"], ["evidenceOrUnknowns", "Evidence / unknowns"], ["playPriority", "Priority"], ["assessmentDepth", "Assessment depth"]]);
       const scored = fullMotions.map((row, index) => ({ row, label: revenueMotionLabel(data, row.rowId, index), snapshot: revenueMotionReadinessSnapshot(data, row.rowId) })).sort((first, second) => first.row.rowId === primaryRowId ? -1 : second.row.rowId === primaryRowId ? 1 : second.snapshot.score - first.snapshot.score);
-      renderRowsAsList(container, "Revenue Motion Readiness Comparison", scored.map((item) => ({ values: { playName: item.label, score: `${item.snapshot.score}/100`, stage: item.snapshot.stage, confidence: item.snapshot.confidence, strengths: item.snapshot.strengths.map((strength) => strength.name).join(", "), gaps: item.snapshot.gaps.map((gap) => gap.name).join(", "), nextMove: item.snapshot.nextMoves[0] } })), [["playName", "Revenue motion"], ["score", "Score"], ["stage", "Stage"], ["confidence", "Confidence"], ["strengths", "Top strengths"], ["gaps", "Top gaps"], ["nextMove", "Recommended next move"]]);
+      renderRowsAsList(container, "Revenue Motion Readiness", scored.map((item) => ({ values: { playName: item.label, stage: item.snapshot.stage, strengths: item.snapshot.strengths.map((strength) => strength.name).join(", "), gaps: item.snapshot.gaps.map((gap) => gap.name).join(", "), nextMove: item.snapshot.nextMoves[0] } })), [["playName", "Revenue motion"], ["stage", "Current readiness"], ["strengths", "What is ready"], ["gaps", "What needs work"], ["nextMove", "Recommended next move"]]);
       if (summaryOnly.length) renderRowsAsList(container, "Summary-only Revenue Motions", summaryOnly.map((row, index) => ({ values: { playName: revenueMotionLabel(data, row.rowId, index), goal: row.values.playGoal } })), [["playName", "Motion"], ["goal", "Goal"]]);
       if (primary) {
         const snapshot = revenueMotionReadinessSnapshot(data, primary.rowId);
-        renderRowsAsList(container, "Primary Revenue Motion", [{ values: { playName: revenueMotionLabel(data, primary.rowId), customerGroup: primary.values.newCustomerGroup || primary.values.customerGroup, offer: primary.values.newOffer || primary.values.offer, channelSource: primary.values.channelSource, salesMotionType: primary.values.salesMotionType, goal: primary.values.playGoal, readiness: primary.values.assessmentDepth === "Full motion analysis" ? `${snapshot.score}/100 - ${snapshot.stage}` : "The primary revenue motion was not fully assessed. Complete a full motion analysis to improve the GTM plan.", actions: snapshot.nextMoves.join(" ") } }], [["playName", "Primary Revenue Motion"], ["customerGroup", "Customer group"], ["offer", "Offer"], ["channelSource", "Channel"], ["salesMotionType", "Sales motion"], ["goal", "Goal"], ["readiness", "Readiness"], ["actions", "Recommended 90-day revenue actions"]]);
+        renderRowsAsList(container, "Primary Revenue Motion", [{ values: { playName: revenueMotionLabel(data, primary.rowId), customerGroup: primary.values.newCustomerGroup || primary.values.customerGroup, offer: primary.values.newOffer || primary.values.offer, channelSource: primary.values.channelSource, salesMotionType: primary.values.salesMotionType, goal: primary.values.playGoal, readiness: primary.values.assessmentDepth === "Full motion analysis" ? snapshot.stage : "Complete the revenue-motion inputs before relying on this motion.", actions: snapshot.nextMoves.join(" ") } }], [["playName", "Primary Revenue Motion"], ["customerGroup", "Customer group"], ["offer", "Offer"], ["channelSource", "Channel"], ["salesMotionType", "Sales motion"], ["goal", "Goal"], ["readiness", "Current readiness"], ["actions", "Recommended 90-day revenue actions"]]);
       }
       fullMotions.forEach((motion, index) => {
         const label = revenueMotionLabel(data, motion.rowId, index);
@@ -4081,7 +4081,7 @@
         renderRowsAsList(container, `${label} - Deal Routing and Involvement Rules`, repeatableRows(data, revenueScopedTable(motion.rowId, "dealRoutingRules")), [["routingTrigger", "Routing trigger"], ["routingType", "Routing type"], ["reason", "Reason"], ["action", "Action"]]);
         renderRowsAsList(container, `${label} - Stalled Deals and Lost Momentum`, repeatableRows(data, revenueScopedTable(motion.rowId, "stalledDeals")), [["opportunityName", "Opportunity"], ["source", "Source"], ["stageWhereStalled", "Stage"], ["reason", "Reason"], ["dealValue", "Deal value"], ["nextAction", "Next action"], ["gtmLesson", "Lesson"], ["shouldBecome", "Should become"]]);
         renderRowsAsList(container, `${label} - Next Experiment`, [{ values: { hypothesis: data[revenueScopedField(motion.rowId, "nextExperiment", "hypothesis")], audience: data[revenueScopedField(motion.rowId, "nextExperiment", "audience")], channel: data[revenueScopedField(motion.rowId, "nextExperiment", "channel")], offer: data[revenueScopedField(motion.rowId, "nextExperiment", "offer")], metric: data[revenueScopedField(motion.rowId, "nextExperiment", "successMetric")], timeframe: data[revenueScopedField(motion.rowId, "nextExperiment", "timeframe")], owner: data[revenueScopedField(motion.rowId, "nextExperiment", "owner")], reviewCadence: data[revenueScopedField(motion.rowId, "nextExperiment", "reviewCadence")], reviewInputs: data[revenueScopedField(motion.rowId, "nextExperiment", "reviewInputs")], continueRule: data[revenueScopedField(motion.rowId, "nextExperiment", "continueRule")], reviseRule: data[revenueScopedField(motion.rowId, "nextExperiment", "reviseRule")], stopRule: data[revenueScopedField(motion.rowId, "nextExperiment", "stopRule")], rule: data[revenueScopedField(motion.rowId, "nextExperiment", "decisionRule")] } }], [["hypothesis", "Hypothesis"], ["audience", "Audience"], ["channel", "Channel"], ["offer", "Offer"], ["metric", "Success metric"], ["timeframe", "Timeframe"], ["owner", "Owner"], ["reviewCadence", "Review cadence"], ["reviewInputs", "Review inputs"], ["continueRule", "Continue rule"], ["reviseRule", "Revise rule"], ["stopRule", "Stop / pause rule"], ["rule", "Overall decision notes"]]);
-        renderRowsAsList(container, `${label} - Revenue Motion Readiness Snapshot`, [{ values: { score: `${snapshot.score}/100`, stage: snapshot.stage, confidence: snapshot.confidence, strengths: snapshot.strengths.map((item) => item.name).join(", "), gaps: snapshot.gaps.map((item) => item.name).join(", "), nextMoves: snapshot.nextMoves.join(" ") } }], [["score", "Score"], ["stage", "Stage"], ["confidence", "Confidence"], ["strengths", "Strengths"], ["gaps", "Gaps"], ["nextMoves", "Recommended next moves"]]);
+        renderRowsAsList(container, `${label} - What Is Ready and What Needs Work`, [{ values: { stage: snapshot.stage, strengths: snapshot.strengths.map((item) => item.name).join(", "), gaps: snapshot.gaps.map((item) => item.name).join(", "), nextMoves: snapshot.nextMoves.join(" ") } }], [["stage", "Current readiness"], ["strengths", "What is ready"], ["gaps", "What needs work"], ["nextMoves", "Recommended next moves"]]);
       });
     }
 
@@ -4571,12 +4571,7 @@
         ["Primary offer role", primary?.values.offerRole],
         ["Primary customer groups", offerCustomerGroupDisplay(primary, "") || data.priorityIcpForOffer || data.offerTargetSegment],
         ["Primary buyer", primary?.values.primaryBuyer || data.primaryBuyerForOffer || data.primaryBuyer],
-        ["Primary offer readiness score", assessedOffers.length ? `${primarySnapshot.score}/100` : "No full assessment yet"],
-        ["Readiness stage", primarySnapshot.stage],
-        ["Snapshot confidence", primarySnapshot.confidence],
-        ["Portfolio size", offers.length ? `${offers.length} offer(s)` : "Not filled yet"],
-        ["Fully assessed offers", assessedOffers.length ? `${assessedOffers.length}` : "None yet"],
-        ["Summary-only offers", offers.filter((row) => row.values.assessmentDepth !== "Full readiness analysis").length ? `${offers.filter((row) => row.values.assessmentDepth !== "Full readiness analysis").length}` : "None yet"],
+        ["Current readiness", primarySnapshot.stage],
         ["Recommended next moves", primarySnapshot.nextMoves.join(" ")]
       ];
 
@@ -4610,24 +4605,17 @@
         return {
           values: {
             offerName: offerDisplayName(row, offers.indexOf(row)),
-            score: `${snapshot.score}/100`,
             stage: snapshot.stage,
-            confidence: snapshot.confidence,
             strengths: snapshot.strengths.map((item) => item.name).join(", "),
             gaps: snapshot.gaps.map((item) => item.name).join(", "),
             nextMoves: snapshot.nextMoves.join(" ")
           }
         };
-      }), [["offerName", "Offer"], ["score", "Score"], ["stage", "Stage"], ["confidence", "Confidence"], ["strengths", "Strengths"], ["gaps", "Gaps"], ["nextMoves", "Next moves"]]);
+      }), [["offerName", "Offer"], ["stage", "Current readiness"], ["strengths", "What is ready"], ["gaps", "What needs work"], ["nextMoves", "Next moves"]]);
 
       if (!primary) {
         return;
       }
-
-      renderRowsAsList(container, "Primary Offer Dimension Scorecard", primarySnapshot.dimensions.map((item) => ({
-        label: item.name,
-        values: { dimension: item.name, score: `${item.score}/5`, nextMove: item.nextMove }
-      })), [["dimension", "Area"], ["score", "Score"], ["nextMove", "Next move"]]);
 
       renderRowsAsList(container, "Primary Offer Packaging and pricing", repeatableRows(data, scopedOfferTable(primary.rowId, "offerPackages")), [
         ["buyerUseCase", "Buyer use case"],
@@ -4843,13 +4831,11 @@
 
       renderRowsAsList(container, "Signal Readiness Comparison", scoredPlays.map((item) => ({ values: {
         playName: item.label,
-        score: `${item.snapshot.score}/100`,
         stage: item.snapshot.stage,
-        confidence: item.snapshot.confidence,
         strengths: item.snapshot.strengths.map((strength) => strength.name).join(", "),
         gaps: item.snapshot.gaps.map((gap) => gap.name).join(", "),
         nextMove: item.snapshot.nextMoves[0]
-      } })), [["playName", "Signal play"], ["score", "Score"], ["stage", "Stage"], ["confidence", "Confidence"], ["strengths", "Top strengths"], ["gaps", "Top gaps"], ["nextMove", "Recommended next move"]]);
+      } })), [["playName", "Signal play"], ["stage", "Current readiness"], ["strengths", "What is ready"], ["gaps", "What needs work"], ["nextMove", "Recommended next move"]]);
 
       if (summaryOnly.length) {
         renderRowsAsList(container, "Summary-only Plays", summaryOnly.map((row, index) => ({ values: { playName: signalPlayLabel(data, row.rowId, index), notes: row.values.playNotes } })), [["playName", "Play"], ["notes", "Notes"]]);
@@ -4863,7 +4849,7 @@
           offerOrUseCase: primary.values.newOfferOrUseCase || primary.values.offerOrUseCase,
           buyerPersona: primary.values.primaryBuyerPersona,
           gtmMotion: primary.values.gtmMotion,
-          score: primary.values.assessmentDepth === "Full signal analysis" ? `${primarySnapshot.score}/100 - ${primarySnapshot.stage}` : "The primary signal play was not fully assessed. Complete a full signal analysis to improve the GTM plan.",
+          score: primary.values.assessmentDepth === "Full signal analysis" ? primarySnapshot.stage : "Complete the targeting-strategy inputs before relying on this play.",
           actions: primarySnapshot.nextMoves.join(" ")
         } }], [["playName", "Primary Signal Play"], ["customerGroup", "Customer group"], ["offerOrUseCase", "Offer / use case"], ["buyerPersona", "Buyer persona"], ["gtmMotion", "GTM motion"], ["score", "Readiness"], ["actions", "Recommended 90-day signal actions"]]);
       }
@@ -4876,7 +4862,7 @@
         renderRowsAsList(container, `${playName} - Negative Signals and Disqualification`, signalRows(data, play.rowId, "negativeSignalRules"), [["negativeSignal", "Negative signal"], ["whyItMatters", "Why it matters"], ["action", "Action"], ["source", "Source"], ["notes", "Notes"]]);
         renderRowsAsList(container, `${playName} - Signal Scoring and Routing Rules`, signalRows(data, play.rowId, "signalRoutingRules"), [["signal", "Signal"], ["signalType", "Signal type"], ["scoreImpact", "Score impact"], ["confidence", "Confidence"], ["recommendedAction", "Recommended action"], ["owner", "Owner"], ["notes", "Notes / rule"]]);
         renderRowsAsList(container, `${playName} - Signal-Based Action Plan`, signalRows(data, play.rowId, "signalActionPlan"), [["highPrioritySignal", "High-priority signal"], ["outreachAngle", "Outreach angle"], ["channel", "Channel"], ["buyerPersona", "Buyer persona"], ["proofOrAsset", "Proof / asset"], ["firstMessageIdea", "First message idea"], ["followUpAction", "Follow-up action"]]);
-        renderRowsAsList(container, `${playName} - Signal Readiness Snapshot`, [{ values: { score: `${snapshot.score}/100`, stage: snapshot.stage, confidence: snapshot.confidence, strengths: snapshot.strengths.map((item) => item.name).join(", "), gaps: snapshot.gaps.map((item) => item.name).join(", "), nextMoves: snapshot.nextMoves.join(" ") } }], [["score", "Score"], ["stage", "Stage"], ["confidence", "Confidence"], ["strengths", "Strengths"], ["gaps", "Gaps"], ["nextMoves", "Recommended next moves"]]);
+        renderRowsAsList(container, `${playName} - What Is Ready and What Needs Work`, [{ values: { stage: snapshot.stage, strengths: snapshot.strengths.map((item) => item.name).join(", "), gaps: snapshot.gaps.map((item) => item.name).join(", "), nextMoves: snapshot.nextMoves.join(" ") } }], [["stage", "Current readiness"], ["strengths", "What is ready"], ["gaps", "What needs work"], ["nextMoves", "Recommended next moves"]]);
       });
     }
 
@@ -5490,7 +5476,7 @@
       renderMetricCard(cards, {
         label: "GTM Readiness Score",
         valueHtml: `${model.readinessScore} <span class="muted">/ 100</span>`,
-        copy: `${status.label}. Assessment input confidence: ${model.scoreConfidence || "Not available"}.`,
+        copy: status.label,
         badge: status,
         progressHtml: `<div class="score-progress" aria-label="Readiness score progress"><div class="score-progress-bar" style="width:${scorePercent}%; background:${status.color};"></div></div>`
       });
@@ -5520,7 +5506,7 @@
           <div class="field"><h3>Recommended Focus</h3><ul>${decisionContent.recommendedFocusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>
           <div class="field"><h3>Why This Matters</h3><p>${escapeHtml(executiveInsightMeaning(model))}</p></div>
           <div class="field"><h3>Decision Required</h3><p>${escapeHtml(decisionContent.decisionRequired)}</p></div>
-          <div class="field"><h3>Assessment Input Confidence</h3><p>${escapeHtml(`${model.scoreConfidence || "Medium"} - ${confidenceExplanation(model)}`)}</p></div>
+          <div class="field"><h3>Plan Completeness</h3><p>${escapeHtml(planCompletenessCopy(model))}</p></div>
         </div>
       `;
 
@@ -5780,6 +5766,13 @@
       return "Low input confidence means the plan should be treated as directional until missing or vague intake answers are clarified.";
     }
 
+    function planCompletenessCopy(model) {
+      const confidence = model.scoreConfidence || "Medium";
+      if (confidence === "High") return "Enough information is present to begin the recommended plan. Continue validating it with real buyer and revenue results.";
+      if (confidence === "Medium") return "The plan is usable, but the highlighted assumptions should be tested before expanding activity or spend.";
+      return "Complete the missing customer, offer, and revenue-motion inputs before relying on this plan for execution.";
+    }
+
     function icpRationaleItems(model) {
       const group = model.priorityGroup;
       const values = group?.values || {};
@@ -5851,7 +5844,7 @@
           <h3>GTM Readiness Score</h3>
           <div class="insights-score-badge" aria-label="GTM readiness score">${model.readinessScore}</div>
         </div>
-        <p class="insights-score-subtitle">GTM: ${model.readinessStage}/Input confidence ${model.scoreConfidence || "Medium"}</p>
+        <p class="insights-score-subtitle">GTM: ${model.readinessStage}</p>
         <ul class="insights-score-bullets">
           ${recommendationBullets.map((item) => `<li>${escapeHtml(item.replace(/\.$/, ""))}</li>`).join("")}
         </ul>
@@ -5886,8 +5879,8 @@
       renderBlueprintFields(summary, [
         ["Recommended Focus", decisionContent.recommendedFocus],
         ["Why this customer priority", icpRationaleItems(model)],
-        ["Evidence coverage", `${model.readinessDiagnostic?.detailedCoverage || 0}/100. ${model.readinessDiagnostic?.uncertaintyPenalty ? `The score includes a -${model.readinessDiagnostic.uncertaintyPenalty} uncertainty adjustment until more detailed evidence is captured.` : "The current detailed evidence is sufficient to avoid an uncertainty adjustment."}`],
-        ["How to improve the score", (model.readinessDiagnostic?.improvements || []).map((item) => `${item.area}: ${item.action} (+${item.potentialLift})`)]
+        ["What still needs validation", (model.readinessDiagnostic?.improvements || []).slice(0, 3).map((item) => `${item.area}: ${item.action}`)],
+        ["How to strengthen the plan", (model.readinessDiagnostic?.improvements || []).map((item) => `${item.area}: ${item.action}`)]
       ]);
       container.appendChild(summary);
 
@@ -6568,9 +6561,6 @@
         ...detectPatterns(model, data),
         ...detectOpportunities(model, data)
       ];
-      insights.push(explainConfidence("icp", model, data));
-      if (insights.length < 5) insights.push(explainConfidence("offer", model, data));
-      if (insights.length < 5) insights.push(explainConfidence("motion", model, data));
       return rankInsights(insights);
     }
 
@@ -6587,7 +6577,6 @@
         const observation = document.createElement("p");
         const why = document.createElement("p");
         const action = document.createElement("p");
-        const meta = document.createElement("p");
         card.className = "insight-card";
         badge.className = "insight-badge";
         badge.textContent = insight.type;
@@ -6595,14 +6584,11 @@
         observation.innerHTML = `<strong>Observation:</strong> ${insight.observation}`;
         why.innerHTML = `<strong>Why it matters:</strong> ${insight.whyItMatters}`;
         action.innerHTML = `<strong>Recommended action:</strong> ${insight.recommendedAction}`;
-        meta.className = "decision-meta";
-        meta.textContent = `Confidence: ${insight.confidence}`;
         card.appendChild(badge);
         card.appendChild(title);
         card.appendChild(observation);
         card.appendChild(why);
         card.appendChild(action);
-        card.appendChild(meta);
         list.appendChild(card);
       });
       container.appendChild(list);
@@ -6616,7 +6602,6 @@
         lines.push(`   Observation: ${insight.observation}`);
         lines.push(`   Why it matters: ${insight.whyItMatters}`);
         lines.push(`   Recommended action: ${insight.recommendedAction}`);
-        lines.push(`   Confidence: ${insight.confidence}`);
       });
       return lines;
     }
@@ -7112,7 +7097,7 @@
         const impact = document.createElement("p");
         const why = document.createElement("p");
         const drivers = document.createElement("p");
-        const confidence = document.createElement("p");
+        const prerequisites = document.createElement("p");
 
         heading.textContent = `${index + 1}. ${priority.priority}`;
         action.className = "revenue-impact-action";
@@ -7127,14 +7112,15 @@
         impact.innerHTML = `<strong>Impact tier:</strong> ${priority.impactTier}`;
         why.innerHTML = `<strong>Why it matters:</strong> ${priority.whyItMatters}`;
         drivers.innerHTML = `<strong>What drives the priority:</strong> ${priority.drivers}`;
-        confidence.className = "decision-meta";
-        confidence.textContent = `Confidence: ${priority.confidence}${priority.missingInputs.length ? ` | Missing inputs: ${priority.missingInputs.join(", ")}` : ""}`;
+        prerequisites.className = "decision-meta";
+        prerequisites.innerHTML = priority.missingInputs.length
+          ? `<strong>Clarify before starting:</strong> ${priority.missingInputs.map((item) => escapeHtml(item)).join(", ")}`
+          : "";
 
         body.appendChild(impact);
         body.appendChild(why);
         body.appendChild(drivers);
-        body.appendChild(confidence);
-        body.insertAdjacentHTML("beforeend", recommendationTraceMarkup(model.data, { title: priority.priority, output: priority.recommendedAction, detail: priority.drivers }));
+        if (priority.missingInputs.length) body.appendChild(prerequisites);
         matchingRemediation.forEach((area) => {
           usedRemediationAreas.add(area.area);
           appendInlineRemediation(body, area);
@@ -7181,7 +7167,6 @@
         lines.push(`   Why it matters: ${priority.whyItMatters}`);
         lines.push(`   What drives the priority: ${priority.drivers}`);
         lines.push(`   Recommended action: ${priority.recommendedAction}`);
-        lines.push(`   Confidence: ${priority.confidence}`);
         if (priority.missingInputs.length) lines.push(`   Missing inputs: ${priority.missingInputs.join(", ")}`);
       });
       return lines;
@@ -9134,15 +9119,12 @@
               : cleanRecommendation(decision?.recommendation);
         const card = document.createElement("article");
         card.className = "insight-card";
-        const reviewText = decisionConflictText(label, model);
         card.innerHTML = `
           <h3>${escapeHtml(label)}</h3>
           <ul>
             <li><strong>Current choice:</strong> ${escapeHtml(recommendation)}</li>
-            <li><strong>Confidence:</strong> ${escapeHtml(decision?.confidence || "Low")}</li>
             <li><strong>Why it matters:</strong> ${escapeHtml(strategicReason(label, model))}</li>
             <li><strong>Mapped action:</strong> ${escapeHtml(strategicDecisionPlanAction(label, model, decision))}</li>
-            ${reviewText ? `<li><strong>Source review:</strong> ${escapeHtml(reviewText)}</li>` : ""}
           </ul>
         `;
         appendReviewLink(card, "Review related intake answers", label);
@@ -10509,13 +10491,12 @@
       lines.push(...executionAssetCopyLines(model));
       lines.push(...executionCoachingCopyLines(model));
 
-      lines.push("", "Readiness Diagnostic", `Overall readiness score: ${model.readinessScore}/100`, `Readiness stage: ${model.readinessStage}`, `Assessment input confidence: ${model.scoreConfidence}`, `Highest category: ${model.highestCategory?.name || missingText}`, `Lowest category: ${model.lowestCategory?.name || missingText}`, `Diagnostic interpretation: ${model.recommendation}`);
+      lines.push("", "Readiness Diagnostic", `Overall readiness score: ${model.readinessScore}/100`, `Readiness stage: ${model.readinessStage}`, `Highest category: ${model.highestCategory?.name || missingText}`, `Lowest category: ${model.lowestCategory?.name || missingText}`, `Diagnostic interpretation: ${model.recommendation}`);
       model.categories.forEach((category) => lines.push(`- ${category.name}: ${category.score.toFixed(1)}/5 - ${interpretation(category.score)}`));
 
       lines.push("", "Strategic Decisions");
       model.decisions.forEach((decision) => {
         lines.push(`- ${decision.title}: ${valueOrMissing(decision.recommendation, "Not yet selected.")}`);
-        lines.push(`  Confidence: ${decision.confidence}`);
         lines.push(`  Evidence: ${valueOrMissing(decision.evidence, "No supporting evidence provided.")}`);
         lines.push(`  Missing information: ${valueOrMissing(decision.missing, "None identified from current inputs.")}`);
       });
@@ -11185,8 +11166,7 @@
       const componentRows = diagnostic.components.map((item) => `
         <tr>
           <td>${item.label}</td>
-          <td>${Math.round(item.weight * 100)}%</td>
-          <td><span class="pill ${readinessScoreClass(item.score)}">${item.score}/100</span></td>
+          <td><span class="pill ${readinessScoreClass(item.score)}">${item.score >= 80 ? "Strong" : item.score >= 50 ? "Needs validation" : "Needs attention"}</span></td>
           <td>${item.explanation}</td>
         </tr>
       `).join("");
@@ -11194,25 +11174,23 @@
         <tr>
           <td>${index + 1}. ${item.area}</td>
           <td>${item.action}</td>
-          <td>+${item.potentialLift}</td>
         </tr>
       `).join("");
       container.innerHTML = `
         <h3>What goes into the readiness score</h3>
         <table>
           <thead>
-            <tr><th>Component</th><th>Weight</th><th>Score</th><th>Based on</th></tr>
+            <tr><th>Area</th><th>Current status</th><th>What this reflects</th></tr>
           </thead>
           <tbody>${componentRows}</tbody>
         </table>
         <h3>Top 3 ways to improve the score</h3>
         <table>
           <thead>
-            <tr><th>Area</th><th>Next step</th><th>Potential lift</th></tr>
+            <tr><th>Area</th><th>Next step</th></tr>
           </thead>
           <tbody>${improvementRows}</tbody>
         </table>
-        <p class="muted">Evidence coverage: ${diagnostic.detailedCoverage}/100. ${diagnostic.uncertaintyPenalty ? `An uncertainty adjustment of -${diagnostic.uncertaintyPenalty} is applied until more customer, offer, signal, and execution evidence is captured.` : "No uncertainty adjustment is currently applied."}</p>
       `;
     }
 
@@ -13449,7 +13427,7 @@
         const selectedStatus = data[statusField] || "Not started";
         const selectedOwner = data[ownerField] || plan.owner;
         card.className = "active-plan-action";
-        card.innerHTML = `<div class="active-plan-action-copy"><div class="active-plan-label">Priority ${index + 1}</div><h3>${escapeHtml(action.title)}</h3><p><strong>Why it matters:</strong> ${escapeHtml(action.why)}</p><p><strong>This week’s output:</strong> ${escapeHtml(action.output)}</p><p><strong>Decision it supports:</strong> ${escapeHtml(action.decision)}</p>${recommendationTraceMarkup(data, action)}<div class="active-plan-link-row"><a href="${escapeHtml(plan.planLink)}">${escapeHtml(plan.planLinkLabel)}</a><a href="${escapeHtml(intakeReturnUrl())}" target="_blank" rel="noopener">Review related intake answers</a></div></div><div class="active-plan-controls"><label>Status<select data-active-plan-field="${escapeHtml(statusField)}"><option${selectedStatus === "Not started" ? " selected" : ""}>Not started</option><option${selectedStatus === "In progress" ? " selected" : ""}>In progress</option><option${selectedStatus === "Waiting" ? " selected" : ""}>Waiting</option><option${selectedStatus === "Complete" ? " selected" : ""}>Complete</option><option${selectedStatus === "Blocked" ? " selected" : ""}>Blocked</option></select></label><label>Owner<input data-active-plan-field="${escapeHtml(ownerField)}" value="${escapeHtml(selectedOwner)}"></label></div>`;
+        card.innerHTML = `<div class="active-plan-action-copy"><div class="active-plan-label">Priority ${index + 1}</div><h3>${escapeHtml(action.title)}</h3><p><strong>Why it matters:</strong> ${escapeHtml(action.why)}</p><p><strong>This week’s output:</strong> ${escapeHtml(action.output)}</p><p><strong>Decision it supports:</strong> ${escapeHtml(action.decision)}</p><div class="active-plan-link-row"><a href="${escapeHtml(plan.planLink)}">${escapeHtml(plan.planLinkLabel)}</a><a href="${escapeHtml(intakeReturnUrl())}">Review related intake answers</a></div></div><div class="active-plan-controls"><label>Status<select data-active-plan-field="${escapeHtml(statusField)}"><option${selectedStatus === "Not started" ? " selected" : ""}>Not started</option><option${selectedStatus === "In progress" ? " selected" : ""}>In progress</option><option${selectedStatus === "Waiting" ? " selected" : ""}>Waiting</option><option${selectedStatus === "Complete" ? " selected" : ""}>Complete</option><option${selectedStatus === "Blocked" ? " selected" : ""}>Blocked</option></select></label><label>Owner<input data-active-plan-field="${escapeHtml(ownerField)}" value="${escapeHtml(selectedOwner)}"></label></div>`;
         const workLink = document.createElement("a");
         workLink.href = activePlanActionUrl(index);
         workLink.textContent = "Work on this action";
