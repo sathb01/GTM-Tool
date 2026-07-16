@@ -18,3 +18,6 @@ QA_FOUR_COMPANY_REVIEW_20260712/**/*-check/
 QA_FOUR_COMPANY_REVIEW_20260712/browser-recheck/
 QA_FOUR_COMPANY_REVIEW_20260712/*.json
 QA_FOUR_COMPANY_REVIEW_20260712/*.txt
+
+# Local text extracted from user-supplied reference documents
+/*_EXTRACT.txt
