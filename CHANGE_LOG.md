@@ -4,6 +4,14 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-16 Split Intake Sidebar Navigation
+
+- Separated the intake sidebar into a pinned Foundation area and an independently scrollable area for Validation, Strategy, Execution, and Assets.
+- Kept Company Information and GTM Information visible while the user scrolls longer workflows.
+- Moved Assets out of the top of the navigation and into the scrollable lower area.
+- Removed `View` from ICP, Persona, and Validation Plan asset link names.
+- Preserved a single naturally flowing navigation list on mobile.
+
 ## 2026-07-16 Reviewed AI Intake Assistance
 
 - Replaced the copy-prompt primary action with reviewed public-company research from the company name and preferably the website.

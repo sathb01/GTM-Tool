@@ -4821,6 +4821,8 @@ function switchActiveSection(sectionId) {
 
 function renderSectionNavigation(sectionsToShow, nav) {
   const activeIndex = Math.max(0, sectionsToShow.findIndex((section) => section.id === activeSectionId));
+  const pinned = document.createElement("div");
+  const scrollArea = document.createElement("div");
   const progress = document.createElement("div");
   const progressText = document.createElement("div");
   const progressTrack = document.createElement("div");
@@ -4836,7 +4838,8 @@ function renderSectionNavigation(sectionsToShow, nav) {
   progressTrack.appendChild(progressFill);
   progress.appendChild(progressText);
   progress.appendChild(progressTrack);
-  nav.appendChild(progress);
+  pinned.className = "nav-foundation";
+  scrollArea.className = "nav-scroll-area";
 
   const groupLabels = {
     company: "Foundation",
@@ -4857,30 +4860,44 @@ function renderSectionNavigation(sectionsToShow, nav) {
     signals: "Execution",
     pipeline: "Execution"
   };
-  let currentGroup = "";
+  const foundationSections = sectionsToShow.filter((section) => groupLabels[section.id] === "Foundation");
+  const scrollingSections = sectionsToShow.filter((section) => groupLabels[section.id] !== "Foundation");
 
-  sectionsToShow.forEach((section) => {
+  const appendSectionLink = (section, container) => {
+    const anchor = document.createElement("a");
+    anchor.href = `#${section.id}`;
+    anchor.textContent = section.title;
+    if (section.id === activeSectionId) anchor.classList.add("active");
+    anchor.addEventListener("click", (event) => {
+      event.preventDefault();
+      switchActiveSection(section.id);
+    });
+    container.appendChild(anchor);
+  };
+
+  if (foundationSections.length) {
+    const label = document.createElement("div");
+    label.className = "nav-group-label";
+    label.textContent = "Foundation";
+    pinned.appendChild(label);
+    foundationSections.forEach((section) => appendSectionLink(section, pinned));
+  }
+  pinned.appendChild(progress);
+  nav.appendChild(pinned);
+  nav.appendChild(scrollArea);
+
+  let currentGroup = "";
+  scrollingSections.forEach((section) => {
     const group = groupLabels[section.id] || "Workspace";
 
     if (group !== currentGroup) {
       const label = document.createElement("div");
       label.className = "nav-group-label";
       label.textContent = group;
-      nav.appendChild(label);
+      scrollArea.appendChild(label);
       currentGroup = group;
     }
-
-    const anchor = document.createElement("a");
-    anchor.href = `#${section.id}`;
-    anchor.textContent = section.title;
-    if (section.id === activeSectionId) {
-      anchor.classList.add("active");
-    }
-    anchor.addEventListener("click", (event) => {
-      event.preventDefault();
-      switchActiveSection(section.id);
-    });
-    nav.appendChild(anchor);
+    appendSectionLink(section, scrollArea);
   });
 
   const navData = getFormData();
@@ -4903,20 +4920,20 @@ function renderSectionNavigation(sectionsToShow, nav) {
     const assetLinks = isPreRevenueMode()
       ? [
         ["Active Plan", "active"],
-        ["View ICP Brief", "icp"],
-        ["View Persona Brief", "personas"],
+        ["ICP Brief", "icp"],
+        ["Persona Brief", "personas"],
         ["Messaging Kit", "messaging"],
         ["Target List", "targets"],
         ["Proof Asset Builder", "proof-assets"],
         ["Outreach Sequence", "outreach"],
         ["Pipeline and Opportunities", "pipeline-workspace"],
         ["Weekly GTM Review", "weekly-review"],
-        ["View 30-Day Validation Plan", "validation"]
+        ["30-Day Validation Plan", "validation"]
       ]
       : [
         ["Active Plan", "active"],
-        ...(hasIcpAsset ? [["View ICP Brief", "icp"]] : []),
-        ["View Persona Brief", "personas"],
+        ...(hasIcpAsset ? [["ICP Brief", "icp"]] : []),
+        ["Persona Brief", "personas"],
         ["Messaging Kit", "messaging"],
         ["Target List", "targets"],
         ["Proof Asset Builder", "proof-assets"],
@@ -4939,7 +4956,7 @@ function renderSectionNavigation(sectionsToShow, nav) {
       assets.appendChild(link);
     });
 
-    nav.insertBefore(assets, progress);
+    scrollArea.appendChild(assets);
   }
 }
 
