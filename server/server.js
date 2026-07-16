@@ -17,6 +17,7 @@ const toolPassword = process.env.TOOL_PASSWORD || "";
 const authSecret = process.env.AUTH_SECRET || toolPassword || "local-dev-secret";
 const sessionMaxAgeSeconds = 60 * 60 * 12;
 const assistantRateLimit = new Map();
+const researchRateLimit = new Map();
 
 const contentTypes = {
   ".html": "text/html; charset=utf-8",
@@ -325,30 +326,39 @@ async function handleResearch(request, response, url) {
     sendJson(response, 400, { error: "Add a company name or website first." });
     return true;
   }
+  if (!requestAllowed(researchRateLimit, request, 5, 24 * 60 * 60 * 1000)) {
+    sendJson(response, 429, { error: "Company research is limited to five runs per day from this network. Review the saved research before running it again." });
+    return true;
+  }
 
-  const schemaText = await readFile(path.join(toolDir, "intake-schema.js"), "utf8");
   const prompt = buildResearchPrompt({
     companyName,
     website,
-    currentFields: body.currentFields || {},
-    schemaText
+    currentFields: body.currentFields || {}
   });
-  const result = await callOpenAiResearch(prompt);
+  try {
+    const result = await callOpenAiResearch(prompt);
+    sendJson(response, 200, result);
+  } catch (error) {
+    console.error(`OpenAI research failed: ${error.message}`);
+    sendJson(response, 502, { error: error.userMessage || "Company research could not be completed right now. Try again in a moment." });
+  }
+  return true;
+}
 
-  sendJson(response, 200, result);
+function requestAllowed(store, request, limit, windowMs) {
+  const forwarded = String(request.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  const address = forwarded || request.socket.remoteAddress || "unknown";
+  const now = Date.now();
+  const recent = (store.get(address) || []).filter((time) => now - time < windowMs);
+  if (recent.length >= limit) return false;
+  recent.push(now);
+  store.set(address, recent);
   return true;
 }
 
 function assistantRequestAllowed(request) {
-  const forwarded = String(request.headers["x-forwarded-for"] || "").split(",")[0].trim();
-  const address = forwarded || request.socket.remoteAddress || "unknown";
-  const now = Date.now();
-  const windowMs = 60 * 60 * 1000;
-  const recent = (assistantRateLimit.get(address) || []).filter((time) => now - time < windowMs);
-  if (recent.length >= 30) return false;
-  recent.push(now);
-  assistantRateLimit.set(address, recent);
-  return true;
+  return requestAllowed(assistantRateLimit, request, 30, 60 * 60 * 1000);
 }
 
 function compactAssistantRecord(data = {}) {
@@ -399,6 +409,7 @@ async function handleAssistant(request, response, url) {
     record = records.find((item) => item.id === recordId) || null;
   }
   const pageContext = String(body.pageContext || "").trim().slice(0, 8000);
+  const fieldContext = body.field && typeof body.field === "object" ? body.field : null;
   const recordContext = compactAssistantRecord(record?.data || body.currentFields || {});
   const prompt = [
     `Workspace: ${String(body.workspace || "GTM OS").slice(0, 80)}`,
@@ -410,6 +421,7 @@ async function handleAssistant(request, response, url) {
     "",
     "Visible page context:",
     pageContext,
+    fieldContext ? `\nField being answered:\n${JSON.stringify(fieldContext, null, 2).slice(0, 4000)}` : "",
     "",
     `User question: ${question}`
   ].join("\n");
@@ -424,7 +436,8 @@ async function handleAssistant(request, response, url) {
       "Do not invent customer evidence. State uncertainty plainly.",
       "Prefer concise bullets. Give a direct recommendation, why it fits, and the next action.",
       "When asked how to answer an intake question, suggest up to three realistic answer choices and identify the recommended starting choice.",
-      "Never claim that you saved or changed the intake. The user must decide what to enter."
+      "Never claim that you saved or changed the intake. The user must decide what to enter.",
+      fieldContext ? "For this field-assist request, return only the proposed field answer in one to three concise sentences. Do not add a heading, bullets, explanation, quotation marks, or preamble. Use the field options when options are supplied." : ""
     ].join(" "),
     input: prompt,
     max_output_tokens: 900,
@@ -464,43 +477,42 @@ async function handleAssistant(request, response, url) {
   return true;
 }
 
-function buildResearchPrompt({ companyName, website, currentFields, schemaText }) {
+const researchFieldAllowlist = new Set([
+  "companyName", "website", "primaryOfferName", "primaryOfferUrl", "secondaryOfferName", "secondaryOfferUrl",
+  "industryId", "businessTypeId", "companyStage", "geography", "teamSize", "primarySalesMotion",
+  "quickBestFitCustomer", "quickBuyerProblem", "quickUrgencyNow", "quickOfferPromise", "quickPrimaryOutcome",
+  "quickSuccessMeasure", "quickPrimaryRevenueSource", "quickCurrentSalesMotion",
+  "publicPresence__primary-website__url", "publicPresence__product-solution-pages__url",
+  "publicPresence__pricing-page__url", "publicPresence__demo-contact-booking-page__url",
+  "publicPresence__blog-resources-learning-center__url", "publicPresence__linkedin-company-page__url",
+  "publicPresence__founder-executive-profiles__url", "publicPresence__x-twitter__url",
+  "publicPresence__facebook__url", "publicPresence__instagram__url", "publicPresence__tiktok__url",
+  "publicPresence__youtube-video-channel__url", "publicPresence__podcast-webinar-series__url",
+  "publicPresence__community-forum-group__url", "publicPresence__review-profiles-or-ratings-sites__url",
+  "publicPresence__marketplace-or-directory-listings__url"
+]);
+
+function buildResearchPrompt({ companyName, website, currentFields }) {
+  const existing = Object.fromEntries(Object.entries(currentFields || {})
+    .filter(([key, value]) => researchFieldAllowlist.has(key) && String(value || "").trim())
+    .slice(0, 40));
   return [
-    "You are researching a company for a GTM readiness intake form.",
-    "Use public web information where available. Do not invent facts. If a field is uncertain, leave it blank or note uncertainty in researchNotes.",
+    "Research the correct company using current public web sources for a GTM intake.",
+    "Confirm company identity before proposing fields. Prefer the supplied website. If only a name is supplied, explain how the match was selected.",
+    "Do not invent private facts such as revenue, budget, conversion, customer count, readiness, internal constraints, or strategic priorities.",
+    "Publicly supported inferences about customer, buyer, problem, offer, channel, or motion are allowed only when marked Inferred and confidence is Medium or Low.",
+    "Every proposal must include at least one direct source URL. Omit a field when no useful public support exists.",
     "Return only valid JSON with this shape:",
-    "{\"fields\": {\"fieldName\": \"value\"}, \"researchNotes\": \"short notes with source URLs\"}",
-    "",
-    "The fields object must be a flat object keyed by HTML field names from the intake.",
-    "For tables, use keys like tableId__row-slug__columnId.",
-    "For repeatable lists, use keys like fieldId__item-1, fieldId__item-2.",
-    "",
-    "Prioritize prefilling:",
-    "- Company profile fields",
-    "- Website URLs, social media, and public presence",
-    "- GTM systems if visible",
-    "- likely ICP, buyer roles, offer, proof assets, channels, triggers, and public risks",
-    "",
-    "Useful table key examples:",
-    "- publicPresence__primary-website__url",
-    "- publicPresence__product-solution-pages__url",
-    "- publicPresence__pricing-page__url",
-    "- publicPresence__demo-contact-booking-page__url",
-    "- publicPresence__blog-resources-learning-center__url",
-    "- publicPresence__linkedin-company-page__url",
-    "- publicPresence__founder-executive-profiles__url",
-    "- publicPresence__review-profiles-or-ratings-sites__url",
-    "- gtmSystems__crm__tools",
-    "- gtmSystems__website-analytics-conversion-tracking__tools",
+    "{\"matchedCompany\":{\"name\":\"\",\"website\":\"\",\"matchConfidence\":\"High|Medium|Low\",\"matchReason\":\"\"},\"proposals\":[{\"fieldId\":\"\",\"label\":\"\",\"value\":\"\",\"confidence\":\"High|Medium|Low\",\"classification\":\"Public fact|Inferred\",\"evidence\":\"\",\"sourceUrls\":[\"https://...\"]}],\"conflicts\":[\"\"],\"notes\":\"\"}",
+    "Allowed field IDs:",
+    [...researchFieldAllowlist].join(", "),
+    "For industryId and businessTypeId, return the human-readable option label; the application maps it to the internal option.",
     "",
     `Company name: ${companyName || "unknown"}`,
     `Website: ${website || "unknown"}`,
     "",
-    "Current non-empty form fields:",
-    JSON.stringify(currentFields, null, 2),
-    "",
-    "Intake schema source:",
-    schemaText.slice(0, 40000)
+    "Existing public fields that must not be silently overwritten:",
+    JSON.stringify(existing, null, 2)
   ].join("\n");
 }
 
@@ -517,7 +529,9 @@ async function callOpenAiResearch(prompt) {
         content: prompt
       }
     ],
-    tools: [{ type: "web_search_preview" }]
+    tools: [{ type: "web_search_preview" }],
+    max_output_tokens: 3500,
+    store: false
   };
 
   const apiResponse = await fetch("https://api.openai.com/v1/responses", {
@@ -532,16 +546,37 @@ async function callOpenAiResearch(prompt) {
   const raw = await apiResponse.text();
 
   if (!apiResponse.ok) {
-    throw new Error(`OpenAI research failed: ${raw}`);
+    const error = new Error(`status ${apiResponse.status}`);
+    error.userMessage = apiResponse.status === 429
+      ? "The OpenAI project has reached its usage limit. Check API billing before running research again."
+      : apiResponse.status === 401
+        ? "The OpenAI API key was rejected. Replace OPENAI_API_KEY in Render."
+        : "Company research could not be completed right now. Try again in a moment.";
+    throw error;
   }
 
   const responseJson = JSON.parse(raw);
   const text = extractResponseText(responseJson);
   const parsed = parseJsonFromText(text);
 
+  const proposals = (Array.isArray(parsed.proposals) ? parsed.proposals : [])
+    .filter((item) => researchFieldAllowlist.has(String(item?.fieldId || "")) && String(item?.value || "").trim())
+    .slice(0, 35)
+    .map((item) => ({
+      fieldId: String(item.fieldId),
+      label: String(item.label || item.fieldId).slice(0, 160),
+      value: String(item.value).slice(0, 1200),
+      confidence: ["High", "Medium", "Low"].includes(item.confidence) ? item.confidence : "Low",
+      classification: item.classification === "Public fact" ? "Public fact" : "Inferred",
+      evidence: String(item.evidence || "").slice(0, 700),
+      sourceUrls: (Array.isArray(item.sourceUrls) ? item.sourceUrls : []).filter((url) => /^https?:\/\//i.test(String(url))).slice(0, 5)
+    }))
+    .filter((item) => item.sourceUrls.length);
   return {
-    fields: parsed.fields || {},
-    researchNotes: parsed.researchNotes || text || "AI research completed."
+    matchedCompany: parsed.matchedCompany || { name: companyName, website, matchConfidence: "Low", matchReason: "Review the company match before applying research." },
+    proposals,
+    conflicts: (Array.isArray(parsed.conflicts) ? parsed.conflicts : []).map(String).slice(0, 10),
+    notes: String(parsed.notes || "AI research completed.").slice(0, 2000)
   };
 }
 

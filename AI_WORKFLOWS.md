@@ -4,7 +4,25 @@ Last updated: 2026-07-16
 
 ## Current AI Position
 
-Contextual intake and recommendation help is available through the explicit `Find or ask` assistant. Automatic public-company research remains tabled for cost control, and its active user workflow is still prompt-based.
+Contextual intake and recommendation help is available through the explicit `Find or ask` assistant. Reviewed public-company research is also available from `Research Company`; it proposes sourced answers but never writes them without user selection.
+
+## Reviewed Company Research
+
+The Company Information workflow uses:
+
+```text
+POST /api/research
+```
+
+Behavior:
+
+- Uses company name and strongly prefers a supplied website to confirm identity.
+- Searches public web sources and returns a company match, source-backed field proposals, confidence, classification, conflicts, and notes.
+- Allows only a server-defined list of public or reasonably inferred fields.
+- Never proposes private operating facts such as revenue, budget, conversion rates, customer count, readiness ratings, or internal constraints.
+- Existing intake answers are never selected for replacement automatically.
+- The user reviews and selects every answer before it is written and saved.
+- Research is limited to five runs per network per day during the alpha.
 
 ## Embedded Intake and Recommendation Help
 
@@ -23,9 +41,9 @@ Behavior:
 - Keeps `OPENAI_API_KEY` on the server and defaults to `gpt-4.1-mini` unless `OPENAI_MODEL` is set.
 - Excludes contact and credential fields, caps context and output size, and applies an hourly per-network request limit.
 
-## Public Research Prompt Workflow
+## Manual Research Prompt Fallback
 
-Automatic AI research is currently tabled for cost control. The active public-research workflow is prompt-based:
+The copyable prompt remains documented as a fallback if API research is unavailable:
 
 1. User enters company name and/or website.
 2. User clicks Copy Research Prompt.

@@ -21,7 +21,7 @@ http://localhost:8787
 - `GET /api/records` lists saved brands.
 - `POST /api/records` creates a brand record.
 - `PUT /api/records/:id` creates or updates a brand record.
-- `POST /api/research` runs AI Research when `OPENAI_API_KEY` is configured.
+- `POST /api/research` returns reviewed, source-backed company research proposals when `OPENAI_API_KEY` is configured.
 
 ## AI Research Setup
 
@@ -44,7 +44,7 @@ In Render:
 3. Add `OPENAI_API_KEY`.
 4. Redeploy the service.
 
-The browser must not contain the API key. The `AI Research` button calls the backend endpoint, and the backend calls OpenAI.
+The browser must not contain the API key. `Research Company` calls the backend endpoint, and the backend calls OpenAI with web search. The server allowlists supported public fields, and the browser requires user review before applying any proposal.
 
 ## Embedded AI Help
 

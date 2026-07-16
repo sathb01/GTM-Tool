@@ -1551,6 +1551,8 @@ function createField(field) {
   const label = document.createElement("label");
 
   wrapper.className = field.full ? "full" : "";
+  wrapper.dataset.fieldId = field.id;
+  wrapper.dataset.fieldLabel = field.label;
   if (field.showWhen) {
     wrapper.dataset.showWhenField = field.showWhen.field;
     if (Object.prototype.hasOwnProperty.call(field.showWhen, "contains")) {
@@ -9171,10 +9173,17 @@ async function initializeIntake() {
       switchToRecord(record.id);
     }
   });
-  document.getElementById("researchButton").addEventListener("click", prepareResearchPrompt);
+  const startCompanyResearch = () => {
+    if (window.GTM_INTAKE_AI?.openResearch) {
+      window.GTM_INTAKE_AI.openResearch();
+      return;
+    }
+    prepareResearchPrompt();
+  };
+  document.getElementById("researchButton").addEventListener("click", startCompanyResearch);
   const topResearchButton = document.getElementById("topResearchButton");
   if (topResearchButton) {
-    topResearchButton.addEventListener("click", prepareResearchPrompt);
+    topResearchButton.addEventListener("click", startCompanyResearch);
   }
   document.getElementById("regenerateStalePlanButton").addEventListener("click", () => {
     submitIntake(isPreRevenueMode() ? "preRevenue" : "detailed", isPreRevenueMode() ? "gtm" : "");

@@ -4,6 +4,16 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-16 Reviewed AI Intake Assistance
+
+- Replaced the copy-prompt primary action with reviewed public-company research from the company name and preferably the website.
+- Added company-identity confirmation, source links, confidence, public-fact versus inferred labels, and conflict warnings.
+- Prevented automatic replacement of existing answers and required explicit selection before applying research.
+- Restricted research autofill to a server allowlist and excluded private operating facts and readiness judgments.
+- Added contextual `Help me answer this` assistance to a focused set of difficult customer, problem, urgency, offer, success, and hypothesis fields.
+- Kept AI suggestions advisory and required the user to select `Use this answer` before saving.
+- Added alpha usage controls of five research runs per network per day and 30 assistance requests per network per hour.
+
 ## 2026-07-16 Active Plan Weekly Rollover
 
 - Replaced the static weekly checklist behavior with a saved close-week and rollover workflow.
