@@ -40,7 +40,8 @@ await active.goto(`${baseUrl}/results.html?asset=active&recordId=${recordId}`, {
 const quality = await active.evaluate(() => ({
   visiblePanels: document.querySelectorAll("#asset-quality-control").length,
   evidenceFeedbackVisible: Boolean(document.querySelector("#active-plan-evidence-feedback")),
-  planResourcesVisible: [...document.querySelectorAll("h2")].some((item) => item.textContent.trim() === "Plan Resources")
+  planResourcesVisible: [...document.querySelectorAll("h2")].some((item) => item.textContent.trim() === "Plan Resources"),
+  overviewBullets: document.querySelectorAll("#active-plan-objective .active-plan-overview-list > li").length
 }));
 await active.close();
 
@@ -69,7 +70,7 @@ await browser.close();
 
 const portfolioReady = portfolio.firstRowId === "motion-1"
   && [portfolio.playName, portfolio.customerGroup, portfolio.offer, portfolio.channel, portfolio.salesMotion, portfolio.goal].every(Boolean);
-const qualityReady = quality.visiblePanels === 0 && !quality.evidenceFeedbackVisible && !quality.planResourcesVisible;
+const qualityReady = quality.visiblePanels === 0 && !quality.evidenceFeedbackVisible && !quality.planResourcesVisible && quality.overviewBullets === 4;
 const remediationReady = /Complete the Active Plan foundation/i.test(workshop.heading)
   && /customer group, offer, channel, sales motion, owner, and measurable goal/i.test(workshop.text)
   && workshop.returnLabel === "Return to Active Plan"

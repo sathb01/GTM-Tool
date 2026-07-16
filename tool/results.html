@@ -587,6 +587,22 @@
       margin: 0;
     }
 
+    .active-plan-overview-list {
+      display: grid;
+      gap: 12px;
+      margin: 18px 0 0;
+      padding-left: 22px;
+    }
+
+    .active-plan-overview-list li {
+      padding-left: 4px;
+    }
+
+    .active-plan-overview-list strong {
+      display: block;
+      margin-bottom: 3px;
+    }
+
     .active-plan-actions {
       display: grid;
       gap: 12px;
@@ -13412,7 +13428,7 @@
       const objective = document.createElement("section");
       objective.id = "active-plan-objective";
       objective.dataset.toc = "30-Day Objective";
-      objective.innerHTML = `<div class="active-plan-header"><h2>${escapeHtml(plan.title)}</h2><p>${escapeHtml(plan.objective)}</p></div><div class="grid"><div class="field"><h3>Current Focus</h3><p>${escapeHtml(plan.focus)}</p></div><div class="field"><h3>Evidence That Matters</h3><p>${escapeHtml(plan.evidence)}</p></div><div class="field"><h3>Decision at the End of This Cycle</h3><p>${escapeHtml(plan.decision)}</p></div><div class="field"><h3>Review Rhythm</h3><p>${escapeHtml(`${plan.cadence} review led by ${plan.owner}.`)}</p></div></div>`;
+      objective.innerHTML = `<div class="active-plan-header"><h2>${escapeHtml(plan.title)}</h2><p>${escapeHtml(plan.objective)}</p></div><ul class="active-plan-overview-list"><li><strong>Current Focus</strong>${escapeHtml(plan.focus)}</li><li><strong>Evidence That Matters</strong>${escapeHtml(plan.evidence)}</li><li><strong>Decision at the End of This Cycle</strong>${escapeHtml(plan.decision)}</li><li><strong>Review Rhythm</strong>${escapeHtml(`${plan.cadence} review led by ${plan.owner}.`)}</li></ul>`;
       main.appendChild(objective);
 
       const actions = document.createElement("section");

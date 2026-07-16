@@ -4,6 +4,10 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-16 Active Plan Overview
+
+- Replaced the four separate Active Plan overview fields with one concise bulleted summary covering Current Focus, Evidence That Matters, the end-of-cycle decision, and the review rhythm.
+
 ## 2026-07-16 User-Facing Plan Logic and Persistent Storage
 
 - Removed calculated confidence labels, source-trace rules, score weights, uncertainty penalties, and projected score lifts from user-facing plan sections.
