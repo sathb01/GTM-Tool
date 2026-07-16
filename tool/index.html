@@ -175,31 +175,47 @@
     nav {
       display: flex;
       flex-direction: column;
+      gap: 12px;
       height: calc(100vh - 36px);
       position: sticky;
       top: 18px;
       overflow: hidden;
       overscroll-behavior: contain;
-      scrollbar-gutter: stable;
+      border: 0;
+      padding: 0;
+    }
+
+    .nav-intake-box,
+    .nav-assets-box {
       background: var(--nav-bg);
       border: 0;
       border-radius: 10px;
       box-shadow: var(--shadow-card);
-      padding: 14px 10px;
+      color: var(--nav-text);
+      padding: 12px 10px;
     }
 
-    .nav-foundation {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-      flex: 0 0 auto;
-      padding-bottom: 10px;
+    .nav-intake-box {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
     }
 
-    .nav-scroll-area {
+    .nav-group-list {
       flex: 1 1 auto;
       min-height: 0;
       overflow-y: auto;
       overscroll-behavior: contain;
-      padding-top: 2px;
+      scrollbar-gutter: stable;
+    }
+
+    .nav-assets-box {
+      flex: 0 1 auto;
+      max-height: 42vh;
+      overflow-y: auto;
+      overscroll-behavior: contain;
       scrollbar-gutter: stable;
     }
 
@@ -224,27 +240,43 @@
       box-shadow: inset 3px 0 0 var(--accent-coral);
     }
 
-    .nav-group-label {
+    .nav-section-group > summary,
+    .nav-assets-box > summary {
+      cursor: pointer;
       color: var(--nav-muted);
       font-size: 11px;
       font-weight: 800;
       letter-spacing: 0.08em;
-      margin: 16px 12px 6px;
+      list-style: none;
+      padding: 11px 12px;
       text-transform: uppercase;
     }
 
-    .nav-group-label:first-of-type {
-      margin-top: 12px;
+    .nav-section-group > summary::-webkit-details-marker,
+    .nav-assets-box > summary::-webkit-details-marker {
+      display: none;
     }
 
-    .nav-assets {
-      border-top: 1px solid rgba(255, 255, 255, 0.12);
-      margin-top: 18px;
-      padding-top: 12px;
+    .nav-section-group > summary::after,
+    .nav-assets-box > summary::after {
+      content: "+";
+      float: right;
+      font-size: 15px;
+      line-height: 10px;
     }
 
-    .nav-assets .nav-group-label {
-      margin-top: 0;
+    .nav-section-group[open] > summary::after,
+    .nav-assets-box[open] > summary::after {
+      content: "−";
+    }
+
+    .nav-section-group + .nav-section-group {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .nav-section-links,
+    .nav-asset-links {
+      padding-bottom: 6px;
     }
 
     .nav-asset-link {
@@ -252,8 +284,8 @@
     }
 
     .section-progress {
-      margin-top: 10px;
-      padding: 10px 10px 2px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 2px 10px 12px;
     }
 
     .section-progress-text {
@@ -1460,9 +1492,12 @@
         margin-bottom: 16px;
       }
 
-      .nav-scroll-area {
+      .nav-intake-box,
+      .nav-assets-box,
+      .nav-group-list {
         max-height: none;
-        overflow-y: visible;
+        min-height: 0;
+        overflow: visible;
       }
 
       .grid,

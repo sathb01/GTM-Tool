@@ -4821,8 +4821,8 @@ function switchActiveSection(sectionId) {
 
 function renderSectionNavigation(sectionsToShow, nav) {
   const activeIndex = Math.max(0, sectionsToShow.findIndex((section) => section.id === activeSectionId));
-  const pinned = document.createElement("div");
-  const scrollArea = document.createElement("div");
+  const intakeBox = document.createElement("div");
+  const groupList = document.createElement("div");
   const progress = document.createElement("div");
   const progressText = document.createElement("div");
   const progressTrack = document.createElement("div");
@@ -4838,8 +4838,8 @@ function renderSectionNavigation(sectionsToShow, nav) {
   progressTrack.appendChild(progressFill);
   progress.appendChild(progressText);
   progress.appendChild(progressTrack);
-  pinned.className = "nav-foundation";
-  scrollArea.className = "nav-scroll-area";
+  intakeBox.className = "nav-intake-box";
+  groupList.className = "nav-group-list";
 
   const groupLabels = {
     company: "Foundation",
@@ -4860,9 +4860,6 @@ function renderSectionNavigation(sectionsToShow, nav) {
     signals: "Execution",
     pipeline: "Execution"
   };
-  const foundationSections = sectionsToShow.filter((section) => groupLabels[section.id] === "Foundation");
-  const scrollingSections = sectionsToShow.filter((section) => groupLabels[section.id] !== "Foundation");
-
   const appendSectionLink = (section, container) => {
     const anchor = document.createElement("a");
     anchor.href = `#${section.id}`;
@@ -4874,31 +4871,25 @@ function renderSectionNavigation(sectionsToShow, nav) {
     });
     container.appendChild(anchor);
   };
-
-  if (foundationSections.length) {
-    const label = document.createElement("div");
-    label.className = "nav-group-label";
-    label.textContent = "Foundation";
-    pinned.appendChild(label);
-    foundationSections.forEach((section) => appendSectionLink(section, pinned));
-  }
-  pinned.appendChild(progress);
-  nav.appendChild(pinned);
-  nav.appendChild(scrollArea);
-
-  let currentGroup = "";
-  scrollingSections.forEach((section) => {
-    const group = groupLabels[section.id] || "Workspace";
-
-    if (group !== currentGroup) {
-      const label = document.createElement("div");
-      label.className = "nav-group-label";
-      label.textContent = group;
-      scrollArea.appendChild(label);
-      currentGroup = group;
-    }
-    appendSectionLink(section, scrollArea);
+  const groupOrder = ["Foundation", "Validation", "Strategy", "Execution", "Workspace"];
+  const activeGroup = groupLabels[activeSectionId] || "Workspace";
+  groupOrder.forEach((group) => {
+    const groupSections = sectionsToShow.filter((section) => (groupLabels[section.id] || "Workspace") === group);
+    if (!groupSections.length) return;
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    const links = document.createElement("div");
+    details.className = "nav-section-group";
+    details.dataset.navGroup = group;
+    details.open = group === activeGroup;
+    summary.textContent = group;
+    links.className = "nav-section-links";
+    groupSections.forEach((section) => appendSectionLink(section, links));
+    details.append(summary, links);
+    groupList.appendChild(details);
   });
+  intakeBox.append(progress, groupList);
+  nav.appendChild(intakeBox);
 
   const navData = getFormData();
   const hasIcpAsset = Boolean(
@@ -4910,12 +4901,15 @@ function renderSectionNavigation(sectionsToShow, nav) {
     .some((field) => String(navData[field] || "").trim())
     || Object.keys(navData).some((field) => field.startsWith("buyerRoleCards__") && String(navData[field] || "").trim());
   if (isPreRevenueMode() || navData.companyName || navData.website || hasIcpAsset || hasPersonaAsset) {
-    const assets = document.createElement("div");
-    const label = document.createElement("div");
-    assets.className = "nav-assets";
-    label.className = "nav-group-label";
-    label.textContent = "Assets";
-    assets.appendChild(label);
+    const assets = document.createElement("details");
+    const summary = document.createElement("summary");
+    const assetLinksContainer = document.createElement("div");
+    assets.className = "nav-assets-box";
+    assets.open = localStorage.getItem(`${STORAGE_KEY}:assetsNavOpen`) !== "false";
+    summary.textContent = "Assets";
+    assetLinksContainer.className = "nav-asset-links";
+    assets.append(summary, assetLinksContainer);
+    assets.addEventListener("toggle", () => localStorage.setItem(`${STORAGE_KEY}:assetsNavOpen`, String(assets.open)));
 
     const assetLinks = isPreRevenueMode()
       ? [
@@ -4953,10 +4947,10 @@ function renderSectionNavigation(sectionsToShow, nav) {
         saveDraft(false);
         window.location.href = resultsUrl(undefined, asset);
       });
-      assets.appendChild(link);
+      assetLinksContainer.appendChild(link);
     });
 
-    scrollArea.appendChild(assets);
+    nav.appendChild(assets);
   }
 }
 
