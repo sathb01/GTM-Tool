@@ -28,6 +28,26 @@ const contentTypes = {
   ".svg": "image/svg+xml"
 };
 
+function setSecurityHeaders(response) {
+  response.setHeader("Content-Security-Policy", [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "connect-src 'self'",
+    "font-src 'self' data:",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "img-src 'self' data: blob:",
+    "object-src 'none'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'"
+  ].join("; "));
+  response.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  response.setHeader("X-Content-Type-Options", "nosniff");
+  response.setHeader("X-Frame-Options", "DENY");
+  response.setHeader("Referrer-Policy", "no-referrer");
+  response.setHeader("Permissions-Policy", "camera=(), geolocation=(), microphone=()");
+}
+
 function sendJson(response, status, payload) {
   response.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   response.end(JSON.stringify(payload));
@@ -110,11 +130,15 @@ function sendLoginPage(response, message = "") {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GTM OS Login</title>
   <style>
-    body { background: #eef3f8; color: #162033; font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; }
+    body { background: #f4f7fb; color: #162033; font-family: "Source Sans 3", Inter, "Segoe UI", Arial, sans-serif; margin: 0; }
     main { margin: 12vh auto; max-width: 420px; background: #fff; border: 1px solid #d6dee8; border-radius: 8px; padding: 24px; box-shadow: 0 8px 24px rgba(22,32,51,.08); }
+    h1 { color: #213343; margin: 0 0 8px; }
     label { display: block; font-weight: 700; margin-bottom: 8px; }
     input { width: 100%; border: 1px solid #d6dee8; border-radius: 6px; box-sizing: border-box; font-size: 16px; padding: 11px; }
-    button { background: #2158d6; border: 0; border-radius: 6px; color: #fff; cursor: pointer; font-size: 15px; font-weight: 700; margin-top: 14px; padding: 11px 16px; width: 100%; }
+    input:focus-visible { border-color: #ff7a59; outline: 2px solid rgba(255,122,89,.32); outline-offset: 1px; }
+    button { background: #ff7a59; border: 0; border-radius: 6px; color: #fff; cursor: pointer; font-size: 15px; font-weight: 700; margin-top: 14px; padding: 11px 16px; transition: background-color .16s ease; width: 100%; }
+    button:hover { background: #536174; }
+    button:focus-visible { outline: 3px solid rgba(255,122,89,.38); outline-offset: 2px; }
     p { color: #536174; line-height: 1.5; }
     .error { color: #b91c1c; font-weight: 700; }
   </style>
@@ -446,6 +470,7 @@ async function serveStatic(response, pathname) {
 
 const server = createServer(async (request, response) => {
   const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
+  setSecurityHeaders(response);
 
   try {
     if (await handleAuth(request, response, url)) {

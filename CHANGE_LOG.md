@@ -4,6 +4,13 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-16 Login and Browser Security
+
+- Updated the password login page to use the GTM OS navy, coral, and gray interaction palette.
+- Added consistent keyboard focus styling to the login form.
+- Added Content Security Policy, HSTS, clickjacking protection, MIME sniffing protection, referrer restrictions, and browser permissions restrictions to every server response.
+- Verified the hardened server against the four-company asset suite: 100/100 renders and 26/26 save/reload checks passed.
+
 ## Project Continuity
 
 - Created `PROJECT_CONTEXT.md` so future ChatGPT/Codex sessions can recover project state even if chat history is incomplete.
