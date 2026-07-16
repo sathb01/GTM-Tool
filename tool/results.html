@@ -5597,7 +5597,7 @@
       return "executiveQuickReview";
     }
 
-    function intakeReviewUrl(topic) {
+    function intakeReviewUrl(topic, options = {}) {
       const sectionId = intakeSectionForTopic(topic);
       const params = new URLSearchParams({
         focus: sectionId,
@@ -5606,6 +5606,12 @@
       const recordId = new URLSearchParams(window.location.search).get("recordId") || "";
       if (recordId) {
         params.set("recordId", recordId);
+      }
+      if (options.task) {
+        params.set("task", options.task);
+      }
+      if (options.returnToCurrentReport) {
+        params.set("returnTo", `results.html${window.location.search}${window.location.hash || ""}`);
       }
       return `index.html?${params.toString()}#${encodeURIComponent(sectionId)}`;
     }
@@ -10097,6 +10103,10 @@
       const customerFix = intakeReviewUrl(context.preRevenue ? "think big start small" : "customer priority");
       const offerFix = intakeReviewUrl("offer proof message claim");
       const motionFix = intakeReviewUrl("revenue motion goal owner");
+      const activePlanActionFix = intakeReviewUrl("revenue motion goal owner", {
+        task: "active-plan-action",
+        returnToCurrentReport: true
+      });
       const buyerFix = intakeReviewUrl("buyer persona committee");
       const evidenceFix = context.preRevenue ? reportAssetUrl("validation-workspace") : intakeReviewUrl("proof evidence");
       const drafts = Array.isArray(context.messaging.drafts) ? context.messaging.drafts : [];
@@ -10185,7 +10195,7 @@
         ],
         active: [
           assetQualityCheck("Current priority is focused", context.customer && context.goal, "Connects the active work to one customer focus and one goal.", "Review plan focus", customerFix),
-          assetQualityCheck("Action is executable", planCore || assetQualityDataMatch(data, /activePlan__actions/i), "Names the offer, motion, channel, or concrete work product.", "Review active plan", reportAssetUrl("active")),
+          assetQualityCheck("Action is executable", planCore || assetQualityDataMatch(data, /activePlan__action-\d+__(?:output|action|deliverable)/i), "Complete one revenue strategy with a customer group, offer, channel/source, sales motion, owner, and measurable goal.", "Complete Active Plan inputs", activePlanActionFix),
           assetQualityCheck("Owner is assigned", context.owner || assetQualityDataMatch(data, /activePlan__.*owner/i), "Makes one person accountable for moving the action forward.", "Assign owner", reportAssetUrl("active")),
           assetQualityCheck("Evidence and decision are captured", assetQualityDataMatch(data, /activePlan__.*(?:evidence|decision|learning)/i), "Creates a path from completed work to a Continue, Revise, or Pause decision.", "Set evidence fields", reportAssetUrl("active"))
         ],

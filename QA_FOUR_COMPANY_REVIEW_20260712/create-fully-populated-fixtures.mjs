@@ -101,7 +101,16 @@ function tableRows(table, data) {
   const unique = [...new Set(existing)];
   if (unique.length) return unique.map((id) => ({ id, label: id }));
   const count = Math.max(1, Number(table.minRows) || 1);
-  return Array.from({ length: count }, (_, index) => ({ id: `${slug(table.rowLabel || "row")}-${index + 1}`, label: `${table.rowLabel || "Row"} ${index + 1}` }));
+  return Array.from({ length: count }, (_, index) => ({
+    id: table.id === "offerPortfolio"
+      ? `offer-${index + 1}`
+      : table.id === "signalPlayPortfolio"
+        ? `play-${index + 1}`
+        : table.id === "revenueMotionPortfolio"
+          ? `motion-${index + 1}`
+          : `${slug(table.rowLabel || "row")}-${index + 1}`,
+    label: `${table.rowLabel || "Row"} ${index + 1}`
+  }));
 }
 
 function populateTable(table, data, company) {

@@ -1684,7 +1684,13 @@ function tableRows(table) {
   }
 
   return Array.from({ length: table.minRows || 3 }, (_, index) => ({
-    id: `${slug(table.rowLabel)}-${index + 1}`,
+    id: table.id === "offerPortfolio"
+      ? `offer-${index + 1}`
+      : table.id === "signalPlayPortfolio"
+        ? `play-${index + 1}`
+        : table.id === "revenueMotionPortfolio"
+          ? `motion-${index + 1}`
+          : `${slug(table.rowLabel)}-${index + 1}`,
     label: `${table.rowLabel} ${index + 1}`
   }));
 }
@@ -4512,6 +4518,8 @@ function improvementFocusFromUrl() {
   const params = new URLSearchParams(window.location.search);
   const sectionId = params.get("focus") || "";
   const review = params.get("review") || "";
+  const task = params.get("task") || "";
+  const returnTo = params.get("returnTo") || "";
 
   if (!sectionId || !review) {
     return null;
@@ -4562,7 +4570,7 @@ function improvementFocusFromUrl() {
     }
   };
 
-  const focus = defaults[review] || {
+  let focus = defaults[review] || {
     area: "Related intake answers",
     why: "Review the answers that support this recommendation before changing the action plan.",
     missing: ["Source answer", "Evidence", "Owner", "Next action"],
@@ -4570,10 +4578,32 @@ function improvementFocusFromUrl() {
     example: "Replace broad or old answers with the current source of truth."
   };
 
+  if (task === "active-plan-action") {
+    focus = {
+      area: "Complete the Active Plan foundation",
+      why: "The Active Plan cannot pass its executable-action check until one complete revenue motion connects a customer group, offer, channel, sales motion, owner, and measurable goal.",
+      missing: [
+        "One named revenue acquisition strategy",
+        "The customer group and offer this strategy will use",
+        "The channel or source and sales motion",
+        "The primary buyer, owner, and measurable goal",
+        "Primary revenue motion selected below"
+      ],
+      questions: [
+        "Complete the first Revenue Acquisition Strategy card below.",
+        "Choose that strategy as the Primary Revenue Motion.",
+        "Save the answers, return to the Active Plan, and select Recheck Quality."
+      ],
+      example: "Referral-led diagnostic for specialty manufacturers: promote the 90-Day Throughput Improvement Program through network referrals, use consultative selling to reach the COO, assign the Revenue Operations Manager, and target four closed programs in 90 days."
+    };
+  }
+
   return {
     type: "review",
     sectionId,
     ...focus,
+    returnTo,
+    returnLabel: task === "active-plan-action" ? "Return to Active Plan" : "Return to Report",
     createdAt: new Date().toISOString()
   };
 }
@@ -4599,6 +4629,7 @@ function renderImprovementFocusCard(sectionId) {
   const updateModel = document.createElement("button");
   const regenerate = document.createElement("button");
   const dismiss = document.createElement("button");
+  const returnLink = document.createElement("a");
 
   card.className = "improvement-focus";
   heading.textContent = `Workshop: ${focus.area || "Recommended follow-up"}`;
@@ -4697,6 +4728,12 @@ function renderImprovementFocusCard(sectionId) {
     updateConditionalFields();
   });
 
+  if (focus.returnTo && /^(?:results|facilitation)\.html(?:[?#]|$)/.test(focus.returnTo)) {
+    returnLink.className = "secondary";
+    returnLink.href = focus.returnTo;
+    returnLink.textContent = focus.returnLabel || "Return to Report";
+  }
+
   card.appendChild(heading);
   card.appendChild(why);
   if (missingList.children.length) {
@@ -4714,6 +4751,9 @@ function renderImprovementFocusCard(sectionId) {
   actions.appendChild(saveAnswers);
   actions.appendChild(updateModel);
   actions.appendChild(regenerate);
+  if (returnLink.href) {
+    actions.appendChild(returnLink);
+  }
   actions.appendChild(dismiss);
   card.appendChild(actions);
   return card;

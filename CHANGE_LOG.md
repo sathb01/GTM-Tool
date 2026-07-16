@@ -4,6 +4,14 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-16 Portfolio Restoration and Asset Remediation
+
+- Corrected the initial row IDs for offer, targeting-strategy, and revenue-motion portfolios so saved portfolio data binds to the visible intake cards.
+- Restored the fully populated ForgeLine Revenue Acquisition Strategy Portfolio to its visible intake card.
+- Changed the Active Plan executable-action quality gap to open the exact Revenue Motion intake remediation instead of a generic Active Plan view.
+- Added explicit completion steps, required fields, an example, and a direct Return to Active Plan link to the remediation workshop.
+- Added a targeted regression check covering portfolio restoration, Active Plan quality 4/4, and the remediation return path.
+
 ## 2026-07-16 Login and Browser Security
 
 - Updated the password login page to use the GTM OS navy, coral, and gray interaction palette.
