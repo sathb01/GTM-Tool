@@ -722,7 +722,10 @@
 
     .active-plan-controls select,
     .active-plan-controls input,
-    .active-plan-review textarea {
+    .active-plan-review textarea,
+    .active-plan-review select,
+    .active-plan-review input,
+    .active-plan-action textarea {
       width: 100%;
       border: 1px solid var(--border);
       border-radius: 5px;
@@ -771,6 +774,22 @@
       padding: 14px;
     }
 
+    .active-plan-week.current {
+      border-left: 4px solid var(--accent);
+    }
+
+    .active-plan-week.complete {
+      background: #f4f5f3;
+    }
+
+    .active-plan-week-state {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      margin: 0 0 8px;
+      text-transform: uppercase;
+    }
+
     .active-plan-week h3,
     .active-plan-week ul {
       margin: 0;
@@ -797,6 +816,53 @@
       color: var(--muted);
       font-size: 13px;
       font-weight: 700;
+    }
+
+    .weekly-close-summary {
+      border-left: 4px solid var(--accent);
+      padding: 10px 14px;
+      background: #fff7f3;
+    }
+
+    .weekly-close-summary p {
+      margin: 4px 0 0;
+    }
+
+    .weekly-rollover-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .weekly-rollover-row {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) minmax(170px, 0.45fr) minmax(220px, 0.8fr);
+      gap: 12px;
+      align-items: end;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+    }
+
+    .weekly-rollover-row > div,
+    .weekly-rollover-row label {
+      display: grid;
+      gap: 4px;
+    }
+
+    .weekly-rollover-row span,
+    .weekly-rollover-row label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .weekly-rollover-row.is-complete {
+      background: #f4f5f3;
+    }
+
+    .weekly-rollover-row.is-complete label {
+      opacity: 0.45;
+      pointer-events: none;
     }
 
     .action-runner-steps {
@@ -2272,6 +2338,7 @@
       .validation-test-grid,
       .active-plan-action,
       .active-plan-week-grid,
+      .weekly-rollover-row,
       .validation-assessment-grid,
       .validation-decision-controls,
       .validation-evidence-columns,
@@ -12978,6 +13045,79 @@
       return `activePlan__action-${index + 1}__${name}`;
     }
 
+    function activePlanWeeklyWorkspace(data, plan) {
+      const saved = data.activePlanWeeklyWorkspace && typeof data.activePlanWeeklyWorkspace === "object"
+        ? data.activePlanWeeklyWorkspace
+        : {};
+      saved.currentWeek = Math.max(1, Math.min(4, Number(saved.currentWeek) || 1));
+      saved.history = Array.isArray(saved.history) ? saved.history : [];
+      if (!Array.isArray(saved.currentPriorities) || !saved.currentPriorities.length) {
+        saved.currentPriorities = plan.actions.slice(0, 5).map((action, index) => ({
+          id: `week-${saved.currentWeek}-action-${index + 1}`,
+          sourceIndex: index,
+          title: action.title,
+          why: action.why,
+          output: action.output,
+          decision: action.decision,
+          status: cleanText(data[activePlanField(index, "status")]) || "Not started",
+          owner: cleanText(data[activePlanField(index, "owner")]) || plan.owner,
+          evidence: cleanText(data[activePlanField(index, "evidence")]),
+          disposition: index < 2 ? "Carry forward" : "Drop",
+          revisedTask: ""
+        }));
+      }
+      data.activePlanWeeklyWorkspace = saved;
+      return saved;
+    }
+
+    function nextWeekPriority(title, plan, weekNumber, index) {
+      return {
+        id: `week-${weekNumber}-planned-${index + 1}-${Date.now()}`,
+        sourceIndex: null,
+        title,
+        why: "This is the next focused step in the 30-day plan.",
+        output: title,
+        decision: plan.decision,
+        status: "Not started",
+        owner: plan.owner,
+        evidence: "",
+        disposition: "Carry forward",
+        revisedTask: ""
+      };
+    }
+
+    function activePlanWeeklyStatusOptions(selected) {
+      return ["Not started", "In progress", "Waiting", "Complete", "Blocked"]
+        .map((option) => `<option${selected === option ? " selected" : ""}>${option}</option>`)
+        .join("");
+    }
+
+    async function persistActivePlanData(data, statusElement) {
+      data.activePlan__updatedAt = new Date().toISOString();
+      updateActivePlanLocalCache(data);
+      const recordId = activeReportRecordId();
+      if (!recordId || !API_BASE) {
+        statusElement.textContent = "Saved in this browser.";
+        return true;
+      }
+      try {
+        const response = await fetch(`${API_BASE}/api/records/${encodeURIComponent(recordId)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: recordId, name: data.companyName || "Untitled company", data })
+        });
+        if (!response.ok) throw new Error("The workspace copy could not be updated.");
+        const result = await response.json();
+        if (result.record) cacheRecord(result.record);
+        statusElement.textContent = "Plan updates saved.";
+        return true;
+      } catch (error) {
+        console.warn(error.message);
+        statusElement.textContent = "Saved in this browser, but the workspace copy could not be updated.";
+        return false;
+      }
+    }
+
     function activePlanDefinition(data) {
       if (isPreRevenueReport(data)) {
         const model = preRevenueScore(data);
@@ -13132,6 +13272,7 @@
 
     function planHealthModel(data) {
       const plan = activePlanDefinition(data);
+      const activeWeek = activePlanWeeklyWorkspace(data, plan);
       const feedback = plan.feedback || executionEvidenceFeedback(data);
       const today = new Date().toISOString().slice(0, 10);
       const targetWorkspace = data.targetListWorkspace && typeof data.targetListWorkspace === "object" ? data.targetListWorkspace : {};
@@ -13148,12 +13289,12 @@
         ...assignments.filter((item) => item.dueDate && item.dueDate < today && !["Complete", "Stopped", "Meaningful next step"].includes(item.status)).map((item) => ({ label: item.nextAction || "Outreach follow-up", dueDate: item.dueDate, source: "Outreach", url: reportAssetUrl("outreach") }))
       ].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 
-      const actionStates = plan.actions.map((action, index) => ({
+      const actionStates = activeWeek.currentPriorities.map((action, index) => ({
         ...action,
         index,
-        status: cleanText(data[activePlanField(index, "status")]) || "Not started",
-        owner: cleanText(data[activePlanField(index, "owner")]) || plan.owner,
-        url: activePlanActionUrl(index)
+        status: cleanText(action.status) || "Not started",
+        owner: cleanText(action.owner) || plan.owner,
+        url: Number.isInteger(action.sourceIndex) ? activePlanActionUrl(action.sourceIndex) : reportAssetUrl("active")
       }));
       const activeActions = actionStates.filter((item) => ["In progress", "Waiting", "Blocked"].includes(item.status));
       const completedActions = actionStates.filter((item) => item.status === "Complete").length;
@@ -13185,6 +13326,8 @@
         currentPriority: actionStates[0],
         activeActions,
         completedActions,
+        totalActions: actionStates.length,
+        currentWeek: activeWeek.currentWeek,
         overdue,
         pendingDecisions,
         latestLearningChange,
@@ -13211,7 +13354,7 @@
       dashboard.id = "plan-health-dashboard";
       dashboard.dataset.toc = "Plan Status";
       dashboard.className = "workspace-section";
-      dashboard.innerHTML = `<h2>Plan Status</h2><div class="messaging-result-summary"><div class="messaging-result-card"><span>Status</span><strong>${escapeHtml(health.status)}</strong></div><div class="messaging-result-card"><span>Actions complete</span><strong>${health.completedActions} / ${health.plan.actions.length}</strong></div><div class="messaging-result-card"><span>Work in progress</span><strong>${health.activeActions.length}</strong></div><div class="messaging-result-card"><span>Open opportunities</span><strong>${health.openOpportunities}</strong></div></div>`;
+      dashboard.innerHTML = `<h2>Plan Status</h2><div class="messaging-result-summary"><div class="messaging-result-card"><span>Status</span><strong>${escapeHtml(health.status)}</strong></div><div class="messaging-result-card"><span>Week ${health.currentWeek} complete</span><strong>${health.completedActions} / ${health.totalActions}</strong></div><div class="messaging-result-card"><span>Work in progress</span><strong>${health.activeActions.length}</strong></div><div class="messaging-result-card"><span>Open opportunities</span><strong>${health.openOpportunities}</strong></div></div>`;
       main.appendChild(dashboard);
 
       const next = document.createElement("section");
@@ -13241,29 +13384,15 @@
       inputs.forEach((input) => {
         data[input.dataset.activePlanField] = input.value;
       });
-      data.activePlan__updatedAt = new Date().toISOString();
-      updateActivePlanLocalCache(data);
-      const recordId = activeReportRecordId();
-      if (!recordId || !API_BASE) {
-        statusElement.textContent = "Saved in this browser.";
-        return true;
-      }
-      try {
-        const response = await fetch(`${API_BASE}/api/records/${encodeURIComponent(recordId)}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: recordId, name: data.companyName || "Untitled company", data })
-        });
-        if (!response.ok) throw new Error("The workspace copy could not be updated.");
-        const result = await response.json();
-        if (result.record) cacheRecord(result.record);
-        statusElement.textContent = "Plan updates saved.";
-        return true;
-      } catch (error) {
-        console.warn(error.message);
-        statusElement.textContent = "Saved in this browser, but the workspace copy could not be updated.";
-        return false;
-      }
+      const plan = activePlanDefinition(data);
+      const weeklyWorkspace = activePlanWeeklyWorkspace(data, plan);
+      weeklyWorkspace.currentPriorities.forEach((priority) => {
+        if (!Number.isInteger(priority.sourceIndex)) return;
+        priority.status = cleanText(data[activePlanField(priority.sourceIndex, "status")]) || priority.status;
+        priority.owner = cleanText(data[activePlanField(priority.sourceIndex, "owner")]) || priority.owner;
+        priority.evidence = cleanText(data[activePlanField(priority.sourceIndex, "evidence")]) || priority.evidence;
+      });
+      return persistActivePlanData(data, statusElement);
     }
 
     function activePlanActionWorkDetails(data, plan, index) {
@@ -13415,6 +13544,7 @@
     function renderActivePlanWorkspace(data) {
       const main = document.querySelector("main");
       const plan = activePlanDefinition(data);
+      const weeklyWorkspace = activePlanWeeklyWorkspace(data, plan);
       const requestedAction = Number(new URLSearchParams(window.location.search).get("action")) - 1;
       if (Number.isInteger(requestedAction) && requestedAction >= 0 && requestedAction < plan.actions.length) {
         renderActivePlanActionRunner(data, plan, requestedAction);
@@ -13439,55 +13569,162 @@
       const actions = document.createElement("section");
       actions.id = "active-plan-this-week";
       actions.dataset.toc = "This Week";
-      actions.innerHTML = `<h2>This Week</h2><p class="muted">Keep the plan focused. Complete the work that creates evidence for the next decision before adding more activity.</p><div class="active-plan-actions"></div>`;
+      actions.innerHTML = `<h2>Week ${weeklyWorkspace.currentWeek} Priorities</h2><p class="muted">Complete the work that creates evidence for the next decision. A completed priority needs a short result so the next week can respond to what actually happened.</p><div class="active-plan-actions"></div><div class="active-plan-save-row"><button type="button" id="saveWeeklyProgressButton">Save Weekly Progress</button><span class="active-plan-save-status" id="weeklyProgressSaveStatus"></span></div>`;
       const actionList = actions.querySelector(".active-plan-actions");
-      plan.actions.slice(0, 5).forEach((action, index) => {
+      weeklyWorkspace.currentPriorities.forEach((action, index) => {
         const card = document.createElement("article");
-        const statusField = activePlanField(index, "status");
-        const ownerField = activePlanField(index, "owner");
-        const selectedStatus = data[statusField] || "Not started";
-        const selectedOwner = data[ownerField] || plan.owner;
         card.className = "active-plan-action";
-        card.innerHTML = `<div class="active-plan-action-copy"><div class="active-plan-label">Priority ${index + 1}</div><h3>${escapeHtml(action.title)}</h3><p><strong>Why it matters:</strong> ${escapeHtml(action.why)}</p><p><strong>This week’s output:</strong> ${escapeHtml(action.output)}</p><p><strong>Decision it supports:</strong> ${escapeHtml(action.decision)}</p><div class="active-plan-link-row"><a href="${escapeHtml(plan.planLink)}">${escapeHtml(plan.planLinkLabel)}</a><a href="${escapeHtml(intakeReturnUrl())}">Review related intake answers</a></div></div><div class="active-plan-controls"><label>Status<select data-active-plan-field="${escapeHtml(statusField)}"><option${selectedStatus === "Not started" ? " selected" : ""}>Not started</option><option${selectedStatus === "In progress" ? " selected" : ""}>In progress</option><option${selectedStatus === "Waiting" ? " selected" : ""}>Waiting</option><option${selectedStatus === "Complete" ? " selected" : ""}>Complete</option><option${selectedStatus === "Blocked" ? " selected" : ""}>Blocked</option></select></label><label>Owner<input data-active-plan-field="${escapeHtml(ownerField)}" value="${escapeHtml(selectedOwner)}"></label></div>`;
-        const workLink = document.createElement("a");
-        workLink.href = activePlanActionUrl(index);
-        workLink.textContent = "Work on this action";
-        card.querySelector(".active-plan-link-row")?.prepend(workLink);
+        card.dataset.weeklyPriority = String(index);
+        card.innerHTML = `<div class="active-plan-action-copy"><div class="active-plan-label">Priority ${index + 1}</div><h3>${escapeHtml(action.title)}</h3><p><strong>Why it matters:</strong> ${escapeHtml(action.why)}</p><p><strong>This week's output:</strong> ${escapeHtml(action.output)}</p><p><strong>Decision it supports:</strong> ${escapeHtml(action.decision)}</p><label class="wide">Result or evidence<textarea rows="3" data-weekly-priority-field="evidence" placeholder="What was completed, produced, observed, or learned?">${escapeHtml(action.evidence || "")}</textarea></label><div class="active-plan-link-row">${Number.isInteger(action.sourceIndex) ? `<a href="${escapeHtml(activePlanActionUrl(action.sourceIndex))}">Work on this action</a>` : ""}<a href="${escapeHtml(plan.planLink)}">${escapeHtml(plan.planLinkLabel)}</a></div></div><div class="active-plan-controls"><label>Status<select data-weekly-priority-field="status">${activePlanWeeklyStatusOptions(action.status)}</select></label><label>Owner<input data-weekly-priority-field="owner" value="${escapeHtml(action.owner || plan.owner)}"></label></div>`;
         actionList.appendChild(card);
+      });
+      actions.querySelector("#saveWeeklyProgressButton").addEventListener("click", async (event) => {
+        const status = actions.querySelector("#weeklyProgressSaveStatus");
+        let missingEvidence = false;
+        actions.querySelectorAll("[data-weekly-priority]").forEach((card, index) => {
+          card.querySelectorAll("[data-weekly-priority-field]").forEach((control) => {
+            weeklyWorkspace.currentPriorities[index][control.dataset.weeklyPriorityField] = control.value.trim();
+          });
+          if (weeklyWorkspace.currentPriorities[index].status === "Complete" && !weeklyWorkspace.currentPriorities[index].evidence) missingEvidence = true;
+        });
+        if (missingEvidence) {
+          status.textContent = "Add a result or evidence note before marking a priority Complete.";
+          return;
+        }
+        event.currentTarget.disabled = true;
+        await persistActivePlanData(data, status);
+        event.currentTarget.disabled = false;
       });
       main.appendChild(actions);
 
       const weeks = document.createElement("section");
       weeks.id = "active-plan-weeks";
       weeks.dataset.toc = "Four-Week Plan";
-      weeks.innerHTML = "<h2>Four-Week Plan</h2><div class=\"active-plan-week-grid\"></div>";
+      weeks.innerHTML = "<h2>Four-Week Plan</h2><p class=\"muted\">The outline shows the intended sequence. Closing each week creates the next focused set of no more than three priorities.</p><div class=\"active-plan-week-grid\"></div>";
       const weekGrid = weeks.querySelector(".active-plan-week-grid");
-      plan.weeks.slice(0, 4).forEach((week) => {
+      plan.weeks.slice(0, 4).forEach((week, weekIndex) => {
         const card = document.createElement("article");
         const items = week.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
-        card.className = "active-plan-week";
-        card.innerHTML = `<h3>${escapeHtml(week.label)}</h3><ul>${items}</ul>`;
+        card.className = `active-plan-week${weekIndex + 1 === weeklyWorkspace.currentWeek ? " current" : ""}${weekIndex + 1 < weeklyWorkspace.currentWeek ? " complete" : ""}`;
+        card.innerHTML = `<h3>${escapeHtml(week.label)}</h3><p class="active-plan-week-state">${weekIndex + 1 === weeklyWorkspace.currentWeek ? "Current week" : weekIndex + 1 < weeklyWorkspace.currentWeek ? "Closed" : "Upcoming"}</p><ul>${items}</ul>`;
         weekGrid.appendChild(card);
       });
       main.appendChild(weeks);
 
       const review = document.createElement("section");
       review.id = "active-plan-review";
-      review.dataset.toc = "Weekly Review";
-      review.innerHTML = `<h2>Weekly Review</h2><p class="muted">Capture only the learning that changes the next decision. The next cycle should become clearer, not larger.</p><div class="active-plan-review"><label>What did we learn?<textarea data-active-plan-field="activePlan__weeklyReview__learning" rows="4" placeholder="What evidence changed your confidence, and why?"></textarea></label><div class="grid"><label>Decision<select data-active-plan-field="activePlan__weeklyReview__decision"><option>Continue</option><option>Revise</option><option>Pause</option><option>Need more evidence</option></select></label><label>What changes next?<input data-active-plan-field="activePlan__weeklyReview__nextChange" placeholder="One focused change for the next week"></label></div><div class="active-plan-save-row"><button type="button" id="saveActivePlanButton">Save Plan Updates</button><span class="active-plan-save-status" id="activePlanSaveStatus"></span></div></div>`;
-      review.querySelector("[data-active-plan-field='activePlan__weeklyReview__learning']").value = data.activePlan__weeklyReview__learning || "";
-      review.querySelector("[data-active-plan-field='activePlan__weeklyReview__decision']").value = data.activePlan__weeklyReview__decision || "Continue";
-      review.querySelector("[data-active-plan-field='activePlan__weeklyReview__nextChange']").value = data.activePlan__weeklyReview__nextChange || "";
-      review.querySelector("#saveActivePlanButton").addEventListener("click", async (event) => {
-        const button = event.currentTarget;
-        const status = review.querySelector("#activePlanSaveStatus");
-        button.disabled = true;
-        button.textContent = "Saving...";
-        await saveActivePlanProgress(data, status);
-        button.disabled = false;
-        button.textContent = "Save Plan Updates";
+      review.dataset.toc = "Close the Week";
+      const rolloverRows = weeklyWorkspace.currentPriorities.map((priority, index) => {
+        const recommended = index < 2 ? "Carry forward" : "Drop";
+        const selected = priority.disposition || recommended;
+        return `<div class="weekly-rollover-row" data-rollover-index="${index}"><div><strong>${escapeHtml(priority.title)}</strong><span data-rollover-status>${escapeHtml(priority.status)}</span></div><label>What should happen?<select data-rollover-field="disposition">${["Carry forward", "Revise", "Drop", "Blocked"].map((option) => `<option${selected === option ? " selected" : ""}>${option}</option>`).join("")}</select></label><label>Revised task, if needed<input data-rollover-field="revisedTask" value="${escapeHtml(priority.revisedTask || "")}" placeholder="Rewrite this priority for next week"></label></div>`;
+      }).join("");
+      review.innerHTML = `<h2>Close Week ${weeklyWorkspace.currentWeek}</h2><p class="muted">Review the results, decide what happens to unfinished work, and create the next week. The next week is limited to three priorities.</p><div class="active-plan-review"><div class="weekly-close-summary"><strong>Rollover recommendation</strong><p>Carry forward no more than two unfinished priorities. Revise work when the evidence changed it, drop work that no longer affects the decision, and label a true dependency as Blocked.</p></div><label>What did we learn?<textarea id="activeWeekLearning" rows="4" placeholder="What evidence changed your confidence, and why?">${escapeHtml(data.activePlan__weeklyReview__learning || "")}</textarea></label><div class="grid"><label>Decision<select id="activeWeekDecision">${["Continue", "Revise", "Pause", "Need more evidence"].map((option) => `<option${(data.activePlan__weeklyReview__decision || "Continue") === option ? " selected" : ""}>${option}</option>`).join("")}</select></label><label>One focused change for next week<input id="activeWeekNextChange" value="${escapeHtml(data.activePlan__weeklyReview__nextChange || "")}" placeholder="Leave blank if the current approach should stay constant"></label></div><h3>Decide What Happens to Each Priority</h3><div class="weekly-rollover-list">${rolloverRows}</div><div class="active-plan-save-row"><button type="button" id="closeActivePlanWeek">${weeklyWorkspace.currentWeek === 4 ? "Close Week 4 and Start Next Cycle" : `Close Week ${weeklyWorkspace.currentWeek} and Build Week ${weeklyWorkspace.currentWeek + 1}`}</button><span class="active-plan-save-status" id="activeWeekCloseStatus"></span></div></div>`;
+      const syncWeeklyCards = () => {
+        actions.querySelectorAll("[data-weekly-priority]").forEach((card, index) => {
+          card.querySelectorAll("[data-weekly-priority-field]").forEach((control) => {
+            weeklyWorkspace.currentPriorities[index][control.dataset.weeklyPriorityField] = control.value.trim();
+          });
+        });
+      };
+      const refreshRolloverRows = () => {
+        syncWeeklyCards();
+        review.querySelectorAll("[data-rollover-index]").forEach((row) => {
+          const priority = weeklyWorkspace.currentPriorities[Number(row.dataset.rolloverIndex)];
+          row.classList.toggle("is-complete", priority.status === "Complete");
+          row.querySelector("[data-rollover-status]").textContent = priority.status === "Complete" ? "Complete - no rollover needed" : priority.status;
+        });
+      };
+      actions.querySelectorAll("[data-weekly-priority-field='status']").forEach((control) => control.addEventListener("change", refreshRolloverRows));
+      refreshRolloverRows();
+      review.querySelector("#closeActivePlanWeek").addEventListener("click", async (event) => {
+        const status = review.querySelector("#activeWeekCloseStatus");
+        syncWeeklyCards();
+        const completedWithoutEvidence = weeklyWorkspace.currentPriorities.find((priority) => priority.status === "Complete" && !priority.evidence);
+        if (completedWithoutEvidence) {
+          status.textContent = `Add a result or evidence note for "${completedWithoutEvidence.title}" before closing the week.`;
+          return;
+        }
+        review.querySelectorAll("[data-rollover-index]").forEach((row) => {
+          const priority = weeklyWorkspace.currentPriorities[Number(row.dataset.rolloverIndex)];
+          row.querySelectorAll("[data-rollover-field]").forEach((control) => {
+            priority[control.dataset.rolloverField] = control.value.trim();
+          });
+        });
+        const reviseWithoutTask = weeklyWorkspace.currentPriorities.find((priority) => priority.status !== "Complete" && priority.disposition === "Revise" && !priority.revisedTask);
+        if (reviseWithoutTask) {
+          status.textContent = `Rewrite "${reviseWithoutTask.title}" before choosing Revise.`;
+          return;
+        }
+        const rolloverCount = weeklyWorkspace.currentPriorities.filter((priority) => priority.status !== "Complete" && priority.disposition !== "Drop").length;
+        if (rolloverCount > 2) {
+          status.textContent = "Carry forward, revise, or block no more than two unfinished priorities. Drop the rest so next week stays focused.";
+          return;
+        }
+        const learning = review.querySelector("#activeWeekLearning").value.trim();
+        const decision = review.querySelector("#activeWeekDecision").value;
+        const nextChange = review.querySelector("#activeWeekNextChange").value.trim();
+        const closedPriorities = weeklyWorkspace.currentPriorities.map((priority) => ({ ...priority }));
+        weeklyWorkspace.history.push({
+          week: weeklyWorkspace.currentWeek,
+          cycle: Number(weeklyWorkspace.cycle) || 1,
+          closedAt: new Date().toISOString(),
+          learning,
+          decision,
+          nextChange,
+          priorities: closedPriorities
+        });
+        const rollover = closedPriorities
+          .filter((priority) => priority.status !== "Complete" && priority.disposition !== "Drop")
+          .slice(0, 2)
+          .map((priority, index) => ({
+            ...priority,
+            id: `week-${weeklyWorkspace.currentWeek + 1}-rollover-${index + 1}-${Date.now()}`,
+            title: priority.disposition === "Revise" ? priority.revisedTask : priority.title,
+            output: priority.disposition === "Revise" ? priority.revisedTask : priority.output,
+            status: priority.disposition === "Blocked" ? "Blocked" : "Not started",
+            evidence: "",
+            disposition: "Carry forward",
+            revisedTask: ""
+          }));
+        const nextWeek = weeklyWorkspace.currentWeek === 4 ? 1 : weeklyWorkspace.currentWeek + 1;
+        const plannedItems = plan.weeks[nextWeek - 1]?.items || [];
+        const nextPriorities = [...rollover];
+        if (nextChange && nextPriorities.length < 3) nextPriorities.push(nextWeekPriority(nextChange, plan, nextWeek, nextPriorities.length));
+        plannedItems.forEach((item) => {
+          if (nextPriorities.length < 3 && !nextPriorities.some((priority) => priority.title.toLowerCase() === String(item).toLowerCase())) {
+            nextPriorities.push(nextWeekPriority(String(item), plan, nextWeek, nextPriorities.length));
+          }
+        });
+        if (weeklyWorkspace.currentWeek === 4) weeklyWorkspace.cycle = (Number(weeklyWorkspace.cycle) || 1) + 1;
+        weeklyWorkspace.currentWeek = nextWeek;
+        weeklyWorkspace.currentPriorities = nextPriorities.slice(0, 3);
+        data.activePlan__weeklyReview__learning = learning;
+        data.activePlan__weeklyReview__decision = decision;
+        data.activePlan__weeklyReview__nextChange = nextChange;
+        closedPriorities.forEach((priority) => {
+          if (!Number.isInteger(priority.sourceIndex)) return;
+          data[activePlanField(priority.sourceIndex, "status")] = priority.status;
+          data[activePlanField(priority.sourceIndex, "owner")] = priority.owner;
+          data[activePlanField(priority.sourceIndex, "evidence")] = priority.evidence;
+        });
+        event.currentTarget.disabled = true;
+        status.textContent = "Building the next week...";
+        await persistActivePlanData(data, status);
+        renderActivePlanWorkspace(data);
       });
       main.appendChild(review);
+
+      if (weeklyWorkspace.history.length) {
+        const history = document.createElement("section");
+        history.id = "active-plan-week-history";
+        history.dataset.toc = "Weekly History";
+        history.innerHTML = `<h2>Weekly History</h2><div class="messaging-version-list">${weeklyWorkspace.history.slice().reverse().map((entry) => {
+          const completed = entry.priorities.filter((priority) => priority.status === "Complete").length;
+          return `<div class="messaging-version-row"><div><strong>Cycle ${entry.cycle || 1}, Week ${entry.week}</strong><span>${escapeHtml(entry.closedAt.slice(0, 10))}</span></div><div><strong>${completed} of ${entry.priorities.length} completed</strong><span>${escapeHtml(entry.decision)}</span></div><div><strong>${escapeHtml(entry.nextChange || "No strategic change")}</strong><span>${escapeHtml(entry.learning || "No learning note saved")}</span></div><div></div></div>`;
+        }).join("")}</div>`;
+        main.appendChild(history);
+      }
 
       setupReportNavigation();
       configureAssetPdfExport();
