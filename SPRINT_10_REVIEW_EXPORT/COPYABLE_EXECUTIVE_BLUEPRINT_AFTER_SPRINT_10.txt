@@ -1,0 +1,2 @@
+Sprint 10 executive copy should preserve the Sprint 9.9 report quality and include saved facilitation outputs only if they exist and are concise.
+

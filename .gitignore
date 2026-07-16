@@ -1,3 +1,20 @@
 server/data/*.json
 !server/data/.gitkeep
 .env
+
+# Private local data and backups
+local-backups/
+Brian_Lisa_budget_working_copy.xlsx
+Lisa_Finances_*.csv
+
+# Generated review artifacts; keep source scripts and written QA reports
+runs/
+*.zip
+/*.png
+/*.docx
+/*.xlsx
+QA_FOUR_COMPANY_REVIEW_20260712/**/*.png
+QA_FOUR_COMPANY_REVIEW_20260712/**/*-check/
+QA_FOUR_COMPANY_REVIEW_20260712/browser-recheck/
+QA_FOUR_COMPANY_REVIEW_20260712/*.json
+QA_FOUR_COMPANY_REVIEW_20260712/*.txt

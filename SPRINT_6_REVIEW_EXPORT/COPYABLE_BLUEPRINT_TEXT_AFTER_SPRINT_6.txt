@@ -1,0 +1,45 @@
+GTM Blueprint Output After Sprint 6
+
+## Executive Decision Summary
+The report keeps the Sprint 5 executive structure and improves recommendation quality.
+
+## Executive Action Plan
+The front-of-report action plan is now driven by refined recommendations and prioritizes weekly revenue motion, target list creation, buyer conversation/proof creation, CRM learning setup, and weekly operating rhythm.
+
+## Prescriptive Recommendations
+
+### Recommendation 1: Run one weekly focused revenue motion.
+Build / Do:
+- Run one weekly focused motion through the primary channel.
+- Keep the audience focused on the priority ICP.
+- Review target accounts, outreach, meetings, opportunities, proof gaps, and next actions every Friday.
+Use this because: Revenue motion discipline turns ICP, offer, and proof decisions into pipeline learning.
+
+### Recommendation 2: Build a 50-account target list for the priority ICP.
+Build / Do:
+Ideal target accounts should look like:
+- Priority customer group
+- Relevant industry or market
+- Revenue/headcount/stage criteria when provided
+- Current workaround or trigger event when provided
+- Must-have fit signals when provided
+Avoid accounts that:
+- Lack urgency, budget authority, or executive sponsorship
+- Do not match the priority ICP
+Success measure: 50 accounts identified, reviewed, tiered, and ready for outreach.
+
+### Recommendation 3: Create two sales-ready proof assets.
+Build / Do:
+- Margin / risk reduction proof sheet.
+- Customer proof story showing the before state, what changed, and measurable result.
+Use this because: The buying committee may need evidence of financial impact, risk reduction, and execution reliability before acting.
+
+### Recommendation 4: Use a buyer conversation guide.
+Build / Do:
+- Ask questions about urgency, financial impact, risk, proof needed, and what would make the buyer act now.
+Success measure: Use these questions in at least five buyer conversations.
+
+### Recommendation 5: Configure the CRM for weekly GTM learning.
+Build / Do:
+- Confirm required fields.
+- Create one dashboard for target accounts, outreach activity, opportunities, stages, and no-next-action gaps.

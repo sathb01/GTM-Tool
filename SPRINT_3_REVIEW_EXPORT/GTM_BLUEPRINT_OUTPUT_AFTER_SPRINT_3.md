@@ -1,0 +1,55 @@
+# GTM Blueprint Output After Sprint 3
+
+## Executive Decision Summary
+The company should focus the next 90 days on one reachable customer group, one sellable offer, one revenue motion, and one measurable weekly operating rhythm before scaling.
+
+## Executive Action Plan
+1. Build a target list of 50 ICP accounts.
+2. Create two proof assets from existing customer evidence.
+3. Protect weekly time for focused revenue activity.
+4. Configure minimum CRM fields and dashboards.
+5. Run one focused revenue motion experiment.
+
+## Strategic Insights
+
+### 1. Revenue goal needs operating math.
+Observation: The plan is revenue-focused, but numeric revenue and conversion assumptions are missing.
+Why it matters: Without these assumptions, the team cannot translate the goal into required deals, meetings, and weekly activity.
+Recommended action: Add numeric revenue goal, average deal size, close rate, and meeting-to-opportunity rate.
+Confidence: High
+
+### 2. Founder capacity may be the limiting factor.
+Observation: The plan depends on founder-led execution, but available selling capacity is limited and focus is the primary constraint.
+Why it matters: Even a strong ICP and offer will not produce pipeline without consistent weekly activity.
+Recommended action: Protect 3-5 weekly revenue hours and review activity every week.
+Confidence: High
+
+### 3. Narrow ICP focus is the fastest path to validation.
+Observation: One customer group appears stronger than the alternatives based on fit, pain, and supporting evidence.
+Why it matters: A narrower ICP makes targeting, messaging, proof, and sales activity easier to execute.
+Recommended action: Build a 50-account target list around this ICP before testing adjacent segments.
+Confidence: Medium
+
+### 4. Proof assets are available but not yet sales-ready.
+Observation: The intake identifies customer evidence or proof candidates, but the report still shows proof gaps or missing sales-ready assets.
+Why it matters: Proof reduces buyer risk and can improve conversion without changing the offer.
+Recommended action: Create two proof assets from existing customer evidence in the next 30 days.
+Confidence: Medium
+
+### 5. CRM data quality may block learning.
+Observation: The company has a CRM, but data quality is low or incomplete.
+Why it matters: Without reliable source, stage, owner, and next-action data, the team cannot learn which GTM motion is working.
+Recommended action: Configure the minimum CRM fields and run a weekly pipeline review before increasing activity volume.
+Confidence: High
+
+### 6. Buyer urgency depends on proof and business case.
+Observation: The buying committee may not feel enough urgency unless the financial impact, cost of inaction, and risk reduction are explicit.
+Why it matters: Deals may stall if the buyer agrees there is a problem but does not believe it is urgent enough to act.
+Recommended action: Create one buyer-facing proof asset that connects pain, measurable outcome, customer proof, and next step.
+Confidence: Medium
+
+### 7. Revenue motion needs structure before scale.
+Observation: The current motion has some channel evidence, but sales process, stage definitions, and conversion tracking are weak.
+Why it matters: Scaling activity before the motion is structured can create more noise without better pipeline learning.
+Recommended action: Define one revenue motion, stage criteria, owner, activity target, and weekly review cadence.
+Confidence: High

@@ -1,0 +1,5 @@
+Sprint 11 added the Think Big, Start Small module for pre-revenue users.
+
+The pre-revenue tool now helps a founder move from broad market hypothesis to candidate first-win segments, compare segments using deterministic pre-revenue scoring, separate assumptions from evidence, and generate a First-Win Market Segment plan.
+
+The output includes a recommended First-Win Market Segment, confidence, evidence strength, evidence gaps, a Derived ICP Draft, a 30-Day Revenue Validation Plan, next best questions, and segments to avoid for now.

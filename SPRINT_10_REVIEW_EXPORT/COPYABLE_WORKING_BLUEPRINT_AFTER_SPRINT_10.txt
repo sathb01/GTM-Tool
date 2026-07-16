@@ -1,0 +1,4 @@
+Sprint 10 working blueprint copy should include saved facilitation outputs when present.
+
+The user can launch facilitation from remediation, recommendations, execution assets, and coaching plans.
+

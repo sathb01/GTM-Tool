@@ -479,6 +479,36 @@ Important migration behavior:
 - Old ICP and target prioritization fields are mapped into possible customer group cards.
 - Old success-plan and constraint tracker fields are mapped into success cards and top blocker cards.
 - Old proof, customer fit, expansion, and delivery-risk lists are mapped into customer evidence tables.
+
+## Evidence Reconciliation Workspace
+
+`evidenceReconciliationWorkspace` preserves user-approved strategy changes derived from execution evidence.
+
+```text
+evidenceReconciliationWorkspace
+  version
+  pending[]
+    id
+    evidenceFingerprint
+    evidenceState
+    evidenceDecision
+    area
+    sourceField
+    sourceLabel
+    currentValue
+    proposedValue
+    rationale
+    evidenceSummary[]
+    status
+  history[]
+    previousValue
+    approvedValue
+    status
+    decidedAt
+  updatedAt
+```
+
+Only one proposal can be pending at a time. Applying a proposal writes the approved value back to its original intake field, removes the pending proposal, and adds an immutable decision-history entry. Confirming an unchanged answer and dismissing a proposal are also recorded. The workspace never silently rewrites intake answers.
 - Old buyer committee fields are mapped into buyer role cards.
 - Old single-offer fields are mapped into `offerPortfolio__offer-1` and scoped offer assessment fields.
 - Old single-context signal fields are mapped into `signalPlayPortfolio__play-1`.
@@ -491,4 +521,3 @@ Important migration behavior:
 - Migration code must be preserved until old saved records are no longer needed.
 - The frontend schema is the main source of truth. There is no server-side schema validation.
 - Saved records can contain stale fields that are hidden from current UI but still appear in the data object.
-

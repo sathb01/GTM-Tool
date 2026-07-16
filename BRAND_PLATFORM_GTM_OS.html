@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GTM OS Brand Platform</title>
+  <style>
+    :root {
+      --ink: #162033;
+      --slate: #536174;
+      --blueprint: #2158d6;
+      --blueprint-deep: #183fa3;
+      --signal: #17a7b8;
+      --field: #f7f9fc;
+      --panel: #ffffff;
+      --canvas: #eef3f8;
+      --border: #d6dee8;
+      --strong: #15803d;
+      --watch: #b45309;
+      --risk: #b91c1c;
+      --radius: 8px;
+      --shadow: 0 8px 24px rgba(22, 32, 51, 0.08);
+      --font-ui: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      --font-report: "Source Sans 3", Inter, "Segoe UI", Arial, sans-serif;
+      --font-display: "IBM Plex Sans Condensed", Inter, "Segoe UI", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--ink);
+      font-family: var(--font-ui);
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 28px auto;
+    }
+
+    header,
+    section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      padding: 22px;
+    }
+
+    header {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+      align-items: end;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      font-size: 42px;
+      line-height: 1.05;
+      margin-bottom: 10px;
+    }
+
+    h2 {
+      font-size: 22px;
+      margin-bottom: 14px;
+    }
+
+    h3 {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    p,
+    li {
+      color: var(--slate);
+      line-height: 1.5;
+    }
+
+    .eyebrow {
+      color: var(--blueprint-deep);
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .hero-panel {
+      background: #101722;
+      border: 1px solid #344258;
+      border-radius: var(--radius);
+      color: #dce6f2;
+      padding: 18px;
+    }
+
+    .hero-panel p {
+      color: #b9c6d8;
+    }
+
+    .score {
+      color: #4a7dff;
+      font-size: 50px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .panel {
+      background: var(--field);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .swatches {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 12px;
+    }
+
+    .swatch {
+      border: 1px solid rgba(22, 32, 51, 0.15);
+      border-radius: 6px;
+      min-height: 74px;
+      overflow: hidden;
+    }
+
+    .swatch-color {
+      height: 38px;
+    }
+
+    .swatch-label {
+      background: #ffffff;
+      color: var(--ink);
+      font-size: 12px;
+      padding: 7px;
+    }
+
+    .type-sample {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .type-sample strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .report-font {
+      font-family: var(--font-report);
+    }
+
+    .display-font {
+      font-family: var(--font-display);
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      border-radius: 999px;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 5px 10px;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .button {
+      border-radius: 6px;
+      font-weight: 700;
+      padding: 11px 16px;
+    }
+
+    .primary {
+      background: var(--blueprint);
+      color: #ffffff;
+    }
+
+    .secondary {
+      background: #eaf1ff;
+      color: var(--blueprint-deep);
+    }
+
+    .mark-row {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .mark {
+      align-items: center;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: grid;
+      min-height: 128px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .mark-symbol {
+      border: 2px solid var(--blueprint);
+      border-radius: 8px;
+      color: var(--blueprint-deep);
+      display: inline-grid;
+      font-weight: 800;
+      height: 48px;
+      margin: 0 auto 10px;
+      place-items: center;
+      width: 48px;
+    }
+
+    .mini-report {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .mini-report h3 {
+      font-size: 18px;
+    }
+
+    .mini-score-layout {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: 160px 1fr;
+      margin-top: 12px;
+    }
+
+    .mini-score {
+      background: #eaf1ff;
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+
+    @media (max-width: 860px) {
+      main {
+        width: min(100% - 20px, 1180px);
+        margin: 16px auto;
+      }
+
+      header,
+      .grid,
+      .grid.two,
+      .mark-row,
+      .mini-score-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <div class="eyebrow">GTM OS brand platform</div>
+        <h1>Turn GTM uncertainty into a focused operating plan.</h1>
+        <p>GTM OS should feel like a calm senior advisor inside the workflow: precise, commercially literate, evidence-aware, and built for decisions.</p>
+        <div class="button-row">
+          <span class="button primary">Start readiness review</span>
+          <span class="button secondary">View sample blueprint</span>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <div class="score">64</div>
+        <h3>Foundation needed</h3>
+        <p>The business has enough offer and buyer signal to run a focused GTM test, but proof and pipeline instrumentation need to improve before scaling spend.</p>
+        <div class="status-row">
+          <span class="pill" style="background:#15803d">Strong proof</span>
+          <span class="pill" style="background:#b45309">Watch ICP</span>
+          <span class="pill" style="background:#b91c1c">CRM gap</span>
+        </div>
+      </div>
+    </header>
+
+    <section>
+      <h2>Colorways</h2>
+      <div class="grid">
+        <div class="panel">
+          <h3>Blueprint Signal</h3>
+          <p>Core application, reports, advisor documents.</p>
+          <div class="swatches">
+            <div class="swatch"><div class="swatch-color" style="background:#162033"></div><div class="swatch-label">Ink<br>#162033</div></div>
+            <div class="swatch"><div class="swatch-color" style="background:#2158d6"></div><div class="swatch-label">Blueprint<br>#2158D6</div></div>
+            <div class="swatch"><div class="swatch-color" style="background:#17a7b8"></div><div class="swatch-label">Signal<br>#17A7B8</div></div>
+            <div class="swatch"><div class="swatch-color" style="background:#f7f9fc"></div><div class="swatch-label">Field<br>#F7F9FC</div></div>
+            <div class="swatch"><div class="swatch-color" style="background:#eef3f8"></div><div class="swatch-label">Canvas<br>#EEF3F8</div></div>
+            <div class="swatch"><div class="swatch-color" style="background:#d6dee8"></div><div class="swatch-label">Border<br>#D6DEE8</div></div>
+          </div>
+        </div>
+        <div class="panel" style="background:#101722;color:#dce6f2;border-color:#344258">
+          <h3>Operator Dark</h3>
+          <p style="color:#b9c6d8">Landing heroes, report covers, executive moments.</p>
+          <div class="swatches">
+            <div class="swatch"><div class="swatch-color" style="background:#101722"></div><div class="swatch-label">Deep Ink<br>#101722</div></div>
+            <div class="swatch"><div class="swatch-color" style="background:#1e2937"></div><div class="swatch-label">Graphite<br>#1E2937</div></div>
+            <div class="swatch"><div class="swatch-color" style="background:#4a7dff"></div><div class="swatch-label">Signal Blue<br>#4A7DFF</div></div>
+            <div class="swatch"><div class="swatch-color" style="background:#22c55e"></div><div class="swatch-label">Green<br>#22C55E</div></div>
+            <div class="swatch"><div class="swatch-color" style="background:#d99a22"></div><div class="swatch-label">Amber<br>#D99A22</div></div>
+            <div class="swatch"><div class="swatch-color" style="background:#e25a53"></div><div class="swatch-label">Coral<br>#E25A53</div></div>
+          </div>
+        </div>
+        <div class="panel" style="background:#f5f6f4">
+          <h3>Field Notes</h3>
+          <p>Workshops, worksheets, exports, practical collateral.</p>
+          <div class="swatches">
+            <div class="swatch"><div class="swatch-color" style="background:#20242c"></div><div class="swatch-label">Charcoal<br>#20242C</div></div>
+            <div class="swatch"><div class="swatch-color" style="background:#f5f6f4"></div><div class="swatch-label">Fog<br>#F5F6F4</div></div>
+            <div class="swatch"><div class="swatch-color" style="background:#246b57"></div><div class="swatch-label">Forest<br>#246B57</div></div>
+            <div class="swatch"><div class="swatch-color" style="background:#2f5eaa"></div><div class="swatch-label">Blue Ink<br>#2F5EAA</div></div>
+            <div class="swatch"><div class="swatch-color" style="background:#b7791f"></div><div class="swatch-label">Ochre<br>#B7791F</div></div>
+            <div class="swatch"><div class="swatch-color" style="background:#b5463d"></div><div class="swatch-label">Brick<br>#B5463D</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Typography</h2>
+      <div class="grid">
+        <div class="type-sample">
+          <strong>Product UI</strong>
+          <p style="font-family:var(--font-ui);font-size:24px;color:#162033">Inter / Segoe UI</p>
+          <p>Clear at small sizes, practical for dense intake screens, and a natural upgrade from Arial.</p>
+        </div>
+        <div class="type-sample report-font">
+          <strong>Report and Editorial</strong>
+          <p style="font-size:24px;color:#162033">Source Sans 3</p>
+          <p>Useful for GTM Blueprints, advisory copy, document exports, and readable executive reports.</p>
+        </div>
+        <div class="type-sample display-font">
+          <strong>Optional Display</strong>
+          <p style="font-size:26px;color:#162033">IBM Plex Sans Condensed</p>
+          <p>Use sparingly for report covers, score labels, and compact section markers.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Identity Routes</h2>
+      <div class="mark-row">
+        <div class="mark">
+          <span class="mark-symbol">OS</span>
+          <h3>OS Monogram</h3>
+          <p>Compact product identity for favicon, app icon, and report cover.</p>
+        </div>
+        <div class="mark">
+          <span class="mark-symbol" style="border-radius:50%">+</span>
+          <h3>Focus Lens</h3>
+          <p>Aperture-style mark for diagnostic clarity and narrowing.</p>
+        </div>
+        <div class="mark">
+          <span class="mark-symbol" style="border-color:#17a7b8">-&gt;</span>
+          <h3>Signal Path</h3>
+          <p>Direction, motion, and evidence moving into action.</p>
+        </div>
+        <div class="mark">
+          <span class="mark-symbol" style="border-color:#246b57">[]</span>
+          <h3>Operating Layer</h3>
+          <p>Stacked system logic for intake, score, plan, and coaching.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Product Surface Direction</h2>
+      <div class="grid two">
+        <div class="mini-report">
+          <div class="eyebrow">GTM Blueprint</div>
+          <h3>Northstar Ops Analytics</h3>
+          <p>Generated from GTM OS Readiness Intake</p>
+          <div class="mini-score-layout">
+            <div class="mini-score">
+              <div class="score" style="font-size:42px">64</div>
+              <p>GTM readiness score</p>
+            </div>
+            <div>
+              <h3>Foundation needed</h3>
+              <p>Focus ICP, proof, and CRM data before increasing outbound or paid spend.</p>
+              <div class="status-row">
+                <span class="pill" style="background:#2563eb">Validation-ready</span>
+                <span class="pill" style="background:#b45309">Medium confidence</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Brand Rules In Product</h3>
+          <ul>
+            <li>Keep the interface dense, calm, and advisor-like.</li>
+            <li>Use color to communicate state, priority, confidence, and risk.</li>
+            <li>Preserve 8px radius, restrained shadows, and clear form hierarchy.</li>
+            <li>Avoid generic AI language, decorative gradients, and strategy-theater copy.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,55 @@
+# GTM Blueprint Output After Sprint 5
+
+## Executive Decision Summary
+The report now moves from priorities into specific execution recommendations.
+
+## Executive Action Plan
+The five front-of-report actions are now pulled from the highest-ranked prescriptive recommendations.
+
+## Strategic Insights
+Strategic Insights continue to show what the system noticed.
+
+## Revenue Impact Priorities
+Revenue Impact Priorities continue to explain which actions matter most financially.
+
+## Prescriptive Recommendations
+
+### Recommendation 1: Build a 50-account target list for the priority ICP.
+Build / Do: Create a target list using the selected ICP, revenue range, headcount range, maturity stage, current workaround, trigger event, buying pain, must-have fit signals, geography, sales-cycle fit, and disqualification signals.
+Use this because: The selected ICP gives the team a specific audience for outreach and proof testing.
+Inputs used: Priority ICP, best-fit revenue range, headcount range, buying pain, trigger event, current workaround, disqualification signals.
+Owner: Founder / GTM lead
+Timing: Days 1-14
+Success measure: 50 accounts identified, reviewed, and tiered.
+
+### Recommendation 2: Create two sales-ready proof assets.
+Build / Do: Create a one-page measurable-outcome proof sheet and a short customer story showing the before/after change.
+Use this because: Proof reduces perceived buyer risk before the buyer commits.
+Inputs used: Buyer risk, proof available, proof gap, measurable value, objections.
+Owner: Founder or marketing lead
+Timing: Days 1-30
+Success measure: Two proof assets completed and used in outreach or discovery.
+
+### Recommendation 3: Rewrite the offer message around the buyer problem and measurable outcome.
+Build / Do: Use a synthesized message based on the priority ICP, buyer, outcome, pain, and risk fields.
+Use this because: The offer should be specific enough to use in outreach, website copy, and discovery.
+Inputs used: Primary offer, buyer problem, offer promise, measurable outcome, why-now trigger.
+Owner: Founder
+Timing: Days 1-14
+Success measure: New offer message used consistently in target list outreach, website copy, and discovery calls.
+
+### Recommendation 4: Structure discovery around urgency, business impact, and proof.
+Build / Do: Use five generated discovery questions tied to buyer pain, trigger, cost of inaction, proof needed, and urgency.
+Use this because: The buyer must connect the problem to business impact before the deal will move.
+Inputs used: Economic buyer, buying risk, buyer problem, proof needed, objections.
+Owner: Founder
+Timing: Days 1-30
+Success measure: Discovery questions used in at least five prospect conversations.
+
+### Recommendation 5: Run one weekly focused revenue motion.
+Build / Do: Run one weekly motion with target-account additions, outreach/referral activity, follow-up, and Friday pipeline review.
+Use this because: Revenue motion discipline turns the plan into pipeline learning.
+Inputs used: Revenue motion, channel, founder-led sales motion, weekly capacity, revenue motion gap.
+Owner: Founder / GTM lead
+Timing: Weekly for 90 days
+Success measure: Weekly activity, meetings, opportunities, and stalled deals reviewed for 12 consecutive weeks.

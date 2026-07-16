@@ -1,0 +1,13 @@
+Working Blueprint After Sprint 11
+
+Mode: Pre-Revenue Validation
+Module: Think Big, Start Small
+Purpose: Find your first market, focus your GTM, and generate early revenue.
+
+Core flow:
+1. Capture broad market hypothesis.
+2. Split the broad market into 2-5 candidate first-win segments.
+3. Score each segment across Problem Intensity, Urgency / Trigger, Reachability, Credibility / Right to Win, Validation Speed, and Delivery Fit.
+4. Calculate evidence strength separately from score.
+5. Recommend the First-Win Market Segment.
+6. Generate evidence gaps, Derived ICP Draft, 30-Day Revenue Validation Plan, and next best questions.

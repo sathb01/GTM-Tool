@@ -1,0 +1,1592 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GTM OS Facilitation</title>
+  <style>
+    :root {
+      --bg: #eef3f8;
+      --panel: #ffffff;
+      --field: #f7f9fc;
+      --text: #162033;
+      --muted: #536174;
+      --border: #d6dee8;
+      --accent: #ff7a59;
+      --accent-dark: #9d3d28;
+      --soft: #fff1ec;
+      --warn: #b45309;
+      --font-ui: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-ui); }
+    main { width: min(1040px, calc(100% - 32px)); margin: 28px auto; }
+    header, section { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: 32px; line-height: 1.15; margin-bottom: 8px; }
+    h2 { font-size: 20px; margin-bottom: 12px; }
+    h3 { font-size: 15px; margin-bottom: 6px; }
+    p, li { line-height: 1.5; }
+    .muted { color: var(--muted); }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .field { border-top: 1px solid var(--border); padding-top: 10px; }
+    label { display: block; font-weight: 700; margin-bottom: 6px; }
+    textarea, select, input[type="text"] { width: 100%; border: 1px solid var(--border); border-radius: 8px; background: var(--field); color: var(--text); font-family: var(--font-ui); font-size: 15px; padding: 10px; }
+    textarea { min-height: 82px; resize: vertical; }
+    textarea:focus, select:focus, input[type="text"]:focus { outline: 2px solid var(--accent); border-color: var(--accent); background: #fff; }
+    .choice-list { display: grid; gap: 8px; margin-top: 8px; }
+    .choice-option { display: flex; gap: 8px; align-items: flex-start; font-weight: 500; }
+    .choice-option input { margin-top: 3px; }
+    .other-input { margin-top: 8px; }
+    .nested-panel { border: 1px solid var(--border); border-radius: 8px; background: #fff; padding: 12px; margin-top: 10px; }
+    .nested-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .candidate-motion { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; }
+    .draft-section { display: none; }
+    pre { white-space: pre-wrap; background: var(--field); border: 1px solid var(--border); border-radius: 8px; padding: 14px; line-height: 1.45; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    a, button { border: 0; border-radius: 6px; padding: 11px 16px; background: var(--accent); color: #fff; cursor: pointer; font-family: var(--font-ui); font-size: 15px; font-weight: 700; text-decoration: none; }
+    a.secondary, button.secondary { background: var(--accent); color: #fff; }
+    a:hover, button:hover, a.secondary:hover, button.secondary:hover { background: #6b7280; color: #fff; }
+    .notice { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; color: #7c2d12; padding: 12px; }
+    .status { color: var(--muted); margin-top: 10px; }
+    .flow-picker { display: grid; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .flow-picker a { background: var(--soft); color: var(--accent-dark); display: block; text-align: center; }
+    .recommendation-list { margin: 0; padding-left: 18px; }
+    .recommendation-list li { margin-bottom: 8px; }
+    .current-summary { color: var(--muted); margin-bottom: 8px; }
+    .current-detail-list { margin: 0; padding-left: 18px; }
+    .current-detail-list li { margin-bottom: 6px; }
+    .duplicate-resolver { grid-column: 1 / -1; border: 1px solid #fbbf24; background: #fffbeb; border-radius: 8px; padding: 12px; }
+    .duplicate-row { border-top: 1px solid #fcd34d; margin-top: 10px; padding-top: 10px; }
+    .duplicate-row:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+    .duplicate-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    @media (max-width: 760px) { main { width: min(100% - 20px, 1040px); margin: 16px auto; } .grid { grid-template-columns: 1fr; } }
+    @media (max-width: 760px) { .flow-picker { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1 id="flowTitle">Guided Facilitation</h1>
+      <p class="muted" id="flowSubtitle">Answer the prompts, save the output, then regenerate the GTM OS report.</p>
+      <div class="actions">
+        <a class="secondary" id="backLink" href="results.html">Back to Report</a>
+        <a class="secondary" id="reportLink" href="results.html" hidden>Back to Report</a>
+      </div>
+    </header>
+
+    <section id="flowPickerSection" hidden>
+      <h2>Choose a facilitation flow</h2>
+      <p class="muted" id="flowPickerHelp">This page works best when opened from a GTM OS action button, but you can start a flow directly here.</p>
+      <div class="flow-picker" id="flowPicker"></div>
+    </section>
+
+    <section>
+      <h2>Why this matters</h2>
+      <p id="whyText"></p>
+    </section>
+
+    <section id="recommendationSection" hidden>
+      <h2>Recommended setup to verify</h2>
+      <div id="recommendationContent"></div>
+    </section>
+
+    <section>
+      <h2>Current data</h2>
+      <div class="grid" id="currentData"></div>
+    </section>
+
+    <section>
+      <h2>Questions to answer</h2>
+      <div id="questionList"></div>
+      <p class="notice">These answers save as facilitation notes first. They do not overwrite scored intake fields.</p>
+    </section>
+
+    <section>
+      <h2>Example of a stronger answer</h2>
+      <p id="exampleText"></p>
+    </section>
+
+    <section>
+      <h2 class="draft-section">Draft improved output</h2>
+      <pre class="draft-section" id="draftOutput"></pre>
+      <div class="actions">
+        <button type="button" id="saveButton">Save Answers</button>
+        <button type="button" id="regenerateButton">Regenerate GTM OS Report</button>
+        <a class="secondary" id="backLinkBottom" href="results.html">Back to Report</a>
+        <a class="secondary" id="reportLinkBottom" href="results.html" hidden>Back to Report</a>
+      </div>
+      <p class="status" id="saveStatus"></p>
+    </section>
+  </main>
+
+  <script src="gtm-taxonomy.js?v=20260617-revenue-motions"></script>
+  <script src="intake-schema.js?v=20260617-revenue-motions"></script>
+  <script>
+    const schema = window.GTM_INTAKE_SCHEMA;
+    const STORAGE_KEY = schema.storageKey;
+    const RECORDS_KEY = `${STORAGE_KEY}:records`;
+    const ACTIVE_RECORD_KEY = `${STORAGE_KEY}:activeRecordId`;
+    const API_BASE = window.location.protocol.startsWith("http") ? window.location.origin : "";
+    const params = new URLSearchParams(window.location.search);
+    const requestedFlowType = params.get("type") || "";
+    function safeRelativeUrl(value, fallback = "") {
+      const text = String(value || "").trim();
+      if (!text || /^[a-z][a-z0-9+.-]*:/i.test(text) || text.startsWith("//")) {
+        return fallback;
+      }
+      return text;
+    }
+    const requestedReturnTo = safeRelativeUrl(params.get("returnTo"), "");
+    const FACILITATION_SCHEMA_VERSION = "20260701-remediation-anchor-cleanup-v1";
+    const FLOW_SCHEMA_VERSIONS = {
+      icp: "20260701-icp-offer-anchor-v1",
+      proof: "20260701-remediation-anchor-cleanup-v1",
+      buyer: "20260701-remediation-anchor-cleanup-v1",
+      revenueMotion: "20260701-icp-offer-anchor-v1",
+      crm: "20260701-icp-offer-anchor-v1",
+      offerMessage: "20260701-remediation-anchor-cleanup-v1"
+    };
+    let flowType = requestedFlowType || "icp";
+    const requestedRecordId = params.get("recordId") || localStorage.getItem(ACTIVE_RECORD_KEY) || "";
+    let activeRecord = null;
+    let currentData = {};
+
+    const flows = {
+      icp: {
+        title: "Customer Priority Framework",
+        why: "The goal is not to declare an ICP from memory. The goal is to compare possible customer groups, separate assumptions from evidence, and choose the segment most worth pursuing next.",
+        current: [["Customer groups already mentioned", "$customerGroupDefinitions"], ["Offer options found", "$offerOptionsWithSources"], ["Observed buying pain", "$buyerProblems"], ["Observed trigger or timing signal", "$buyingTriggers"], ["Current workaround", "$currentWorkarounds"], ["Disqualification rules", "$disqualificationRules"], ["Existing proof candidates", "$proofCandidates"]],
+        questions: ["Which offer should this customer-priority decision be anchored to? Include wedge offers such as a price check when that is the first offer a buyer would say yes to.", "Which customer groups could realistically buy that selected offer?", "Which group do you currently believe is strongest, and what makes that an assumption versus evidence?", "Which current or past customers support that belief?", "What common traits show fit, value potential, reachability, buying readiness, or timing?", "What buying trigger or performance pressure caused the strongest examples to engage?", "What observable signals would help you identify more accounts like this?", "Where would you find a first list of 50 accounts?", "What evidence is still missing or weak?", "What should disqualify a prospect for now?", "Which proof asset best supports this priority segment?"],
+        example: "The strongest customer priority segment appears to be entrepreneurial consumer product brands around $5M-$15M in revenue with lean product teams, margin pressure, active launches, and limited manufacturing expertise. Confidence is medium until win/loss evidence and repeatable buying triggers are confirmed.",
+        draftLabels: ["Offer anchor", "Customer groups that could buy it", "Primary customer priority segment and evidence basis", "Supporting customer examples", "Fit / value / reachability pattern", "Buying readiness trigger", "Observable signals", "Where to find accounts", "Unknowns / evidence gaps", "Disqualification rules", "Best supporting proof"]
+      },
+      proof: {
+        title: "Proof Asset Facilitation",
+        why: "Proof turns the offer from a claim into something a buyer can believe without inventing results.",
+        current: [["Proof candidates already mentioned", "$proofCandidates"], ["Customer evidence already mentioned", "$customerEvidence"], ["Buyer problem", "$buyerProblems"], ["Primary outcomes", "$outcomes"], ["Offers on the table", "$offers"]],
+        questions: ["What kind of proof asset are you trying to create or improve?", "Which customer or project should this proof asset be based on?", "What was true before your work started?", "Which business problem or cost of inaction did that create?", "What did you do?", "What changed after your work?", "What measurable result can you honestly claim?", "If numeric proof is not available, what qualitative proof can you use?", "Can this customer be named, anonymized, or only used internally?", "What next step should this proof asset drive?", "Do you want to capture another proof asset now?", "Additional asset: what kind of proof asset are you trying to create or improve?", "Additional asset: which customer or project should this proof asset be based on?", "Additional asset: what was true before your work started?", "Additional asset: which business problem or cost of inaction did that create?", "Additional asset: what did you do?", "Additional asset: what changed after your work?", "Additional asset: what measurable result can you honestly claim?", "Additional asset: if numeric proof is not available, what qualitative proof can you use?", "Additional asset: can this customer be named, anonymized, or only used internally?", "Additional asset: what next step should this proof asset drive?"],
+        example: "Grounded Brand used Blacksmith to keep overhead low while launching new products without building an internal sourcing team.",
+        draftLabels: ["Proof asset format", "Customer or project evidence", "Buyer situation before", "Problem / cost / risk", "What we did", "What changed after the work", "Measurable result", "Qualitative proof", "Permission status", "Recommended next step", "Add another proof asset", "Additional proof asset format", "Additional customer or project evidence", "Additional buyer situation before", "Additional problem / cost / risk", "Additional work performed", "Additional change after the work", "Additional measurable result", "Additional qualitative proof", "Additional permission status", "Additional recommended next step"]
+      },
+      buyer: {
+        title: "Buyer Conversation Facilitation",
+        why: "Clear buyer roles and proof needs make discovery sharper and reduce avoidable deal stalls.",
+        current: [["Buyer problems found", "$buyerProblems"], ["Buyer roles already mentioned", "$buyerRoles"], ["Economic buyer", ["budgetOwner", "buyerRoleCards__economic-buyer__commonTitles", "bestFitDecisionMaker"]], ["Champion", ["bestFitChampion", "buyerRoleCards__champion__commonTitles"]], ["Likely blocker", ["dealBlocker", "buyerRoleCards__economic-buyer__likelyObjection", "buyerRoleCards__champion__likelyObjection"]], ["Finance concern", ["financeDrivers", "buyerRoleCards__economic-buyer__proofNeeded"]], ["Current buyer risk", "$buyerRisks"], ["Sales process implication", ["salesProcessChangeNeeded", "buyerRoleCards__economic-buyer__discoveryQuestions"]]],
+        questions: ["Which buyer problem should this conversation be anchored to?", "For that selected buyer problem, who owns the budget to solve it?", "Who feels the pain day to day?", "Who can block the decision?", "Who needs to approve the next step?", "What proof would the economic buyer need?", "What proof would finance need?", "What makes this urgent enough to act now?", "What question must be answered before sending a proposal?"],
+        example: "The COO and CEO may agree there is sourcing pain, but finance needs a business case and the product team needs implementation confidence before the deal can move.",
+        draftLabels: ["Buyer problem anchor", "Budget owner", "Day-to-day pain owner", "Potential blocker", "Next-step approver", "Economic-buyer proof need", "Finance proof need", "Urgency driver", "Proposal readiness question"]
+      },
+      revenueMotion: {
+        title: "Revenue Motion Facilitation",
+        why: "A specific 30-day motion turns the GTM OS into a test the team can run and review, but first the available channels and motion options need to be made explicit.",
+        current: [["Revenue motion labels found", "$revenueMotions"], ["Channels already mentioned", "$channels"], ["Customer groups already mentioned", "$customerGroups"], ["Offers on the table", "$offers"], ["Sales motions already mentioned", "$salesMotions"], ["Weekly activity target", "weeklyRevenueHours"], ["Revenue owner", "primaryRevenueOwner"], ["CRM data quality", "revenueDataQuality"], ["90-day goal", ["goal90", "quick90DayGoal"]]],
+        questions: ["Which channels or sources currently create, or could create, opportunities? A channel/source is where opportunities come from, not the full revenue motion.", "For each selected channel/source, is it active and working, active but inconsistent, planned, or just an idea?", "For each selected channel/source, how do buyers usually evaluate the offer?", "Build candidate revenue motions by combining one customer group, one offer, one channel/source, one primary sales motion, and the evidence behind it.", "Which candidate motion has the strongest evidence or lowest uncertainty?", "Which candidate motion should be tested or improved first for the next 30 days?", "Who owns that motion?", "What weekly activity should happen?", "What qualifies as a real opportunity?", "What review cadence will be used for this motion?", "What will be reviewed at that cadence?", "What outcome would tell you to keep using this motion?", "What result would tell you this motion needs to be revised?", "What would you revise first?", "What result means stop or pause this motion?"],
+        example: "Possible motions include founder-led referrals, LinkedIn outbound to the priority segment, and customer expansion. The first 30-day test is founder-led referrals because it has the strongest evidence, clearest owner, and fastest path to qualified conversations.",
+        draftLabels: ["Available channels", "Channel status", "Evaluation path by source", "Candidate revenue motions", "Best-evidence motion", "30-day motion", "Owner", "Weekly activity target", "Opportunity definition", "Review cadence", "Review inputs", "Continue rule", "Revise trigger", "Revise first", "Stop / pause rule"]
+      },
+      crm: {
+        title: "CRM Setup Facilitation",
+        why: "Minimum CRM discipline makes the GTM review factual instead of anecdotal. Start with the recommended setup, then verify what should stay and revise what does not fit.",
+        current: [["Current CRM", ["revenueTrackingSystem", "gtmSystems__crm__tools"]], ["CRM owner", ["primaryRevenueOwner", "gtmSystems__crm__owner"]], ["Pipeline review owner", "pipelineReviewOwner"], ["CRM data quality", ["revenueDataQuality", "gtmSystems__crm__quality"]], ["Reporting cadence", "revenueReportingCadence"], ["Dashboards", "gtmSystems__reporting-dashboards-bi__tools"]],
+        questions: ["Review the recommended CRM or tracking system. Is it correct, or what should change?", "Review the recommended pipeline stages. Which stages should be kept, added, removed, or renamed?", "Review the recommended required fields. Which fields must be filled out for every opportunity?", "Review the recommended ownership rule. Who owns each active opportunity and who is accountable for cleanup?", "Review the recommended source-tracking rule. How should lead source, channel, or referral source be captured?", "Review the recommended next-action rule. How should next action date and next action owner be captured?", "Review the recommended stalled-deal rule. How should stalled deals, proof gaps, and no-next-action records be flagged?", "Review the recommended dashboard. What should be added or removed before it becomes the weekly review view?", "Review the recommended review cadence and owner. Who owns the recurring CRM review, and how often should it happen?"],
+        example: "Every open opportunity has owner, source, stage, ICP fit tier, next action date, and stalled reason if momentum is blocked.",
+        draftLabels: ["System verification", "Pipeline stage revisions", "Required field revisions", "Ownership rule", "Source tracking rule", "Next-action rule", "Stalled-deal rule", "Dashboard revisions", "Review cadence and owner"]
+      },
+      offerMessage: {
+        title: "Offer Messaging Facilitation",
+        why: "A sharper offer message connects buyer pain, urgency, proof, and the next action.",
+        current: [["Offer options found", "$offerOptionsWithSources"], ["Customer groups already mentioned", "$customerGroups"], ["Buyer problems found", "$buyerProblems"], ["Offer promise", "quickOfferPromise"], ["Measurable outcomes", "$outcomes"], ["Proof candidates", "$proofCandidates"]],
+        questions: ["Which offer should this message be anchored to?", "Who is that offer for?", "What problem are they trying to solve?", "Why does it matter now?", "What outcome do they want?", "What risk do they want to reduce?", "What makes your approach credible?", "What should the buyer do next?"],
+        example: "Blacksmith helps lean product brands reduce sourcing risk, protect margin, and launch products without building a larger internal sourcing team.",
+        draftLabels: ["Offer anchor", "Audience", "Problem", "Why now", "Desired outcome", "Risk to reduce", "Credibility proof", "Buyer next step"]
+      }
+    };
+
+    if (!flows[flowType]) {
+      flowType = "icp";
+    }
+
+    const optionSets = {
+      channels: ["Network referrals", "Customer referrals", "Direct outbound email", "Cold calling", "LinkedIn / social selling", "Inbound website leads", "Website conversion / booking flow", "Content / SEO", "Paid search / paid social", "Events / webinars / communities", "Partners / affiliates / resellers", "Marketplaces / app stores / directories", "Current customer expansion / upsell", "Retail / field / local selling", "Trade shows", "Other"],
+      channelStatus: ["Active and working", "Active but inconsistent", "Planned", "Possible idea", "Not sure yet"],
+      salesMotions: ["Founder-led sales", "Inbound sales", "Outbound sales", "Account-based sales / ABM", "Enterprise sales-led", "Consultative / solution sales", "Transactional sales", "Product-led self-serve", "Product-led sales-assisted", "Channel / reseller sales", "Referral-led sales", "Partner / ecosystem-led", "Marketplace-led", "Event-led sales", "Community-led sales", "Customer-led expansion / land-and-expand", "Not sure yet", "Other"],
+      evidenceLevel: ["Proven repeatability", "CRM data", "Early data", "Anecdotal", "Assumption", "No evidence yet", "Not sure yet"],
+      motionMaturity: ["Not started", "Ad hoc", "Repeatable", "Measured", "Optimized", "Not sure yet"],
+      motionRoles: ["Acquire", "Convert", "Close", "Onboard", "Expand", "Retain", "Other"],
+      evaluationPaths: ["Self-serve", "Demo", "Pilot", "Trial", "Consultation", "Business case", "Procurement review", "Reference call", "Other"],
+      decisionParticipants: ["End user", "Department head", "Executive buyer", "Procurement", "IT / security", "Finance", "Franchisee", "Owner / operator", "Other"],
+      humanSalesHelp: ["None", "Light-touch", "Sales-assisted", "Consultative", "Enterprise / high-touch", "Not sure yet"],
+      motionSuccessFactors: ["Clear trigger", "Reachable buyer", "Strong proof", "Simple pricing", "Partner incentive", "Product usage", "Urgency", "Budget", "Other"],
+      motionEvidenceSources: ["Closed deals", "CRM conversion rates", "Customer interviews", "Usage data", "Referral history", "Partner-sourced pipeline", "Event-sourced pipeline", "Founder sales notes", "Other"],
+      cadence: ["Weekly", "Every two weeks", "Monthly", "After 30-day test", "Not sure yet", "Other"],
+      proofPermission: ["Can name customer", "Anonymized only", "Internal use only", "Need permission", "Not sure yet"],
+      proofTypes: ["Case study", "Testimonial", "Reference call", "Before / after story", "Metric proof", "Operational proof", "Quote", "Internal project notes", "Other"],
+      buyerRoles: ["CEO / Founder", "COO / Operations", "CFO / Finance", "VP Sales / Revenue", "Marketing leader", "Product leader", "Procurement", "Department manager", "Day-to-day user", "Not sure yet", "Other"],
+      urgencyDrivers: ["Revenue pressure", "Margin pressure", "Cost reduction", "Launch timing", "Lack of internal resources / capacity", "Lack of internal expertise", "Need outside expertise to get the work done", "Operational risk", "Customer experience", "Compliance / risk", "Executive priority", "Competitive pressure", "Not sure yet", "Other"],
+      yesNoUnsure: ["Yes", "No", "Not sure yet"],
+      crmSystems: ["HubSpot", "Salesforce", "Pipedrive", "Zoho", "Airtable", "Spreadsheet", "Not currently using one", "Not sure yet", "Other"],
+      crmFields: ["Company/account", "Contact", "Customer priority segment", "ICP fit tier", "Lead source", "Channel", "Revenue motion", "Pipeline stage", "Owner", "Next action", "Next action date", "Stalled reason", "Proof gap", "Deal value", "Close date", "Other"],
+      reviewInputs: ["Target accounts added", "Outreach/referrals completed", "Meetings booked", "Qualified opportunities created", "Opportunities by stage", "Stalled deals", "Proof gaps", "Objections", "Next actions", "CRM records missing data", "Other"],
+      outcomes: ["Save time", "Reduce cost", "Increase revenue", "Increase margin", "Improve margin", "Increase lead flow", "Improve conversion", "Reduce risk", "Improve quality", "Improve visibility / reporting", "Reduce implementation burden", "Improve customer experience", "Other"],
+      problemTypes: ["Cost pressure", "Margin pressure", "Revenue growth", "Lead quality", "Conversion", "Operational delay", "Manual work", "Quality issue", "Supplier / delivery risk", "Launch timing", "Visibility / reporting", "Customer experience", "Implementation burden", "Other"],
+      fitSignals: ["Clear pain", "Budget / ability to pay", "Easy to reach", "Observable buying trigger", "Strong proof fit", "Shorter sales cycle", "Expansion potential", "Implementation fit", "Strategic logo value", "Other"],
+      targetSources: ["LinkedIn/company search", "Industry directories", "Trade show lists", "Partner referrals", "Customer referrals", "CRM", "Website visitor data", "Communities", "Paid databases", "Manual research", "Other"],
+      disqualifiers: ["No budget", "No executive sponsor", "Too small", "Too large / complex", "Wrong geography", "Not urgent", "Poor implementation fit", "Price-only buyer", "Long buying cycle", "Other"],
+      proofUseCases: ["Use in outreach", "Use in discovery", "Use in proposal", "Use for finance approval", "Use on website", "Use internally only", "Other"],
+      proofStrengthSignals: ["High pain / urgent", "Strong outcome", "Strong customer fit", "Recognizable logo", "Permission likely", "Recent project", "Not sure yet"],
+      ownerOptions: ["Founder / CEO", "Revenue owner", "Sales owner", "Marketing owner", "Customer success owner", "Operations owner", "Agency / contractor", "Not assigned yet", "Other"],
+      nextSteps: ["Book a call", "Request an intro", "Review proof asset", "Run discovery", "Start pilot", "Ask for referral", "Send proposal", "Other"]
+    };
+
+    const questionControls = {
+      icp: {
+        0: { type: "select", optionsFor: "offers" },
+        1: { type: "checkbox", optionsFor: "customerGroups" },
+        2: { type: "select", optionsFor: "customerGroups" },
+        3: { type: "checkbox", optionsFor: "customerEvidence" },
+        4: { type: "checkbox", options: optionSets.fitSignals },
+        5: { type: "checkbox", options: optionSets.urgencyDrivers },
+        6: { type: "checkbox", options: ["Recent funding or investment", "New executive hire", "New product launch", "Growth hiring", "Margin pressure", "Poor conversion", "Manual process", "New regulation", "System change", "Competitor pressure", "Other"] },
+        7: { type: "checkbox", options: optionSets.targetSources },
+        8: { type: "checkbox", options: ["Customer examples", "Win/loss evidence", "Buying trigger evidence", "Budget evidence", "Proof asset", "Source list", "Buyer role clarity", "Disqualification rules", "Other"] },
+        9: { type: "checkbox", options: optionSets.disqualifiers },
+        10: { type: "select", optionsFor: "proofAssets" }
+      },
+      proof: {
+        0: { type: "select", options: optionSets.proofTypes.concat(["Proof one-pager", "Sales deck proof slide", "ROI / business case proof", "Customer story", "Other"]) },
+        1: { type: "select", optionsFor: "customerEvidence" },
+        2: { type: "checkbox", options: ["No clear benchmark", "Paying without knowing if pricing was fair", "Manual or informal process", "Internal team was overloaded", "Missing internal expertise", "Dependent on one vendor or supplier", "Limited visibility into options", "Launch or project was at risk", "Quality or delivery was inconsistent", "Other"] },
+        3: { type: "checkbox", options: ["Unnecessary cost", "Margin leakage", "Delayed launch", "Missed revenue opportunity", "Operational drag", "Decision uncertainty", "Supplier / vendor risk", "Quality risk", "Customer experience risk", "Leadership time diverted", "Other"] },
+        4: { type: "checkbox", options: ["Sourcing help", "Manufacturing support", "Strategic guidance", "Project management", "Quality control", "Vendor / factory coordination", "Launch support", "CRM / process setup", "Other"] },
+        5: { type: "checkbox", options: ["Cost improved", "Revenue improved", "Margin improved", "Time saved", "Risk reduced", "Quality improved", "Conversion improved", "Visibility improved", "Launch accelerated", "Other"] },
+        6: { type: "select", options: ["Exact metric available", "Directional metric available", "Qualitative only", "No result yet", "Not sure yet"] },
+        7: { type: "checkbox", options: ["Buyer quote", "Before / after story", "Operational evidence", "Implementation evidence", "Referenceable relationship", "Internal project notes", "Other"] },
+        8: { type: "select", options: optionSets.proofPermission },
+        9: { type: "select", options: optionSets.proofUseCases },
+        10: { type: "select", options: ["No", "Yes"] },
+        11: { type: "select", options: optionSets.proofTypes.concat(["Proof one-pager", "Sales deck proof slide", "ROI / business case proof", "Customer story", "Other"]) },
+        12: { type: "select", optionsFor: "customerEvidence" },
+        13: { type: "checkbox", options: ["No clear benchmark", "Paying without knowing if pricing was fair", "Manual or informal process", "Internal team was overloaded", "Missing internal expertise", "Dependent on one vendor or supplier", "Limited visibility into options", "Launch or project was at risk", "Quality or delivery was inconsistent", "Other"] },
+        14: { type: "checkbox", options: ["Unnecessary cost", "Margin leakage", "Delayed launch", "Missed revenue opportunity", "Operational drag", "Decision uncertainty", "Supplier / vendor risk", "Quality risk", "Customer experience risk", "Leadership time diverted", "Other"] },
+        15: { type: "checkbox", options: ["Sourcing help", "Manufacturing support", "Strategic guidance", "Project management", "Quality control", "Vendor / factory coordination", "Launch support", "CRM / process setup", "Other"] },
+        16: { type: "checkbox", options: ["Cost improved", "Revenue improved", "Margin improved", "Time saved", "Risk reduced", "Quality improved", "Conversion improved", "Visibility improved", "Launch accelerated", "Other"] },
+        17: { type: "select", options: ["Exact metric available", "Directional metric available", "Qualitative only", "No result yet", "Not sure yet"] },
+        18: { type: "checkbox", options: ["Buyer quote", "Before / after story", "Operational evidence", "Implementation evidence", "Referenceable relationship", "Internal project notes", "Other"] },
+        19: { type: "select", options: optionSets.proofPermission },
+        20: { type: "select", options: optionSets.proofUseCases }
+      },
+      buyer: {
+        0: { type: "select", optionsFor: "buyerProblems" },
+        1: { type: "select", optionsFor: "buyerRoles" },
+        2: { type: "select", optionsFor: "buyerRoles" },
+        3: { type: "select", optionsFor: "buyerRoles" },
+        4: { type: "select", optionsFor: "buyerRoles" },
+        5: { type: "checkbox", options: ["ROI / financial case", "Risk reduction", "Customer proof", "Implementation plan", "Timeline", "Budget source", "Executive priority", "Competitive comparison", "Other"] },
+        6: { type: "checkbox", options: ["ROI / payback", "Budget impact", "Margin impact", "Cost reduction", "Risk reduction", "Approval path", "Contract terms", "Other"] },
+        7: { type: "checkbox", options: optionSets.urgencyDrivers },
+        8: { type: "select", options: ["Pain confirmed", "Urgency confirmed", "Budget owner confirmed", "Proof need confirmed", "Next step confirmed", "All of the above", "Not sure yet", "Other"] }
+      },
+      revenueMotion: {
+        0: { type: "checkbox", options: optionSets.channels },
+        1: { type: "select", options: optionSets.channelStatus },
+        2: { type: "checkbox", options: optionSets.salesMotions },
+        3: { type: "select", optionsFor: "candidateMotions" },
+        4: { type: "select", options: optionSets.evidenceLevel },
+        5: { type: "select", options: ["Founder-led referrals", "LinkedIn outbound", "Direct outbound email", "Inbound conversion", "Partner-led", "Customer expansion", "Event follow-up", "Paid campaign", "Not sure yet", "Other"] },
+        6: { type: "select", options: optionSets.ownerOptions },
+        7: { type: "select", options: ["0-2 hours", "3-5 hours", "6-10 hours", "11-20 hours", "20+ hours", "Not sure yet"] },
+        8: { type: "checkbox", options: ["Pain confirmed", "ICP fit confirmed", "Budget or authority identified", "Next step agreed", "Timeline known", "Proof need identified", "Other"] },
+        9: { type: "select", options: optionSets.cadence },
+        10: { type: "checkbox", options: optionSets.reviewInputs },
+        11: { type: "select", options: ["Qualified conversations created", "Opportunities created", "Pipeline created", "Revenue created", "Clear learning created", "Other"] },
+        12: { type: "select", options: ["No qualified conversations", "Low response rate", "Wrong-fit prospects respond", "Prospects show interest but no urgency", "Prospects like the idea but reject the offer", "Channel creates activity but no opportunities", "Message creates confusion", "Proof is not strong enough", "Activity target is unrealistic", "Other"] },
+        13: { type: "select", options: ["ICP", "Offer", "Message", "Channel", "Activity target", "Proof", "Buyer", "Other"] },
+        14: { type: "select", options: ["No qualified signal", "No useful learning", "No owner capacity", "Bad-fit accounts", "Channel unavailable", "Other"] }
+      },
+      crm: {
+        0: { type: "select", options: optionSets.crmSystems },
+        1: { type: "checkbox", options: ["Keep current stages", "Add target account stage", "Add discovery stage", "Add proposal stage", "Add pilot stage", "Add negotiation stage", "Add closed lost reason", "Rename stages", "Other"] },
+        2: { type: "checkbox", options: optionSets.crmFields },
+        3: { type: "select", options: ["Revenue owner", "Sales owner", "Founder / CEO", "CRM owner", "Operations owner", "Each opportunity owner", "Not assigned yet", "Other"] },
+        4: { type: "checkbox", options: ["Original source", "Current channel", "Referral source", "Partner source", "Campaign", "Revenue motion", "Manual entry", "Other"] },
+        5: { type: "checkbox", options: ["Next action", "Next action owner", "Next action date", "Stage exit criteria", "Follow-up due date", "Other"] },
+        6: { type: "checkbox", options: ["No next action", "No buyer response", "Proof gap", "Pricing concern", "Implementation concern", "Timing issue", "Unclear owner", "Other"] },
+        7: { type: "checkbox", options: optionSets.reviewInputs },
+        8: { type: "select", options: optionSets.cadence }
+      },
+      offerMessage: {
+        0: { type: "select", optionsFor: "offers" },
+        1: { type: "select", optionsFor: "customerGroups" },
+        2: { type: "checkbox", options: optionSets.problemTypes },
+        3: { type: "checkbox", options: optionSets.urgencyDrivers },
+        4: { type: "select", options: optionSets.outcomes },
+        5: { type: "checkbox", options: ["Financial risk", "Operational risk", "Implementation risk", "Quality risk", "Revenue risk", "Time risk", "Reputation risk", "Other"] },
+        6: { type: "checkbox", options: optionSets.proofTypes },
+        7: { type: "select", options: optionSets.nextSteps }
+      }
+    };
+
+    function questionConfig(flowType, index, question) {
+      const control = { prompt: question, type: "textarea", ...(questionControls[flowType]?.[index] || {}) };
+      if (control.optionsFor) {
+        const additions = control.optionsFor === "candidateMotions" ? ["Not sure yet", "Other"] : ["Other"];
+        control.options = [...new Set(optionsFor(control.optionsFor).concat(additions))];
+      }
+      return control;
+    }
+
+    function cleanValue(value) {
+      return String(value || "").replace(/\s+/g, " ").trim();
+    }
+
+    function collectRows(data, prefix, labels) {
+      const rows = [];
+      const seen = new Set();
+      Object.keys(data).forEach((key) => {
+        if (!key.startsWith(prefix)) return;
+        const rowId = key.slice(prefix.length).split("__")[0];
+        if (rowId) seen.add(rowId);
+      });
+      seen.forEach((rowId) => {
+        const parts = labels.map(([label, suffix]) => {
+          const value = cleanValue(data[`${prefix}${rowId}__${suffix}`]);
+          return value ? `${label}: ${value}` : "";
+        }).filter(Boolean);
+        if (parts.length) rows.push(parts.join(" | "));
+      });
+      return rows;
+    }
+
+    function specialValue(data, key) {
+      if (key === "$proofCandidates") {
+        return collectRows(data, "proofReferenceCandidates__", [["Customer", "customerName"], ["Outcome", "outcomeProven"], ["Story", "resultStory"], ["Permission", "permissionStatus"]]).join("; ");
+      }
+      if (key === "$customerEvidence") {
+        return collectRows(data, "customerEvidenceInventory__", [["Customer", "customerName"], ["Why fit", "whyGoodFit"], ["Outcome", "outcomeAchieved"], ["Proof", "proofOpportunity"]]).join("; ");
+      }
+      if (key === "$customerGroups") return knownCustomerGroups(data).join("; ");
+      if (key === "$customerGroupDefinitions") return customerGroupDefinitionNotes(data).join("; ");
+      if (key === "$offers") return knownOffers(data).join("; ");
+      if (key === "$offerOptionsWithSources") return offerOptionNotes(data).join("; ");
+      if (key === "$channels") return knownChannels(data).join("; ");
+      if (key === "$salesMotions") return knownSalesMotions(data).join("; ");
+      if (key === "$revenueMotions") return knownRevenueMotions(data).join("; ");
+      if (key === "$buyerRoles") return knownBuyerRoles(data).join("; ");
+      if (key === "$buyerProblems") return knownBuyerProblems(data).join("; ");
+      if (key === "$buyingTriggers") return knownBuyingTriggers(data).join("; ");
+      if (key === "$currentWorkarounds") return knownCurrentWorkarounds(data).join("; ");
+      if (key === "$disqualificationRules") return knownDisqualificationRules(data).join("; ");
+      if (key === "$buyerRisks") return knownBuyerRisks(data).join("; ");
+      if (key === "$outcomes") return knownOutcomes(data).join("; ");
+      return "";
+    }
+
+    function valueForField(data, field) {
+      const fields = Array.isArray(field) ? field : [field];
+      for (const item of fields) {
+        const value = String(item).startsWith("$") ? specialValue(data, item) : cleanValue(data[item]);
+        if (value) return value;
+      }
+      return "";
+    }
+
+    function canonicalOptionText(value) {
+      const text = cleanValue(value)
+        .replace(/,+$/g, "")
+        .replace(/\bEntreprenuer\b/gi, "Entrepreneur")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (/^cold calls?$/i.test(text)) {
+        return "Cold calling";
+      }
+      if (/^founder[-\s]?led$/i.test(text)) {
+        return "Founder-led sales";
+      }
+      if (/entrepreneur\s+led\s+product\s+(startups?|brands?|companies?|teams?)/i.test(text)) {
+        return "Entrepreneur-led product brands";
+      }
+      return text;
+    }
+
+    function optionKey(value, kind = "") {
+      let text = canonicalOptionText(value).toLowerCase();
+      if (kind === "revenueMotion" || kind === "channel") {
+        text = text.replace(/\bcold calls?\b/g, "cold calling");
+      }
+      return text
+        .replace(/\bstartups?\b/g, kind === "customerGroup" ? "brands" : "startups")
+        .replace(/\bcompanies?\b/g, kind === "customerGroup" ? "brands" : "companies")
+        .replace(/\bteams?\b/g, kind === "customerGroup" ? "brands" : "teams")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+    }
+
+    function isPlaceholderOption(value) {
+      return /^(other|not sure|n\/a|na|next|next one|todo|tbd|placeholder)$/i.test(cleanValue(value));
+    }
+
+    function addOptionValue(values, value, kind = "") {
+      const text = canonicalOptionText(value);
+      if (!text || isPlaceholderOption(text)) return;
+      if (/^(motion|play|offer|customer-group)-\d+$/i.test(text)) return;
+      if (!values.some((item) => optionKey(item, kind) === optionKey(text, kind))) values.push(text);
+    }
+
+    function addOptionRecord(records, value, source, kind = "") {
+      const text = canonicalOptionText(value);
+      if (!text || isPlaceholderOption(text)) return;
+      if (/^(motion|play|offer|customer-group)-\d+$/i.test(text)) return;
+      const key = optionKey(text, kind);
+      const existing = records.find((item) => optionKey(item.value, kind) === key);
+      if (existing) {
+        if (source && !existing.sources.includes(source)) existing.sources.push(source);
+        return;
+      }
+      records.push({ value: text, sources: source ? [source] : [] });
+    }
+
+    function valuesFromPrefixes(data, prefixes, suffixes, kind = "") {
+      const values = [];
+      Object.keys(data).forEach((key) => {
+        prefixes.forEach((prefix) => {
+          if (!key.startsWith(prefix)) return;
+          if (!suffixes.some((suffix) => key.endsWith(`__${suffix}`))) return;
+          addOptionValue(values, data[key], kind);
+        });
+      });
+      return values;
+    }
+
+    function repeatableListValues(data, listId, kind = "") {
+      const values = [];
+      Object.entries(data).forEach(([key, value]) => {
+        if (!key.startsWith(`${listId}__item-`) || key.endsWith("__other")) return;
+        const other = cleanValue(data[`${key}__other`]);
+        addOptionValue(values, cleanValue(value) === "Other" && other ? other : value, kind);
+      });
+      return values;
+    }
+
+    function rowValuesFromPrefix(data, prefix) {
+      const rows = new Map();
+      Object.entries(data).forEach(([key, value]) => {
+        if (!key.startsWith(prefix)) return;
+        const parts = key.slice(prefix.length).split("__");
+        if (parts.length < 2) return;
+        const [rowId, fieldId] = parts;
+        if (!rows.has(rowId)) rows.set(rowId, {});
+        rows.get(rowId)[fieldId] = cleanValue(value);
+      });
+      return [...rows.values()];
+    }
+
+    function criterionPresent(...values) {
+      return values.some((value) => cleanValue(value));
+    }
+
+    function textIncludesAny(text, patterns) {
+      return patterns.some((pattern) => pattern.test(text));
+    }
+
+    function anyDataValue(data, keys) {
+      return keys.some((key) => criterionPresent(data[key]));
+    }
+
+    function customerGroupDefinitionNotes(data) {
+      const rows = rowValuesFromPrefix(data, "possibleCustomerGroups__")
+        .filter((row) => row.groupName || row.whoTheyAre || row.problem || row.whyNow);
+      const fallback = cleanValue(data.bestFitCustomerGroup || data.quickBestFitCustomer);
+      const groups = rows.length ? rows : fallback ? [{ groupName: fallback }] : [];
+
+      return groups.map((row) => {
+        const name = cleanValue(row.groupName || row.whoTheyAre || "Unnamed customer group");
+        const descriptorText = [
+          row.groupName,
+          row.whoTheyAre,
+          row.problem,
+          row.whyNow
+        ].map(cleanValue).join(" ");
+        const needsResourceDefinition = textIncludesAny(descriptorText, [/limited resources?/i, /\bresource/i, /\bcapacity/i, /understaffed/i, /lean team/i, /small team/i]);
+        const needsExpertiseDefinition = textIncludesAny(descriptorText, [/expertise/i, /capabilit/i, /\bskill/i, /know[-\s]?how/i, /experience/i]);
+        const criteria = [
+          ["segment identity", criterionPresent(row.segmentIdentityDetails, row.whoTheyAre, data.industryLabel, data.businessTypeLabel, data.geography)],
+          ["size and scale", criterionPresent(row.sizeDefinition, row.revenueRange, row.headcountRange, data.bestFitRevenueRange, data.bestFitHeadcountRange)],
+          ["economic fit", criterionPresent(row.economicFitDefinition, row.abilityToPay, row.revenuePotential, data.bestFitBudgetCategory, data.bestFitBudgetAbility)],
+          ["problem intensity", criterionPresent(row.problem) && criterionPresent(row.urgency, row.whyNow, data.bestFitTrigger)],
+          ["use-case fit", criterionPresent(row.useCaseDefinition, data.bestFitFirstUseCase, data.primaryGtmOffer)],
+          ["trigger events", criterionPresent(row.whyNow, data.bestFitTrigger)],
+          ["operational fit", criterionPresent(row.implementationFit, data.bestFitImplementationRequirements, data.bestFitCurrentWorkaround)],
+          ["buying committee", anyDataValue(data, ["bestFitDecisionMaker", "bestFitChampion", "budgetOwner", "painOwner"])],
+          ["buying process friction", criterionPresent(row.salesCycleFit, data.bestFitExpectedSalesCycle, data.salesProcessChangeNeeded)],
+          ["reachability", criterionPresent(row.listBuildingClues, row.easeOfAccess)],
+          ["observable signals", criterionPresent(row.observableCompanySignals)],
+          ["competitive context", criterionPresent(row.competitiveContext, data.bestFitCurrentWorkaround)],
+          ["differentiation / proof fit", criterionPresent(row.proofEvidence, data.proofSummary, data.customerEvidenceSummary)],
+          ["customer success fit", criterionPresent(row.implementationFit, data.bestFitImplementationRequirements)],
+          ["retention / expansion potential", criterionPresent(row.strategicValue, row.revenuePotential, data.bestFitExpansionValue)],
+          ["strategic value", criterionPresent(row.strategicValue, data.bestFitExpansionValue)],
+          ["disqualifiers", criterionPresent(row.tradeoffRisk, data.bestFitDisqualificationSignals)],
+          ["evidence quality", criterionPresent(row.evidenceSource, row.notesEvidence, data.customerEvidenceSummary)]
+        ];
+        if (needsResourceDefinition) {
+          criteria.push(["resource constraint", criterionPresent(row.resourceConstraintDefinition)]);
+        }
+        if (needsExpertiseDefinition) {
+          criteria.push(["expertise or capability gap", criterionPresent(row.expertiseGap)]);
+        }
+        const captured = criteria.filter(([, present]) => present).length;
+        const missing = criteria.filter(([, present]) => !present).map(([label]) => label);
+        const total = criteria.length;
+        const details = [
+          row.segmentIdentityDetails ? `Segment identity: ${row.segmentIdentityDetails}` : "",
+          row.sizeDefinition ? `Size/scale: ${row.sizeDefinition}` : "",
+          row.economicFitDefinition ? `Economic fit: ${row.economicFitDefinition}` : "",
+          row.useCaseDefinition ? `Use case: ${row.useCaseDefinition}` : "",
+          row.resourceConstraintDefinition ? `Resources: ${row.resourceConstraintDefinition}` : "",
+          row.expertiseGap ? `Expertise gap: ${row.expertiseGap}` : "",
+          row.observableCompanySignals ? `Observable signals: ${row.observableCompanySignals}` : "",
+          row.listBuildingClues ? `Where to find them: ${row.listBuildingClues}` : "",
+          row.competitiveContext ? `Competitive context: ${row.competitiveContext}` : "",
+          row.evidenceSource ? `Evidence source: ${row.evidenceSource}` : ""
+        ].filter(Boolean);
+        const status = captured >= Math.ceil(total * 0.75) ? "ICP-candidate ready" : captured >= Math.ceil(total * 0.45) ? "hypothesis needs validation" : "too broad for reliable list-building";
+        const missingText = missing.length ? ` Missing: ${missing.join(", ")}.` : "";
+        const detailText = details.length ? ` ${details.join(" ")}` : "";
+        return `${name} - Hypothesis status: ${status} (${captured}/${total} relevant ICP criteria captured across fit, pain / urgency, economic value, winability, and evidence confidence).${missingText}${detailText}`;
+      });
+    }
+
+    function knownCustomerGroups(data) {
+      const values = [];
+      [
+        data.bestFitCustomerGroup,
+        data.quickBestFitCustomer,
+        data.signalPriorityIcp
+      ].forEach((value) => addOptionValue(values, value, "customerGroup"));
+      valuesFromPrefixes(data, ["possibleCustomerGroups__", "revenueMotionPortfolio__", "signalPlayPortfolio__", "offerPortfolio__"], ["groupName", "customerGroup", "newCustomerGroup", "targetCustomerGroup"], "customerGroup").forEach((value) => addOptionValue(values, value, "customerGroup"));
+      return values.length ? values : ["Priority customer group not defined yet"];
+    }
+
+    function knownOffers(data) {
+      const values = knownOfferRecords(data).map((record) => record.value);
+      return values.length ? values : ["Primary offer not defined yet"];
+    }
+
+    function knownOfferRecords(data) {
+      const records = [];
+      addOptionRecord(records, data.primaryOfferName, "Primary Product Line / Offer");
+      addOptionRecord(records, data.secondaryOfferName, "Secondary Product Line / Offer");
+      const primaryGtmOffer = cleanValue(data.primaryGtmOffer);
+      if (primaryGtmOffer && /^(offer)-\d+$/i.test(primaryGtmOffer)) {
+        addOptionRecord(records, data[`offerPortfolio__${primaryGtmOffer}__offerName`], "Primary GTM focus");
+      } else {
+        addOptionRecord(records, primaryGtmOffer, "Primary GTM focus");
+      }
+
+      Object.keys(data).forEach((key) => {
+        if (key.startsWith("offerPortfolio__") && key.endsWith("__offerName")) {
+          addOptionRecord(records, data[key], "Offer portfolio");
+        }
+        if (key.startsWith("revenueMotionPortfolio__") && (key.endsWith("__offer") || key.endsWith("__newOffer"))) {
+          addOptionRecord(records, data[key], "Revenue Motion");
+        }
+        if (key.startsWith("signalPlayPortfolio__") && (key.endsWith("__offerOrUseCase") || key.endsWith("__newOfferOrUseCase"))) {
+          addOptionRecord(records, data[key], "Buying Signals / Targeting");
+        }
+      });
+
+      [
+        ["offerBeingAssessed", "Offer Readiness"],
+        ["firstUseCaseForOffer", "Offer Readiness wedge offer"],
+        ["primaryWedge", "Offer Readiness wedge offer"],
+        ["signalOfferUseCase", "Signal Readiness offer"],
+        ["useCaseWedge", "Wedge offer"],
+        ["bestFitFirstUseCase", "Customer Priority first offer"]
+      ].forEach(([field, source]) => addOptionRecord(records, data[field], source));
+
+      return records;
+    }
+
+    function offerOptionNotes(data) {
+      const records = knownOfferRecords(data);
+      if (!records.length) return ["No offer or use-case option has been captured yet."];
+      return records.map((record) => `${record.value} - pulled from ${record.sources.join(", ") || "assessment fields"}`);
+    }
+
+    function knownChannels(data) {
+      const values = [];
+      [data.quickPrimaryRevenueSource].forEach((value) => addOptionValue(values, value, "channel"));
+      valuesFromPrefixes(data, ["revenueMotionPortfolio__"], ["channelSource"], "channel").forEach((value) => addOptionValue(values, value, "channel"));
+      return values;
+    }
+
+    function availableChannelOptions(data) {
+      const values = knownChannels(data);
+      optionSets.channels.forEach((value) => addOptionValue(values, value));
+      return values;
+    }
+
+    function knownSalesMotions(data) {
+      const values = [];
+      [data.primarySalesMotion, data.quickCurrentSalesMotion].forEach((value) => addOptionValue(values, value));
+      valuesFromPrefixes(data, ["revenueMotionPortfolio__"], ["salesMotionType"]).forEach((value) => addOptionValue(values, value));
+      return values;
+    }
+
+    function availableSalesMotionOptions(data) {
+      const values = knownSalesMotions(data);
+      optionSets.salesMotions.forEach((value) => addOptionValue(values, value));
+      return values;
+    }
+
+    function knownRevenueMotions(data) {
+      const values = [];
+      valuesFromPrefixes(data, ["revenueMotionPortfolio__"], ["playName"], "revenueMotion").forEach((value) => addOptionValue(values, value, "revenueMotion"));
+      return values.length ? values : ["No complete revenue motions have been defined yet"];
+    }
+
+    function knownBuyerRoles(data) {
+      const values = [];
+      [
+        data.bestFitDecisionMaker,
+        data.budgetOwner,
+        data.painOwner,
+        data.bestFitChampion,
+        data.signalPrimaryBuyer,
+        data.primaryBuyerForOffer
+      ].forEach((value) => addOptionValue(values, value));
+      valuesFromPrefixes(data, ["buyerRoleCards__", "buyerRoleMap__", "revenueMotionPortfolio__", "offerPortfolio__", "signalPlayPortfolio__"], ["commonTitles", "role", "primaryBuyer", "primaryBuyerPersona"]).forEach((value) => addOptionValue(values, value));
+      return values;
+    }
+
+    function buyerRoleOptions(data) {
+      const values = knownBuyerRoles(data);
+      optionSets.buyerRoles.forEach((value) => addOptionValue(values, value));
+      return values;
+    }
+
+    function knownBuyerProblems(data) {
+      const values = [];
+      [data.bestFitPrimaryPain, data.quickBuyerProblem, data.offerBuyerProblem].forEach((value) => addOptionValue(values, value));
+      valuesFromPrefixes(data, ["possibleCustomerGroups__", "offerAssessments__"], ["problem", "offerBuyerProblem", "buyerProblem"]).forEach((value) => addOptionValue(values, value));
+      return values;
+    }
+
+    function knownBuyingTriggers(data) {
+      const values = [];
+      [data.bestFitTrigger, data.quickUrgencyNow].forEach((value) => addOptionValue(values, value));
+      valuesFromPrefixes(data, ["possibleCustomerGroups__", "signalPlayAssessments__", "buyingTriggerEvents__"], ["whyNow", "triggerEvent", "buyingTrigger"]).forEach((value) => addOptionValue(values, value));
+      return values;
+    }
+
+    function knownCurrentWorkarounds(data) {
+      const values = [];
+      [data.bestFitCurrentWorkaround].forEach((value) => addOptionValue(values, value));
+      repeatableListValues(data, "bestFitCurrentWorkaround").forEach((value) => addOptionValue(values, value));
+      valuesFromPrefixes(data, ["offerAssessments__"], ["buyerAlternativesToday", "currentState"]).forEach((value) => addOptionValue(values, value));
+      return values;
+    }
+
+    function knownDisqualificationRules(data) {
+      const values = [];
+      [data.bestFitDisqualificationSignals].forEach((value) => addOptionValue(values, value));
+      repeatableListValues(data, "bestFitDisqualificationSignals").forEach((value) => addOptionValue(values, value));
+      repeatableListValues(data, "icpDisqualificationRules").forEach((value) => addOptionValue(values, value));
+      valuesFromPrefixes(data, ["icpDisqualificationRules__", "negativeSignalRules__", "globalNegativeSignals__"], ["signal", "negativeSignal", "rule"]).forEach((value) => addOptionValue(values, value));
+      return values;
+    }
+
+    function knownBuyerRisks(data) {
+      const values = [];
+      [data.mostImportantPersonaRisk, data.dealBlocker, data.dealStallRisks].forEach((value) => addOptionValue(values, value));
+      valuesFromPrefixes(data, ["buyerRoleCards__"], ["likelyObjection", "proofNeeded", "objectionDetail"]).forEach((value) => addOptionValue(values, value));
+      return values;
+    }
+
+    function knownOutcomes(data) {
+      const values = [];
+      [data.quickPrimaryOutcome, data.quickSuccessMeasure].forEach((value) => addOptionValue(values, value));
+      valuesFromPrefixes(data, ["valueClaims__", "offerAssessments__"], ["outcome", "metric", "expectedImprovement"]).forEach((value) => addOptionValue(values, value));
+      return values;
+    }
+
+    function knownProofAssets(data) {
+      const values = [];
+      collectRows(data, "proofReferenceCandidates__", [["Customer", "customerName"], ["Outcome", "outcomeProven"]]).forEach((value) => addOptionValue(values, value));
+      collectRows(data, "customerEvidenceInventory__", [["Customer", "customerName"], ["Proof", "proofOpportunity"]]).forEach((value) => addOptionValue(values, value));
+      [data.proofSummary, data.customerEvidenceSummary].forEach((value) => addOptionValue(values, value));
+      return values;
+    }
+
+    function knownCustomerEvidence(data) {
+      const values = [];
+      valuesFromPrefixes(data, ["proofReferenceCandidates__", "customerEvidenceInventory__", "expansionOpportunities__"], ["customerName", "projectName", "accountName"], "customerEvidence").forEach((value) => addOptionValue(values, value, "customerEvidence"));
+      return values.length ? values : ["No customer evidence listed yet"];
+    }
+
+    function optionsFor(kind) {
+      const data = currentData || {};
+      if (kind === "customerGroups") return knownCustomerGroups(data);
+      if (kind === "offers") return knownOffers(data);
+      if (kind === "channels") return availableChannelOptions(data);
+      if (kind === "salesMotions") return availableSalesMotionOptions(data);
+      if (kind === "buyerRoles") return buyerRoleOptions(data);
+      if (kind === "proofAssets") return knownProofAssets(data);
+      if (kind === "customerEvidence") return knownCustomerEvidence(data);
+      if (kind === "buyerProblems") return knownBuyerProblems(data);
+      if (kind === "outcomes") return knownOutcomes(data);
+      if (kind === "candidateMotions") return knownRevenueMotions(data);
+      return [];
+    }
+
+    function collectRevenueMotionStages(data) {
+      const stages = [];
+      const seen = new Set();
+      Object.keys(data).forEach((key) => {
+        const match = key.match(/^revenueMotionAssessments__([^_]+)__conversionStages__([^_]+)__stageName$/);
+        if (!match) return;
+        const value = cleanValue(data[key]);
+        if (value && !seen.has(value.toLowerCase())) {
+          seen.add(value.toLowerCase());
+          stages.push(value);
+        }
+      });
+      return stages;
+    }
+
+    function crmRecommendation(data) {
+      const system = valueForField(data, ["revenueTrackingSystem", "gtmSystems__crm__tools"]) || "Use one CRM or shared tracker as the source of truth before running the next revenue review.";
+      const owner = valueForField(data, ["pipelineReviewOwner", "primaryRevenueOwner", "gtmSystems__crm__owner"]) || "Founder / GTM lead";
+      const cadence = valueForField(data, "revenueReportingCadence") || "Weekly until the motion is stable";
+      const stages = collectRevenueMotionStages(data);
+      const stageList = stages.length
+        ? stages.join(" -> ")
+        : "Target account -> First outreach -> Conversation booked -> Discovery -> Proposal / quote -> Closed won / closed lost -> Nurture / disqualified";
+      return [
+        ["System", system],
+        ["Pipeline stages", stageList],
+        ["Required fields", "Company/account, customer priority segment, ICP fit tier, source/channel, pipeline stage, owner, next action, next action date, stalled reason, proof gap."],
+        ["Ownership rule", `Every active opportunity has an owner. ${owner} owns the review and cleanup rhythm.`],
+        ["Source tracking", "Capture original source, current channel, referral or partner source when relevant, and the revenue motion that created the opportunity."],
+        ["Next-action hygiene", "Every open opportunity needs a next action, next action owner, and next action date."],
+        ["Stalled-deal flag", "Flag opportunities with no next action, no buyer response, proof gaps, pricing concern, implementation concern, timing issue, or unclear owner."],
+        ["Dashboard", "Review new target accounts, outreach/referrals, meetings, opportunities by stage, stalled deals, proof gaps, and records missing next action."],
+        ["Review cadence", `${cadence}. Review the dashboard, cleanup gaps, stalled reasons, and next actions with ${owner}.`]
+      ];
+    }
+
+    function renderRecommendation(flowType, data) {
+      const section = document.getElementById("recommendationSection");
+      const container = document.getElementById("recommendationContent");
+      container.innerHTML = "";
+      if (flowType !== "crm") {
+        section.hidden = true;
+        return;
+      }
+      const list = document.createElement("ul");
+      list.className = "recommendation-list";
+      crmRecommendation(data).forEach(([label, value]) => {
+        const item = document.createElement("li");
+        const strong = document.createElement("strong");
+        strong.textContent = `${label}: `;
+        item.appendChild(strong);
+        item.appendChild(document.createTextNode(value));
+        list.appendChild(item);
+      });
+      container.appendChild(list);
+      section.hidden = false;
+    }
+
+    function readLocalRecords() {
+      try { return JSON.parse(localStorage.getItem(RECORDS_KEY)) || []; } catch (error) { return []; }
+    }
+
+    function writeLocalRecord(record) {
+      const records = readLocalRecords();
+      const index = records.findIndex((item) => item.id === record.id);
+      if (index >= 0) records[index] = record;
+      else records.push(record);
+      localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+      localStorage.setItem(ACTIVE_RECORD_KEY, record.id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(record.data || {}));
+    }
+
+    async function fetchLatestRecord() {
+      if (!API_BASE) {
+        return null;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/api/records`);
+
+        if (!response.ok) {
+          return null;
+        }
+
+        const result = await response.json();
+        const records = Array.isArray(result.records) ? result.records : [];
+        return records
+          .filter((record) => record && record.id && record.data)
+          .sort((a, b) => String(b.updatedAt || b.createdAt || "").localeCompare(String(a.updatedAt || a.createdAt || "")))[0] || null;
+      } catch (error) {
+        console.warn(error.message);
+      }
+
+      return null;
+    }
+
+    async function loadRecord() {
+      if (API_BASE && requestedRecordId) {
+        try {
+          const response = await fetch(`${API_BASE}/api/records/${encodeURIComponent(requestedRecordId)}`);
+          if (response.ok) {
+            const result = await response.json();
+            activeRecord = result.record;
+            currentData = activeRecord.data || {};
+            writeLocalRecord(activeRecord);
+            return;
+          }
+        } catch (error) {
+          console.warn(error.message);
+        }
+      }
+
+      const local = readLocalRecords().find((record) => record.id === requestedRecordId);
+      if (local) {
+        activeRecord = local;
+        currentData = local.data || {};
+        return;
+      }
+
+      const latestRecord = await fetchLatestRecord();
+      if (latestRecord) {
+        activeRecord = latestRecord;
+        currentData = latestRecord.data || {};
+        writeLocalRecord(latestRecord);
+        return;
+      }
+
+      currentData = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      activeRecord = { id: requestedRecordId || `record-${Date.now()}`, name: currentData.companyName || "Untitled brand", data: currentData };
+    }
+
+    function draftText(flow, answers) {
+      if (flow === flows.revenueMotion) return revenueMotionDraftText(answers);
+      return flow.draftLabels.map((label, index) => {
+        const answer = answers[`q${index}`] || answers[`q${Math.min(index, flow.questions.length - 1)}`] || "";
+        return `${label}: ${answer || "Requires user input."}`;
+      }).join("\n");
+    }
+
+    function migratedSavedAnswers(type, saved) {
+      const answers = saved.answers || {};
+      if (saved.schemaVersion === schemaVersionFor(type)) return answers;
+      // Most facilitation revisions preserve the same q0, q1, ... answer keys.
+      // Keep those saved responses instead of clearing the form on a schema-version bump.
+      if (type !== "proof") return answers;
+
+      const migrated = {};
+      const version = saved.schemaVersion || "";
+      if (version === "20260701-proof-additional-assets-v1") {
+        Object.keys(answers).forEach((key) => { migrated[key] = answers[key]; });
+        return migrated;
+      }
+      if (version === "20260701-proof-asset-anchor-v1") {
+        Object.keys(answers).forEach((key) => { migrated[key] = answers[key]; });
+        return migrated;
+      }
+      if (version === "20260701-icp-offer-anchor-v1" || version === "20260630-structured-questions-v2") {
+        migrated.q0 = answers.q0 || "";
+        migrated.q1 = "";
+        migrated.q2 = answers.q1 || "";
+        migrated.q3 = answers.q2 || "";
+        migrated.q4 = answers.q3 || "";
+        migrated.q5 = answers.q4 || "";
+        migrated.q6 = answers.q5 || "";
+        migrated.q7 = answers.q6 || "";
+        migrated.q8 = answers.q7 || "";
+        migrated.q9 = answers.q8 || "";
+        migrated.q10 = answers.q9 || "No";
+        return migrated;
+      }
+      return {};
+    }
+
+    function schemaVersionFor(type) {
+      return FLOW_SCHEMA_VERSIONS[type] || FACILITATION_SCHEMA_VERSION;
+    }
+
+    function revenueMotionDraftText(answers) {
+      const selectedChannels = cleanValue(answers.q0);
+      const lines = [
+        `Available channels: ${selectedChannels || "Requires user input."}`,
+        "Channel status and sales motion:"
+      ];
+      Object.entries(answers)
+        .filter(([key]) => key.startsWith("q1__"))
+        .forEach(([key, status]) => {
+          const slug = key.replace("q1__", "");
+          const evaluationPath = answers[`q2__${slug}`] || "Requires user input.";
+          lines.push(`- ${slug.replace(/-/g, " ")}: ${status || "Requires user input."}; evaluation path: ${evaluationPath}`);
+        });
+      lines.push("Candidate revenue motions:");
+      ["motion-1", "motion-2", "motion-3"].forEach((rowId) => {
+        const details = [
+          `supporting motions: ${answers[`q3__${rowId}__supportingMotions`] || "None listed"}`,
+          `maturity: ${answers[`q3__${rowId}__maturity`] || "Requires user input."}`,
+          `motion role: ${answers[`q3__${rowId}__role`] || "Requires user input."}`,
+          `human sales help: ${answers[`q3__${rowId}__humanHelp`] || "Requires user input."}`,
+          `decision participants: ${answers[`q3__${rowId}__decisionParticipants`] || "Requires user input."}`,
+          `work/fail factors: ${answers[`q3__${rowId}__successFactors`] || "Requires user input."}`,
+          `evidence level: ${answers[`q3__${rowId}__evidence`] || "Requires user input."}`,
+          `evidence sources: ${answers[`q3__${rowId}__evidenceSources`] || "Requires user input."}`
+        ];
+        lines.push(`- ${candidateMotionLabel(answers, rowId)}; ${details.join("; ")}`);
+      });
+      [
+        ["Best-evidence motion", answers.q4],
+        ["30-day motion", answers.q5],
+        ["Owner", answers.q6],
+        ["Weekly activity target", answers.q7],
+        ["Opportunity definition", answers.q8],
+        ["Review cadence", answers.q9],
+        ["Review inputs", answers.q10],
+        ["Continue rule", answers.q11],
+        ["Revise trigger", answers.q12],
+        ["Revise first", answers.q13],
+        ["Stop / pause rule", answers.q14]
+      ].forEach(([label, value]) => lines.push(`${label}: ${value || "Requires user input."}`));
+      return lines.join("\n");
+    }
+
+    function collectAnswers() {
+      const answers = {};
+      document.querySelectorAll("[data-answer]").forEach((input) => {
+        if (input.type === "checkbox") {
+          const values = answers[input.dataset.answer] ? answers[input.dataset.answer].split("; ").filter(Boolean) : [];
+          if (input.checked) values.push(input.value);
+          answers[input.dataset.answer] = values.join("; ");
+          return;
+        }
+        answers[input.dataset.answer] = input.value.trim();
+      });
+      document.querySelectorAll("[data-answer-other]").forEach((input) => {
+        const key = input.dataset.answerOther;
+        const otherValue = input.value.trim();
+        if (!otherValue) return;
+        answers[key] = answers[key]
+          ? answers[key].replace(/\bOther\b/g, otherValue)
+          : otherValue;
+      });
+      return answers;
+    }
+
+    function updateDraft() {
+      const flow = flows[flowType] || flows.icp;
+      document.getElementById("draftOutput").textContent = draftText(flow, collectAnswers());
+    }
+
+    function currentDataItems(value) {
+      return cleanValue(value)
+        .split(/\s*;\s*|\n+/)
+        .map((item) => item.replace(/\s*\|\s*/g, " - ").trim())
+        .filter(Boolean);
+    }
+
+    function currentDataSummary(label, items) {
+      if (!items.length) return "No context has been captured for this item yet.";
+      if (items.length === 1) return "Captured from the assessment:";
+      return `Captured from the assessment (${items.length} items):`;
+    }
+
+    function possibleDuplicateKey(value) {
+      return cleanValue(value)
+        .replace(/\s+-\s+.*$/g, "")
+        .replace(/^(customer|account|company|project):\s*/i, "")
+        .replace(/\b(co|company|corp|corporation|inc|incorporated|llc|ltd|limited)\.?$/i, "")
+        .replace(/[^a-z0-9]+/gi, " ")
+        .toLowerCase()
+        .trim();
+    }
+
+    function duplicateDecisionKey(key) {
+      return key.replace(/[^a-z0-9]+/g, "-");
+    }
+
+    function duplicateDecisions(data) {
+      return data.facilitationDuplicateDecisions?.companyNames || {};
+    }
+
+    function isMarkedSeparate(data, key) {
+      return duplicateDecisions(data)[duplicateDecisionKey(key)] === "separate";
+    }
+
+    function possibleDuplicateNotes(items) {
+      const groups = new Map();
+      items.forEach((item) => {
+        const key = possibleDuplicateKey(item);
+        if (!key || isMarkedSeparate(currentData || {}, key)) return;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(item);
+      });
+      return [...groups.values()]
+        .filter((group) => new Set(group.map((item) => item.toLowerCase())).size > 1)
+        .map((group) => `Possible duplicate entries need confirmation: ${[...new Set(group)].join(" / ")}`);
+    }
+
+    function renderField(container, label, value) {
+      const field = document.createElement("div");
+      field.className = "field";
+      const heading = document.createElement("h3");
+      heading.textContent = label;
+      field.appendChild(heading);
+
+      const items = currentDataItems(value);
+      const summary = document.createElement("p");
+      summary.className = "current-summary";
+      summary.textContent = currentDataSummary(label, items);
+      field.appendChild(summary);
+
+      if (items.length) {
+        const list = document.createElement("ul");
+        list.className = "current-detail-list";
+        items.forEach((item) => {
+          const bullet = document.createElement("li");
+          bullet.textContent = item;
+          list.appendChild(bullet);
+        });
+        field.appendChild(list);
+      }
+      container.appendChild(field);
+    }
+
+    function customerNameEntries(data) {
+      return Object.entries(data)
+        .filter(([key, value]) => /__(customerName|accountName)$/.test(key) && cleanValue(value))
+        .map(([key, value]) => ({ key, value: canonicalOptionText(value), duplicateKey: possibleDuplicateKey(value) }))
+        .filter((entry) => entry.duplicateKey);
+    }
+
+    function customerDuplicateGroups(data) {
+      const groups = new Map();
+      customerNameEntries(data).forEach((entry) => {
+        if (isMarkedSeparate(data, entry.duplicateKey)) return;
+        if (!groups.has(entry.duplicateKey)) groups.set(entry.duplicateKey, []);
+        groups.get(entry.duplicateKey).push(entry);
+      });
+      return [...groups.entries()]
+        .map(([key, entries]) => ({
+          key,
+          entries,
+          names: [...new Set(entries.map((entry) => entry.value))]
+        }))
+        .filter((group) => group.names.length > 1);
+    }
+
+    async function persistActiveRecord(message) {
+      activeRecord = {
+        ...activeRecord,
+        data: currentData,
+        name: currentData.companyName || activeRecord.name || "Untitled brand",
+        updatedAt: new Date().toISOString()
+      };
+      writeLocalRecord(activeRecord);
+      if (API_BASE && activeRecord.id) {
+        await fetch(`${API_BASE}/api/records/${encodeURIComponent(activeRecord.id)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(activeRecord)
+        });
+      }
+      document.getElementById("saveStatus").textContent = message;
+    }
+
+    function renderDuplicateResolver(container) {
+      const groups = customerDuplicateGroups(currentData);
+      if (!groups.length) return;
+
+      const panel = document.createElement("div");
+      panel.className = "duplicate-resolver";
+      const heading = document.createElement("h3");
+      heading.textContent = "Possible duplicate customer names";
+      panel.appendChild(heading);
+      const help = document.createElement("p");
+      help.className = "muted";
+      help.textContent = "Confirm whether these are the same customer before the tool standardizes the names.";
+      panel.appendChild(help);
+
+      groups.forEach((group) => {
+        const row = document.createElement("div");
+        row.className = "duplicate-row";
+        const label = document.createElement("label");
+        label.textContent = `Possible match: ${group.names.join(" / ")}`;
+        row.appendChild(label);
+
+        const select = document.createElement("select");
+        group.names.forEach((name) => {
+          const option = document.createElement("option");
+          option.value = name;
+          option.textContent = name;
+          select.appendChild(option);
+        });
+        row.appendChild(select);
+
+        const actions = document.createElement("div");
+        actions.className = "duplicate-actions";
+
+        const merge = document.createElement("button");
+        merge.type = "button";
+        merge.textContent = "Use selected name for all";
+        merge.addEventListener("click", async () => {
+          const chosen = select.value;
+          const nextData = { ...currentData };
+          group.entries.forEach((entry) => {
+            nextData[entry.key] = chosen;
+          });
+          currentData = nextData;
+          await persistActiveRecord(`Updated duplicate customer names to "${chosen}".`);
+          render();
+        });
+        actions.appendChild(merge);
+
+        const separate = document.createElement("button");
+        separate.type = "button";
+        separate.className = "secondary";
+        separate.textContent = "Keep separate";
+        separate.addEventListener("click", async () => {
+          currentData = {
+            ...currentData,
+            facilitationDuplicateDecisions: {
+              ...(currentData.facilitationDuplicateDecisions || {}),
+              companyNames: {
+                ...duplicateDecisions(currentData),
+                [duplicateDecisionKey(group.key)]: "separate"
+              }
+            }
+          };
+          await persistActiveRecord("Saved decision to keep these customer names separate.");
+          render();
+        });
+        actions.appendChild(separate);
+
+        row.appendChild(actions);
+        panel.appendChild(row);
+      });
+
+      container.appendChild(panel);
+    }
+
+    function setOtherVisibility(input, otherInput) {
+      const show = input.type === "checkbox"
+        ? input.checked && input.value === "Other"
+        : input.value === "Other";
+      otherInput.hidden = !show;
+      if (!show) otherInput.value = "";
+    }
+
+    function renderAnswerControl(wrap, id, config, savedValue) {
+      if (config.type === "select") {
+        const select = document.createElement("select");
+        select.id = id;
+        select.dataset.answer = id;
+        const blank = document.createElement("option");
+        blank.value = "";
+        blank.textContent = "Select one";
+        select.appendChild(blank);
+        config.options.forEach((option) => {
+          const optionElement = document.createElement("option");
+          optionElement.value = option;
+          optionElement.textContent = option;
+          select.appendChild(optionElement);
+        });
+        select.value = savedValue && config.options.includes(savedValue)
+          ? savedValue
+          : savedValue && config.options.includes("Other")
+            ? "Other"
+            : "";
+        wrap.appendChild(select);
+        if (config.options.includes("Other")) {
+          const other = document.createElement("input");
+          other.type = "text";
+          other.className = "other-input";
+          other.placeholder = "Define other";
+          other.dataset.answerOther = id;
+          other.value = savedValue && !config.options.includes(savedValue) ? savedValue : "";
+          wrap.appendChild(other);
+          setOtherVisibility(select, other);
+          select.addEventListener("change", () => setOtherVisibility(select, other));
+          other.addEventListener("input", updateDraft);
+        }
+        select.addEventListener("change", updateDraft);
+        return;
+      }
+
+      if (config.type === "checkbox") {
+        const list = document.createElement("div");
+        list.className = "choice-list";
+        const savedValues = savedValue.split("; ").map((item) => item.trim()).filter(Boolean);
+        config.options.forEach((option, optionIndex) => {
+          const label = document.createElement("label");
+          label.className = "choice-option";
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.id = `${id}_${optionIndex}`;
+          checkbox.dataset.answer = id;
+          checkbox.value = option;
+          checkbox.checked = savedValues.includes(option) || (option === "Other" && savedValues.some((value) => !config.options.includes(value)));
+          label.appendChild(checkbox);
+          label.appendChild(document.createTextNode(option));
+          list.appendChild(label);
+          checkbox.addEventListener("change", updateDraft);
+          if (option === "Other") {
+            const other = document.createElement("input");
+            other.type = "text";
+            other.className = "other-input";
+            other.placeholder = "Define other";
+            other.dataset.answerOther = id;
+            other.value = savedValues.find((value) => !config.options.includes(value)) || "";
+            list.appendChild(other);
+            setOtherVisibility(checkbox, other);
+            checkbox.addEventListener("change", () => setOtherVisibility(checkbox, other));
+            other.addEventListener("input", updateDraft);
+          }
+        });
+        wrap.appendChild(list);
+        return;
+      }
+
+      const textarea = document.createElement("textarea");
+      textarea.id = id;
+      textarea.dataset.answer = id;
+      textarea.value = savedValue || "";
+      textarea.addEventListener("input", updateDraft);
+      wrap.appendChild(textarea);
+    }
+
+    function updateConditionalQuestions() {
+      document.querySelectorAll("[data-show-when-answer]").forEach((wrap) => {
+        const source = document.querySelector(`[data-answer="${wrap.dataset.showWhenAnswer}"]`);
+        const show = source && source.value === wrap.dataset.showWhenValue;
+        wrap.hidden = !show;
+        if (!show) {
+          wrap.querySelectorAll("[data-answer]").forEach((input) => {
+            if (input.type === "checkbox") input.checked = false;
+            else input.value = "";
+          });
+          wrap.querySelectorAll("[data-answer-other]").forEach((input) => {
+            input.value = "";
+            input.hidden = true;
+          });
+        }
+      });
+      updateDraft();
+    }
+
+    function answerKeySuffix(value) {
+      return cleanValue(value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "item";
+    }
+
+    function selectedAnswerValues(key) {
+      const values = [];
+      document.querySelectorAll(`[data-answer="${key}"]`).forEach((input) => {
+        if (input.type === "checkbox" && input.checked) values.push(input.value);
+        if (input.type !== "checkbox" && input.value) values.push(input.value);
+      });
+      document.querySelectorAll(`[data-answer-other="${key}"]`).forEach((input) => {
+        if (input.value.trim()) values.push(input.value.trim());
+      });
+      return values;
+    }
+
+    function fieldWrap(prompt) {
+      const wrap = document.createElement("div");
+      wrap.className = "field";
+      const label = document.createElement("label");
+      label.textContent = prompt;
+      wrap.appendChild(label);
+      return wrap;
+    }
+
+    function setNestedControl(wrap, key, config, answers) {
+      renderAnswerControl(wrap, key, config, answers[key] || "");
+    }
+
+    function candidateMotionLabel(answers, rowId) {
+      const parts = [
+        answers[`q3__${rowId}__customerGroup`],
+        answers[`q3__${rowId}__offer`],
+        answers[`q3__${rowId}__channel`],
+        answers[`q3__${rowId}__primaryMotion`]
+      ].map(cleanValue).filter(Boolean);
+      return parts.length ? parts.join(" / ") : rowId.replace("motion-", "Candidate motion ");
+    }
+
+    function candidateMotionOptions(answers) {
+      return ["motion-1", "motion-2", "motion-3"]
+        .map((rowId) => candidateMotionLabel(answers, rowId))
+        .filter(Boolean)
+        .concat(["Not sure yet", "Other"]);
+    }
+
+    function renderRevenueMotionQuestions(container, flow, answers) {
+      const channelOptions = availableChannelOptions(currentData);
+      const customerGroupOptions = knownCustomerGroups(currentData).concat(["Other"]);
+      const offerOptions = knownOffers(currentData).concat(["Other"]);
+      const salesMotionOptions = availableSalesMotionOptions(currentData);
+
+      const channelWrap = fieldWrap(`1. ${flow.questions[0]}`);
+      setNestedControl(channelWrap, "q0", { type: "checkbox", options: channelOptions }, answers);
+      container.appendChild(channelWrap);
+
+      const perChannelWrap = document.createElement("div");
+      const candidatesWrap = document.createElement("div");
+      container.appendChild(perChannelWrap);
+      container.appendChild(candidatesWrap);
+
+      const renderDependent = () => {
+        const liveAnswers = { ...answers, ...collectAnswers() };
+        const selectedChannels = selectedAnswerValues("q0").filter((value) => value !== "Other");
+        const channels = selectedChannels.length ? selectedChannels : [valueForField(currentData, ["quickPrimaryRevenueSource", "revenueMotionPortfolio__motion-1__channelSource"])].filter(Boolean);
+
+        perChannelWrap.innerHTML = "";
+        const statusPanel = document.createElement("div");
+        statusPanel.className = "nested-panel";
+        statusPanel.innerHTML = "<h3>Channel-specific status and sales motion</h3><p class=\"muted\">Answer these for each selected channel so the report does not collapse multiple channels into one generic answer.</p>";
+        channels.forEach((channel) => {
+          const slug = answerKeySuffix(channel);
+          const row = document.createElement("div");
+          row.className = "candidate-motion";
+          row.innerHTML = `<h3>${channel}</h3>`;
+          const status = fieldWrap("What is the status of this channel?");
+          setNestedControl(status, `q1__${slug}`, { type: "select", options: optionSets.channelStatus }, liveAnswers);
+          const sales = fieldWrap("How do buyers from this source usually evaluate the offer?");
+          setNestedControl(sales, `q2__${slug}`, { type: "checkbox", options: optionSets.evaluationPaths }, liveAnswers);
+          row.appendChild(status);
+          row.appendChild(sales);
+          statusPanel.appendChild(row);
+        });
+        perChannelWrap.appendChild(statusPanel);
+
+        candidatesWrap.innerHTML = "";
+        const motionPanel = document.createElement("div");
+        motionPanel.className = "nested-panel";
+        motionPanel.innerHTML = "<h3>Candidate revenue motions</h3><p class=\"muted\">Build realistic combinations using customer groups, offers, channels, and sales motions already mentioned in the assessment. Use Other only when the right option is missing.</p>";
+        ["motion-1", "motion-2", "motion-3"].forEach((rowId, index) => {
+          const row = document.createElement("div");
+          row.className = "candidate-motion";
+          row.innerHTML = `<h3>Candidate motion ${index + 1}</h3>`;
+          const grid = document.createElement("div");
+          grid.className = "nested-grid";
+          [
+            ["Customer group", "customerGroup", customerGroupOptions],
+            ["Offer", "offer", offerOptions],
+            ["Channel", "channel", channels.length ? channels.concat(["Other"]) : channelOptions],
+            ["Primary sales motion", "primaryMotion", salesMotionOptions],
+            ["Motion maturity", "maturity", optionSets.motionMaturity],
+            ["Human sales help required", "humanHelp", optionSets.humanSalesHelp]
+          ].forEach(([label, field, options]) => {
+            const nested = fieldWrap(label);
+            setNestedControl(nested, `q3__${rowId}__${field}`, { type: "select", options }, liveAnswers);
+            grid.appendChild(nested);
+          });
+          const supporting = fieldWrap("Supporting sales motions, if any");
+          setNestedControl(supporting, `q3__${rowId}__supportingMotions`, { type: "checkbox", options: salesMotionOptions }, liveAnswers);
+          const role = fieldWrap("Motion role");
+          setNestedControl(role, `q3__${rowId}__role`, { type: "checkbox", options: optionSets.motionRoles }, liveAnswers);
+          const decision = fieldWrap("Who helps decide?");
+          setNestedControl(decision, `q3__${rowId}__decisionParticipants`, { type: "checkbox", options: optionSets.decisionParticipants }, liveAnswers);
+          const success = fieldWrap("What makes this motion work or fail?");
+          setNestedControl(success, `q3__${rowId}__successFactors`, { type: "checkbox", options: optionSets.motionSuccessFactors }, liveAnswers);
+          const evidence = fieldWrap("Evidence or uncertainty for this option");
+          setNestedControl(evidence, `q3__${rowId}__evidence`, { type: "select", options: optionSets.evidenceLevel }, liveAnswers);
+          const evidenceSources = fieldWrap("What evidence supports this motion?");
+          setNestedControl(evidenceSources, `q3__${rowId}__evidenceSources`, { type: "checkbox", options: optionSets.motionEvidenceSources }, liveAnswers);
+          row.appendChild(grid);
+          row.appendChild(supporting);
+          row.appendChild(role);
+          row.appendChild(decision);
+          row.appendChild(success);
+          row.appendChild(evidence);
+          row.appendChild(evidenceSources);
+          motionPanel.appendChild(row);
+        });
+
+        const refreshedAnswers = { ...liveAnswers, ...collectAnswers() };
+        const evidenceChoice = fieldWrap(`5. ${flow.questions[4]}`);
+        setNestedControl(evidenceChoice, "q4", { type: "select", options: candidateMotionOptions(refreshedAnswers) }, refreshedAnswers);
+        const firstChoice = fieldWrap(`6. ${flow.questions[5]}`);
+        setNestedControl(firstChoice, "q5", { type: "select", options: candidateMotionOptions(refreshedAnswers) }, refreshedAnswers);
+        motionPanel.appendChild(evidenceChoice);
+        motionPanel.appendChild(firstChoice);
+        candidatesWrap.appendChild(motionPanel);
+
+        updateDraft();
+      };
+
+      channelWrap.querySelectorAll("[data-answer], [data-answer-other]").forEach((input) => {
+        input.addEventListener(input.type === "checkbox" || input.tagName === "SELECT" ? "change" : "input", renderDependent);
+      });
+      renderDependent();
+
+        flow.questions.slice(6).forEach((question, offset) => {
+        const index = offset + 6;
+        const wrap = fieldWrap(`${index + 1}. ${question}`);
+        if (flowType === "proof" && index >= 11) {
+          wrap.dataset.showWhenAnswer = "q10";
+          wrap.dataset.showWhenValue = "Yes";
+        }
+        setNestedControl(wrap, `q${index}`, questionConfig(flowType, index, question), answers);
+        container.appendChild(wrap);
+      });
+    }
+
+    function renderFlowPicker(reportUrl) {
+      const section = document.getElementById("flowPickerSection");
+      const picker = document.getElementById("flowPicker");
+      const help = document.getElementById("flowPickerHelp");
+
+      picker.innerHTML = "";
+      section.hidden = false;
+      help.textContent = requestedFlowType && !flows[requestedFlowType]
+        ? `The requested facilitation type "${requestedFlowType}" is not available. Choose one of the Sprint 10 flows below.`
+        : "This page was opened directly. Choose a Sprint 10 flow below, or go back to the GTM OS report and use an action button for more specific context.";
+
+      Object.entries(flows).forEach(([type, flow]) => {
+        const link = document.createElement("a");
+        const query = new URLSearchParams({ type, v: "20260623-sprint10" });
+        if (activeRecord?.id) query.set("recordId", activeRecord.id);
+        if (requestedReturnTo) query.set("returnTo", requestedReturnTo);
+        link.href = `facilitation.html?${query.toString()}`;
+        link.textContent = flow.title;
+        picker.appendChild(link);
+      });
+
+      updateBackLinks(reportUrl);
+    }
+
+    function updateBackLinks(reportUrl) {
+      const primaryBackUrl = requestedReturnTo || reportUrl;
+      const primaryBackText = requestedReturnTo ? "Back to Intake" : "Back to Report";
+      const backLink = document.getElementById("backLink");
+      const backLinkBottom = document.getElementById("backLinkBottom");
+      const reportLink = document.getElementById("reportLink");
+      const reportLinkBottom = document.getElementById("reportLinkBottom");
+
+      [backLink, backLinkBottom].forEach((link) => {
+        if (!link) return;
+        link.href = primaryBackUrl;
+        link.textContent = primaryBackText;
+      });
+
+      [reportLink, reportLinkBottom].forEach((link) => {
+        if (!link) return;
+        link.href = reportUrl;
+        link.hidden = !requestedReturnTo;
+      });
+    }
+
+    function render() {
+      const flow = flows[flowType] || flows.icp;
+      const saved = currentData.facilitationOutputs?.[flowType] || {};
+      const savedMatchesCurrentQuestions = saved.schemaVersion === schemaVersionFor(flowType);
+      const answers = migratedSavedAnswers(flowType, saved);
+      const reportParams = new URLSearchParams({ v: "20260623-sprint10", recordId: activeRecord.id });
+      if (requestedReturnTo) reportParams.set("returnTo", requestedReturnTo);
+      const reportUrl = `results.html?${reportParams.toString()}`;
+      document.getElementById("flowTitle").textContent = flow.title;
+      document.getElementById("flowSubtitle").textContent = requestedFlowType
+        ? "Answer the prompts, save the output, then regenerate the GTM OS report."
+        : "Choose a Sprint 10 facilitation flow or continue with the Customer Priority Framework.";
+      document.getElementById("whyText").textContent = flow.why;
+      document.getElementById("exampleText").textContent = flow.example;
+      updateBackLinks(reportUrl);
+      if (!requestedFlowType || !flows[requestedFlowType]) renderFlowPicker(reportUrl);
+      renderRecommendation(flowType, currentData);
+      const current = document.getElementById("currentData");
+      current.innerHTML = "";
+      renderDuplicateResolver(current);
+      flow.current.forEach(([label, field]) => renderField(current, label, valueForField(currentData, field)));
+      const questions = document.getElementById("questionList");
+      questions.innerHTML = "";
+      if (flowType === "revenueMotion") {
+        renderRevenueMotionQuestions(questions, flow, answers);
+      } else {
+        flow.questions.forEach((question, index) => {
+          const wrap = document.createElement("div");
+          wrap.className = "field";
+          if (flowType === "proof" && index >= 11) {
+            wrap.dataset.showWhenAnswer = "q10";
+            wrap.dataset.showWhenValue = "Yes";
+          }
+          const id = `q${index}`;
+          const config = questionConfig(flowType, index, question);
+          const label = document.createElement("label");
+          label.htmlFor = id;
+          label.textContent = `${index + 1}. ${config.prompt}`;
+          wrap.appendChild(label);
+          renderAnswerControl(wrap, id, config, answers[id] || "");
+          questions.appendChild(wrap);
+        });
+      }
+      document.querySelectorAll("[data-answer='q10']").forEach((input) => {
+        input.addEventListener("change", updateConditionalQuestions);
+      });
+      updateConditionalQuestions();
+      document.getElementById("draftOutput").textContent = savedMatchesCurrentQuestions && saved.draft?.text ? saved.draft.text : draftText(flow, answers);
+    }
+
+    async function saveOutput() {
+      const flow = flows[flowType] || flows.icp;
+      const answers = collectAnswers();
+      const draft = { text: draftText(flow, answers) };
+      const nextData = {
+        ...currentData,
+        facilitationOutputs: {
+          ...(currentData.facilitationOutputs || {}),
+          [flowType]: {
+            answers,
+            draft,
+            schemaVersion: schemaVersionFor(flowType),
+            appliedToIntake: false,
+            updatedAt: new Date().toISOString()
+          }
+        }
+      };
+      activeRecord = {
+        ...activeRecord,
+        data: nextData,
+        name: nextData.companyName || activeRecord.name || "Untitled brand",
+        updatedAt: new Date().toISOString()
+      };
+      currentData = nextData;
+      writeLocalRecord(activeRecord);
+      if (API_BASE && activeRecord.id) {
+        await fetch(`${API_BASE}/api/records/${encodeURIComponent(activeRecord.id)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(activeRecord)
+        });
+      }
+      document.getElementById("saveStatus").textContent = "Saved as facilitation output. Regenerate the GTM OS report to refresh the recommendations.";
+    }
+
+    document.getElementById("saveButton").addEventListener("click", saveOutput);
+    document.getElementById("regenerateButton").addEventListener("click", async () => {
+      await saveOutput();
+      const query = new URLSearchParams({
+        v: "20260623-sprint10",
+        recordId: activeRecord.id,
+        facilitation: "saved"
+      });
+      if (requestedReturnTo) query.set("returnTo", requestedReturnTo);
+      window.location.href = `results.html?${query.toString()}`;
+    });
+
+    loadRecord().then(render).catch((error) => {
+      document.getElementById("saveStatus").textContent = `Could not load facilitation data: ${error.message}`;
+    });
+  </script>
+</body>
+</html>

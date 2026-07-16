@@ -1,0 +1,7 @@
+Full Blueprint After Sprint 11
+
+Sprint 11 keeps the current GTM readiness workflow intact while improving the pre-revenue workflow.
+
+The pre-revenue workflow now includes Think Big, Start Small as the core market narrowing module. It does not ask the user to know their ICP at the start. Instead, it asks for a broad market hypothesis, candidate first-win segments, assumptions, evidence, risks, reachability, credibility, validation path, and delivery fit.
+
+The report renders a First-Win Market Segment Plan and explicitly states that the recommendation is a hypothesis to test first, not a proven ICP.

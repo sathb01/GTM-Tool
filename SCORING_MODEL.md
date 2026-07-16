@@ -1,19 +1,19 @@
 # GTM Tool Scoring Model
 
-Last updated: 2026-06-18
+Last updated: 2026-07-13
 
 ## Scoring Layers
 
 The app currently has four scoring layers:
 
-1. Overall GTM readiness score from 12 manual readiness ratings.
-2. Four-category scorecard derived from the same 12 ratings.
+1. Overall GTM readiness score that combines assessment ratings with detailed evidence and execution coverage.
+2. Four-category scorecard derived from the 12 assessment ratings.
 3. Best-fit customer group scoring for customer prioritization.
 4. Heuristic readiness snapshots for offer, signal plays, and revenue motions.
 
 ## Overall Readiness Score
 
-The overall readiness score is calculated in `tool/results.html` from the 12 fields listed in `schema.scoreFields`.
+The overall readiness score is calculated in `tool/results.html`. It starts with the 12 fields listed in `schema.scoreFields`, then gives more weight to evidence and execution that the company has actually captured in the intake.
 
 Fields:
 
@@ -30,15 +30,37 @@ Fields:
 - `budget`
 - `teamCapacity`
 
-Each field is expected to be a 1-5 rating. Missing values count as 0 because the final denominator remains all 12 score fields.
+Each field is expected to be a 1-5 rating. Missing values count as 0 because the final denominator remains all 12 score fields. The ratings are one input, not the entire readiness score.
 
 Formula:
 
 ```text
-overall readiness score = round((sum of 12 score fields / 12) * 20)
+self-assessment score = round((sum of 12 score fields / 12) * 20)
+
+overall readiness score =
+  45% evidence coverage
+  30% execution coverage
+  15% self-assessment score
+  10% assessment-input confidence
+  minus an uncertainty adjustment of up to 12 points when detailed evidence coverage is low
 ```
 
-This converts the 1-5 model into a 0-100 score.
+Evidence coverage looks for customer evidence, an offer with a defined problem and value claim, buyer context, proof, and signal detail. Execution coverage looks for an identified revenue motion, channels, activity targets, conversion stages, and a defined CRM or pipeline view.
+
+The uncertainty adjustment prevents a confident self-rating from appearing more proven than the underlying intake supports. It decreases as detailed evidence coverage approaches 75/100.
+
+### Saved execution evidence feedback
+
+Saved work from the Validation Workspace, Messaging Kit, Proof Assets, Outreach Sequence, Pipeline, and Weekly Review feeds back into the plan. The system classifies the current evidence as:
+
+- Untested: no completed execution evidence is saved.
+- Emerging: some evidence exists, but the test is not large enough to change the hypothesis materially.
+- Supported: a sufficient test has produced a meaningful commitment, confirmed problem pattern, or active opportunity.
+- Challenged: a sufficient test or saved decision indicates that the segment, message, offer, channel, or timing should change.
+
+Execution evidence applies a bounded adjustment of -3 to +6 points to the execution-readiness input. Because that input is 30% of the post-revenue overall score, the effect on the overall score remains intentionally small. Pre-revenue plans apply the same bounded adjustment directly to the first-win hypothesis score.
+
+Activity volume alone cannot create market confidence. The evidence state also requires outcomes and decision discipline. A challenged test can replace the first Active Plan and ranked-action priority with a recommendation to revise or stop before adding volume.
 
 ## Readiness Stages
 
@@ -48,8 +70,8 @@ The overall score maps to these stages:
 | --- | --- |
 | 82-100 | Scale-ready |
 | 66-81 | Validation-ready |
-| 46-65 | Foundation needed |
-| 0-45 | Early diagnostic |
+| 50-65 | Foundation needed |
+| 0-49 | Immediate foundation action |
 
 ## Four Scorecard Categories
 
@@ -310,10 +332,9 @@ Default plan phases:
 
 ## Scoring Risks and Improvement Opportunities
 
-- The 12 core score fields are self-rated and subjective.
+- The 12 core score fields are self-rated and subjective, so they intentionally carry only 15% of the overall score.
 - Missing score fields reduce the total score because the denominator stays at 12.
-- The four scorecard categories do not yet use the detailed section data directly.
+- The four scorecard categories remain a readable view of the self-assessment ratings; detailed evidence and execution coverage affect the overall readiness score directly.
 - Offer, signal, and revenue motion snapshots are heuristic and should be treated as directional.
 - Best-fit customer group scoring currently emphasizes five practical fit criteria. Strategic value, sales-cycle fit, and revenue potential are captured but are not the core 15-point score.
 - Future AI scoring should explain confidence and cite which fields caused each recommendation.
-

@@ -108,20 +108,20 @@ function sendLoginPage(response, message = "") {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GTM Tool Login</title>
+  <title>GTM OS Login</title>
   <style>
-    body { background: #f4f7fb; color: #182235; font-family: Arial, sans-serif; margin: 0; }
-    main { margin: 12vh auto; max-width: 420px; background: #fff; border: 1px solid #d4dce7; border-radius: 8px; padding: 24px; box-shadow: 0 8px 24px rgba(24,34,53,.08); }
+    body { background: #eef3f8; color: #162033; font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; }
+    main { margin: 12vh auto; max-width: 420px; background: #fff; border: 1px solid #d6dee8; border-radius: 8px; padding: 24px; box-shadow: 0 8px 24px rgba(22,32,51,.08); }
     label { display: block; font-weight: 700; margin-bottom: 8px; }
-    input { width: 100%; border: 1px solid #d4dce7; border-radius: 6px; box-sizing: border-box; font-size: 16px; padding: 11px; }
-    button { background: #2563eb; border: 0; border-radius: 6px; color: #fff; cursor: pointer; font-size: 15px; font-weight: 700; margin-top: 14px; padding: 11px 16px; width: 100%; }
-    p { color: #5d6b7c; line-height: 1.5; }
+    input { width: 100%; border: 1px solid #d6dee8; border-radius: 6px; box-sizing: border-box; font-size: 16px; padding: 11px; }
+    button { background: #2158d6; border: 0; border-radius: 6px; color: #fff; cursor: pointer; font-size: 15px; font-weight: 700; margin-top: 14px; padding: 11px 16px; width: 100%; }
+    p { color: #536174; line-height: 1.5; }
     .error { color: #b91c1c; font-weight: 700; }
   </style>
 </head>
 <body>
   <main>
-    <h1>GTM Tool</h1>
+    <h1>GTM OS</h1>
     <p>Enter the access password to continue.</p>
     ${message ? `<p class="error">${message}</p>` : ""}
     <form method="post" action="/login">
