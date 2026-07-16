@@ -4592,7 +4592,7 @@ function improvementFocusFromUrl() {
       questions: [
         "Complete the first Revenue Acquisition Strategy card below.",
         "Choose that strategy as the Primary Revenue Motion.",
-        "Save the answers, return to the Active Plan, and select Recheck Quality."
+        "Save the answers, then return to the Active Plan and continue the first action."
       ],
       example: "Referral-led diagnostic for specialty manufacturers: promote the 90-Day Throughput Improvement Program through network referrals, use consultative selling to reach the COO, assign the Revenue Operations Manager, and target four closed programs in 90 days."
     };

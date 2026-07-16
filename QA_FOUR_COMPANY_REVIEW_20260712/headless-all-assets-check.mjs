@@ -2,6 +2,9 @@ import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require("C:/Users/sathb/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright");
+const baseUrl = String(process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
+const deployedPassword = String(process.env.GTM_QA_PASSWORD || "");
+const isRemoteQa = !/127\.0\.0\.1|localhost/i.test(baseUrl);
 
 const records = [
   { id: "qa-pre-dtc-pawpath-20260712", pre: true, full: false },
@@ -28,8 +31,48 @@ const commonAssets = [
 ];
 
 const browser = await chromium.launch({ headless: true, executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe" });
+const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 const renderResults = [];
 const saveResults = [];
+
+if (isRemoteQa) {
+  if (!deployedPassword) throw new Error("GTM_QA_PASSWORD is required for deployed QA.");
+  const fixtureResponses = await Promise.all(records.map(async (record) => {
+    const response = await fetch(`http://127.0.0.1:8787/api/records/${record.id}`);
+    if (!response.ok) throw new Error(`Local fixture ${record.id} is unavailable.`);
+    return response.json();
+  }));
+  const fixtureMap = new Map(fixtureResponses.map((payload) => [payload.record.id, payload.record]));
+  await context.route(`${baseUrl}/api/records**`, async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const id = decodeURIComponent(url.pathname.split("/").pop() || "");
+    if (request.method() === "GET" && url.pathname === "/api/records") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ records: Array.from(fixtureMap.values()) }) });
+      return;
+    }
+    if (request.method() === "GET" && fixtureMap.has(id)) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ record: fixtureMap.get(id) }) });
+      return;
+    }
+    if (request.method() === "PUT" && fixtureMap.has(id)) {
+      const body = request.postDataJSON();
+      const record = body.record || body;
+      fixtureMap.set(id, record);
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ record }) });
+      return;
+    }
+    await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "QA fixture not found" }) });
+  });
+  const loginPage = await context.newPage();
+  await loginPage.goto(`${baseUrl}/login`, { waitUntil: "networkidle" });
+  await loginPage.fill("#password", deployedPassword);
+  await Promise.all([
+    loginPage.waitForURL((url) => url.origin === new URL(baseUrl).origin && url.pathname === "/", { timeout: 30000 }),
+    loginPage.click("button[type='submit']")
+  ]);
+  await loginPage.close();
+}
 
 function assetsFor(record) {
   return [
@@ -46,13 +89,13 @@ function assetsFor(record) {
 try {
   for (const record of records) {
     for (const contract of assetsFor(record)) {
-      const page = await browser.newPage();
+      const page = await context.newPage();
       const errors = [];
       page.on("pageerror", (error) => errors.push(error.stack || error.message));
       page.on("console", (message) => {
         if (message.type() === "error" && /Report failed to render|TypeError|ReferenceError|SyntaxError/i.test(message.text())) errors.push(message.text());
       });
-      const url = `http://127.0.0.1:8787/results.html?v=20260714-all-assets&asset=${contract.asset}&recordId=${record.id}`;
+      const url = `${baseUrl}/results.html?v=20260716-deployed-all-assets&asset=${contract.asset}&recordId=${record.id}`;
       const response = await page.goto(url, { waitUntil: "networkidle" });
       const state = await page.evaluate(({ selector, control, asset }) => {
         const visible = (element) => {
@@ -99,16 +142,22 @@ try {
           singleSectionNavHidden: pageSections.length !== 1 || document.querySelector("#currentSectionNav")?.hidden === true,
           reviewSectionsStatic: reviewSections.every((section) => !section.querySelector(":scope > details.section-details")),
           printIconsReady: visiblePrintButtons.every((button) => button.classList.contains("icon-action")),
-          downloadIconsReady: visibleDownloadButtons.every((button) => button.classList.contains("icon-action")),
+          downloadIconsReady: visibleDownloadButtons.every((button) => button.classList.contains("icon-action") || button.classList.contains("workbook-action")),
           backIconsReady: visibleBackLinks.length > 0 && visibleBackLinks.every((link) => /←/.test(link.textContent)),
-          sidebarOverflow: getComputedStyle(document.querySelector(".report-nav")).overflowY,
+          sidebarOverflow: getComputedStyle(document.querySelector("#reportToc")).overflowY,
+          backControlsReady: visibleBackLinks.length > 0 && visibleBackLinks.every((link) => link.querySelector(".action-icon") && /Intake/i.test(link.textContent)),
+          fontFamily: getComputedStyle(document.body).fontFamily,
+          bodyBackground: getComputedStyle(document.body).backgroundColor,
+          accentColor: getComputedStyle(document.documentElement).getPropertyValue("--accent").trim(),
+          qualityPanelCount: document.querySelectorAll("#asset-quality-control").length,
+          qualityCheckCount: document.querySelectorAll("#asset-quality-control .asset-quality-check").length,
           heading: document.querySelector("#companyName")?.textContent || "",
           planStatusNamed: asset !== "health" || /Plan Status/i.test(document.querySelector("#companyName")?.textContent || ""),
           controlOverlaps: [...new Set(controlOverlaps)].slice(0, 10),
           textOverlaps: [...new Set(textOverlaps)].slice(0, 10)
         };
       }, contract);
-      const passed = response?.status() === 200 && state.expectedVisible && state.expectedControl && state.sectionCount > 0 && state.mainTextLength > 300 && state.navAssetLinks >= 8 && state.sidebarSectionLinks === 0 && state.currentSectionLinks > 0 && state.planStatusLinks === 1 && state.viewPrefixedNavLinks === 0 && state.singleSectionNavHidden && state.reviewSectionsStatic && state.printIconsReady && state.downloadIconsReady && state.backIconsReady && state.sidebarOverflow === "auto" && state.planStatusNamed && state.controlOverlaps.length === 0 && state.textOverlaps.length === 0 && errors.length === 0;
+      const passed = response?.status() === 200 && state.expectedVisible && state.expectedControl && state.sectionCount > 0 && state.mainTextLength > 300 && state.navAssetLinks >= 8 && state.sidebarSectionLinks === 0 && state.currentSectionLinks > 0 && state.planStatusLinks === 1 && state.viewPrefixedNavLinks === 0 && state.singleSectionNavHidden && state.reviewSectionsStatic && state.printIconsReady && state.downloadIconsReady && state.backControlsReady && state.sidebarOverflow === "auto" && /Source Sans|Segoe UI|Inter/i.test(state.fontFamily) && state.accentColor === "#ff7a59" && state.qualityPanelCount === 0 && state.qualityCheckCount === 0 && state.planStatusNamed && state.controlOverlaps.length === 0 && state.textOverlaps.length === 0 && errors.length === 0;
       renderResults.push({ recordId: record.id, asset: contract.asset, status: response?.status(), passed, ...state, errors });
 
       if (record.full && contract.control && !contract.historyCreating && passed) {

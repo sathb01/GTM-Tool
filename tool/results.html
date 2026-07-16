@@ -10246,8 +10246,8 @@
       if (!toc || !sectionToc || !toggle) return;
       if (intakeBackLink) {
         intakeBackLink.href = intakeReturnUrl();
-        intakeBackLink.target = "_blank";
-        intakeBackLink.rel = "noopener";
+        intakeBackLink.removeAttribute("target");
+        intakeBackLink.removeAttribute("rel");
       }
 
       const sections = Array.from(document.querySelectorAll("main > section[data-toc]"))
@@ -10298,7 +10298,6 @@
       addNavItem("Assets", "Outreach Sequence", reportAssetUrl("outreach"));
       addNavItem("Assets", "Pipeline and Opportunities", reportAssetUrl("pipeline-workspace"));
       addNavItem("Assets", "Weekly GTM Review", reportAssetUrl("weekly-review"));
-      addNavItem("Assets", "Evidence Reconciliation", reportAssetUrl("reconciliation"));
       if (currentAsset === "validation-workspace" || document.getElementById("plan-decision") || document.getElementById("draft-icp")) {
         addNavItem("Assets", "Validation Workspace", reportAssetUrl("validation-workspace"));
         addNavItem("Assets", "30-Day Validation Plan", reportAssetUrl("validation"));
@@ -10306,6 +10305,13 @@
       Array.from(toc.querySelectorAll("a")).forEach((link) => {
         const linkedAsset = new URL(link.href, window.location.href).searchParams.get("asset") || "";
         link.classList.toggle("active", linkedAsset === currentAsset || (!currentAsset && linkedAsset === ""));
+      });
+      document.querySelectorAll('a[target="_blank"]').forEach((link) => {
+        const destination = new URL(link.href, window.location.href);
+        if (destination.origin === window.location.origin) {
+          link.removeAttribute("target");
+          link.removeAttribute("rel");
+        }
       });
       sections.forEach((section, index) => {
         const heading = section.querySelector("h2");
@@ -13115,7 +13121,7 @@
       }
       if (feedback.hasEvidence) {
         addSource("Saved execution evidence", `${feedback.metrics.attempts} attempts, ${feedback.metrics.replies} replies, ${feedback.metrics.conversations} conversations, ${feedback.metrics.meaningfulNextSteps} meaningful next steps`, reportAssetUrl("weekly-review"));
-        addSource("Latest evidence decision", feedback.latestDecision, reportAssetUrl("reconciliation"));
+        addSource("Latest evidence decision", feedback.latestDecision, reportAssetUrl("weekly-review"));
       }
       return { rule, sources };
     }
@@ -13128,8 +13134,6 @@
     function planHealthModel(data) {
       const plan = activePlanDefinition(data);
       const feedback = plan.feedback || executionEvidenceFeedback(data);
-      const reconciliationState = reconciliationWorkspaceState(data);
-      const reconciliation = reconciliationState.workspace;
       const today = new Date().toISOString().slice(0, 10);
       const targetWorkspace = data.targetListWorkspace && typeof data.targetListWorkspace === "object" ? data.targetListWorkspace : {};
       const targets = Array.isArray(targetWorkspace.targets) ? targetWorkspace.targets : [];
@@ -13155,8 +13159,6 @@
       const activeActions = actionStates.filter((item) => ["In progress", "Waiting", "Blocked"].includes(item.status));
       const completedActions = actionStates.filter((item) => item.status === "Complete").length;
       const pendingDecisions = [];
-      if (reconciliation.pending.length) pendingDecisions.push({ label: "Review the evidence-driven strategy change", detail: `${reconciliation.pending[0].area}: ${reconciliation.pending[0].evidenceDecision}`, url: reportAssetUrl("reconciliation") });
-      if (feedback.state === "Challenged" && !reconciliation.pending.length && !reconciliationState.currentEvidenceHandled) pendingDecisions.push({ label: feedback.recommendedDecision, detail: feedback.explanation, url: reportAssetUrl("reconciliation") });
       if (feedback.hasEvidence && /No saved decision/i.test(feedback.latestDecision)) pendingDecisions.push({ label: "Make the weekly evidence decision", detail: "Choose continue, revise, pause, or stop before beginning another cycle.", url: reportAssetUrl("weekly-review") });
 
       const nextSteps = [];
@@ -13166,13 +13168,13 @@
       };
       pendingDecisions.forEach((item) => addStep(item.label, item.detail, item.url));
       if (overdue.length) addStep(`Resolve ${overdue.length} overdue commitment${overdue.length === 1 ? "" : "s"}`, "Close, reschedule, or replace every overdue next action before adding more work.", overdue[0].url);
-      if (feedback.state === "Challenged" && !reconciliationState.currentEvidenceHandled) addStep(feedback.recommendedDecision, feedback.nextAction, reportAssetUrl("reconciliation"));
+      if (feedback.state === "Challenged") addStep(feedback.recommendedDecision, feedback.nextAction, reportAssetUrl("weekly-review"));
       if (latestLearningChange?.change) addStep(latestLearningChange.variable === "No strategic change" ? "Keep the strategy constant for the next cycle" : `Change only: ${latestLearningChange.variable}`, latestLearningChange.change, reportAssetUrl("weekly-review"));
       activeActions.forEach((item) => addStep(item.title, `${item.status}. Owner: ${item.owner}.`, item.url));
       actionStates.filter((item) => item.status === "Not started").forEach((item) => addStep(item.title, item.output, item.url));
       if (nextSteps.length < 3) addStep(feedback.nextAction, feedback.explanation, reportAssetUrl("active"));
 
-      const status = pendingDecisions.length || overdue.length || (feedback.state === "Challenged" && !reconciliationState.currentEvidenceHandled)
+      const status = pendingDecisions.length || overdue.length || feedback.state === "Challenged"
         ? "Attention required"
         : activeActions.length || feedback.hasEvidence
           ? "In motion"
@@ -13180,7 +13182,6 @@
       return {
         plan,
         feedback,
-        reconciliation,
         status,
         currentPriority: actionStates[0],
         activeActions,
@@ -13200,10 +13201,10 @@
       document.body.dataset.hasPersonaAsset = "true";
       document.title = `${data.companyName || "Company"} Plan Status`;
       document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} Plan Status` : "Plan Status";
-      document.getElementById("generatedMeta").textContent = "See what needs attention now, what evidence is changing, and the three next steps that move the plan forward.";
+      document.getElementById("generatedMeta").textContent = "See where the plan stands and the next three steps that move it forward.";
       const companyMeta = document.getElementById("companyMeta");
       companyMeta.hidden = false;
-      companyMeta.textContent = [health.plan.title, `Plan status: ${health.status}`, `Evidence: ${health.feedback.state}`].join(" | ");
+      companyMeta.textContent = [health.plan.title, `Plan status: ${health.status}`].join(" | ");
       document.getElementById("metadataPills").innerHTML = [`${health.activeActions.length} active`, `${health.overdue.length} overdue`, `${health.pendingDecisions.length} decisions waiting`].map((item) => `<span class="metadata-pill">${escapeHtml(item)}</span>`).join("");
       main.querySelectorAll("section").forEach((section) => section.remove());
 
@@ -13211,13 +13212,13 @@
       dashboard.id = "plan-health-dashboard";
       dashboard.dataset.toc = "Plan Status";
       dashboard.className = "workspace-section";
-      dashboard.innerHTML = `<h2>Plan Status</h2><div class="messaging-result-summary"><div class="messaging-result-card"><span>Status</span><strong>${escapeHtml(health.status)}</strong></div><div class="messaging-result-card"><span>Evidence state</span><strong>${escapeHtml(health.feedback.state)}</strong></div><div class="messaging-result-card"><span>Actions complete</span><strong>${health.completedActions} / ${health.plan.actions.length}</strong></div><div class="messaging-result-card"><span>Open opportunities</span><strong>${health.openOpportunities}</strong></div></div><div class="grid"><div class="field"><h3>Current priority</h3><p><strong>${escapeHtml(health.currentPriority?.title || "Confirm the first plan priority")}</strong></p><p>${escapeHtml(health.currentPriority?.output || health.feedback.nextAction)}</p>${recommendationTraceMarkup(data, health.currentPriority || {})}<a href="${escapeHtml(health.currentPriority?.url || reportAssetUrl("active"))}">Work on this priority</a></div><div class="field"><h3>What the evidence changes</h3><p><strong>${escapeHtml(health.feedback.recommendedDecision)}</strong></p><p>${escapeHtml(health.feedback.explanation)}</p>${recommendationTraceMarkup(data, { title: health.feedback.recommendedDecision, detail: health.feedback.explanation })}<a href="${escapeHtml(reportAssetUrl("reconciliation"))}">Review evidence-driven changes</a></div>${health.latestLearningChange ? `<div class="field"><h3>Next-cycle learning change</h3><p><strong>${escapeHtml(health.latestLearningChange.variable)}</strong></p><p>${escapeHtml(health.latestLearningChange.change)}</p><p class="muted">Keep constant: ${escapeHtml((health.latestLearningChange.constants || []).join(", ") || "Current strategy")}</p><a href="${escapeHtml(reportAssetUrl("weekly-review"))}">Weekly GTM Review</a></div>` : ""}</div>`;
+      dashboard.innerHTML = `<h2>Plan Status</h2><div class="messaging-result-summary"><div class="messaging-result-card"><span>Status</span><strong>${escapeHtml(health.status)}</strong></div><div class="messaging-result-card"><span>Actions complete</span><strong>${health.completedActions} / ${health.plan.actions.length}</strong></div><div class="messaging-result-card"><span>Work in progress</span><strong>${health.activeActions.length}</strong></div><div class="messaging-result-card"><span>Open opportunities</span><strong>${health.openOpportunities}</strong></div></div>`;
       main.appendChild(dashboard);
 
       const next = document.createElement("section");
       next.id = "plan-health-next-steps";
       next.dataset.toc = "Next Three Steps";
-      next.innerHTML = `<h2>Next Three Steps</h2><p class="muted">Complete these in order. Do not add another initiative until the evidence supports it.</p><div class="active-plan-actions">${health.nextSteps.map((item, index) => `<article class="active-plan-action"><div class="active-plan-action-copy"><div class="active-plan-label">Next ${index + 1}</div><h3>${escapeHtml(item.label)}</h3><p>${escapeHtml(item.detail)}</p>${recommendationTraceMarkup(data, { title: item.label, detail: item.detail })}<div class="active-plan-link-row"><a href="${escapeHtml(item.url)}">Work on this</a></div></div></article>`).join("")}</div>`;
+      next.innerHTML = `<h2>Next Three Steps</h2><p class="muted">Complete these in order. Do not add another initiative until the evidence supports it.</p><div class="active-plan-actions">${health.nextSteps.map((item, index) => `<article class="active-plan-action"><div class="active-plan-action-copy"><div class="active-plan-label">Next ${index + 1}</div><h3>${escapeHtml(item.label)}</h3><p>${escapeHtml(item.detail)}</p><div class="active-plan-link-row"><a href="${escapeHtml(item.url)}">Work on this</a></div></div></article>`).join("")}</div>`;
       main.appendChild(next);
 
       const attention = document.createElement("section");
@@ -13232,11 +13233,6 @@
       work.innerHTML = `<h2>Work in Progress</h2>${health.activeActions.length ? `<div class="messaging-version-list">${health.activeActions.map((item) => `<div class="messaging-version-row"><div><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.owner)}</span></div><div><strong>${escapeHtml(item.status)}</strong><span>${escapeHtml(item.output)}</span></div><div></div><div class="messaging-version-actions"><a href="${escapeHtml(item.url)}">Continue</a></div></div>`).join("")}</div>` : '<p class="muted">No Active Plan action is currently marked In progress, Waiting, or Blocked.</p>'}`;
       main.appendChild(work);
 
-      const links = document.createElement("section");
-      links.className = "no-print";
-      links.dataset.toc = "Plan Resources";
-      links.innerHTML = `<h2>Plan Resources</h2><div class="report-bottom-actions"><a href="${escapeHtml(reportAssetUrl("active"))}">Active Plan</a><a href="${escapeHtml(reportAssetUrl("weekly-review"))}">Weekly GTM Review</a><a href="${escapeHtml(reportAssetUrl("reconciliation"))}">Evidence Reconciliation</a><a href="${escapeHtml(intakeReturnUrl())}" target="_blank" rel="noopener">Back to Intake Form</a></div>`;
-      main.appendChild(links);
       setupReportNavigation();
       configureAssetPdfExport("health", data, isPreRevenueReport(data) ? preRevenueScore(data) : null);
     }
@@ -13441,18 +13437,6 @@
       objective.innerHTML = `<div class="active-plan-header"><h2>${escapeHtml(plan.title)}</h2><p>${escapeHtml(plan.objective)}</p></div><div class="grid"><div class="field"><h3>Current Focus</h3><p>${escapeHtml(plan.focus)}</p></div><div class="field"><h3>Evidence That Matters</h3><p>${escapeHtml(plan.evidence)}</p></div><div class="field"><h3>Decision at the End of This Cycle</h3><p>${escapeHtml(plan.decision)}</p></div><div class="field"><h3>Review Rhythm</h3><p>${escapeHtml(`${plan.cadence} review led by ${plan.owner}.`)}</p></div></div>`;
       main.appendChild(objective);
 
-      const feedback = plan.feedback || executionEvidenceFeedback(data);
-      const evidenceLoop = document.createElement("section");
-      evidenceLoop.id = "active-plan-evidence-feedback";
-      evidenceLoop.dataset.toc = "Evidence Feedback";
-      const readinessEffectCopy = !feedback.hasEvidence
-        ? "No score effect until execution evidence is saved"
-        : isPreRevenueReport(data)
-          ? `${feedback.scoreEffect >= 0 ? "+" : ""}${feedback.scoreEffect} points in the first-win hypothesis score`
-          : `${feedback.scoreEffect >= 0 ? "+" : ""}${feedback.scoreEffect} points in the execution-readiness input, worth about ${feedback.scoreEffect >= 0 ? "+" : ""}${Math.round(feedback.scoreEffect * 0.3)} points in the overall score`;
-      evidenceLoop.innerHTML = `<h2>What Saved Execution Evidence Changes</h2><p class="muted">This is based on completed work in the Validation Workspace, Messaging Kit, Proof Assets, Outreach Sequence, Pipeline, and Weekly Review. Intake answers remain the starting hypothesis.</p><div class="grid"><div class="field"><h3>Current Evidence State</h3><p><strong>${escapeHtml(feedback.state)}</strong></p><p>${escapeHtml(feedback.explanation)}</p></div><div class="field"><h3>Recommended Decision</h3><p><strong>${escapeHtml(feedback.recommendedDecision)}</strong></p><p>${escapeHtml(feedback.nextAction)}</p></div><div class="field"><h3>Readiness Effect</h3><p>${escapeHtml(readinessEffectCopy)}</p><p>This bounded adjustment rewards evidence discipline without allowing activity alone to manufacture market confidence.</p></div><div class="field"><h3>Latest Saved Decision</h3><p>${escapeHtml(feedback.latestDecision)}</p></div></div><h3>Evidence Currently Counted</h3><ul class="two-column-list"><li>${feedback.metrics.completedInterviews} completed validation interviews</li><li>${feedback.metrics.attempts} recorded outreach or message attempts</li><li>${feedback.metrics.replies} replies and ${feedback.metrics.conversations} conversations</li><li>${feedback.metrics.meaningfulNextSteps} meaningful next steps</li><li>${feedback.metrics.proofUses} recorded proof uses</li><li>${feedback.metrics.openOpportunities} open opportunities</li><li>${feedback.metrics.savedReviews} saved weekly reviews</li></ul><div class="report-bottom-actions no-print"><a href="${escapeHtml(reportAssetUrl("reconciliation"))}">Review Evidence-Driven Changes</a><a href="${escapeHtml(reportAssetUrl("weekly-review"))}">Weekly GTM Review</a><a href="${escapeHtml(isPreRevenueReport(data) ? reportAssetUrl("validation-workspace") : reportAssetUrl("pipeline-workspace"))}">${isPreRevenueReport(data) ? "Validation Workspace" : "Pipeline Workspace"}</a></div>`;
-      main.appendChild(evidenceLoop);
-
       const actions = document.createElement("section");
       actions.id = "active-plan-this-week";
       actions.dataset.toc = "This Week";
@@ -13506,10 +13490,6 @@
       });
       main.appendChild(review);
 
-      const bottom = document.createElement("section");
-      bottom.className = "no-print";
-      bottom.innerHTML = `<h2>Plan Resources</h2><div class="report-bottom-actions"><a href="${escapeHtml(plan.planLink)}">${escapeHtml(plan.planLinkLabel)}</a><a href="${escapeHtml(intakeReturnUrl())}" target="_blank" rel="noopener">Back to Intake Form</a></div>`;
-      main.appendChild(bottom);
       setupReportNavigation();
       configureAssetPdfExport();
     }
@@ -15188,7 +15168,7 @@
       decision.id = "weekly-review-decision";
       decision.dataset.toc = "Decision and Priorities";
       decision.className = "workspace-section";
-      decision.innerHTML = `<h2>Recommended Decision: ${escapeHtml(evidence.decision)}</h2><div class="messaging-recommendation"><p>${escapeHtml(evidence.reason)}</p></div><div class="messaging-results-grid"><label>Final decision<select id="weeklyReviewDecision">${messagingOptions(["Need more evidence", "Continue", "Revise", "Stop current sequence"], evidence.decision)}</select></label><label class="wide">Decision rationale<textarea id="weeklyReviewRationale" rows="4">${escapeHtml(evidence.reason)}</textarea></label></div><div class="messaging-recommendation" id="weeklyLearningChange"><h3>Change One Variable in the Next Cycle</h3><p><strong>Our recommendation: ${escapeHtml(learning.variable)}</strong></p><p>${escapeHtml(learning.reason)}</p><div class="messaging-results-grid"><label>Variable to change<select id="weeklyLearningVariable">${messagingOptions(learning.variables, learning.variable)}</select></label><label class="wide">Specific change for the next cycle<textarea id="weeklyLearningChangeText" rows="4">${escapeHtml(learning.change)}</textarea></label></div><h3>Keep These Constant</h3><ul class="two-column-list" id="weeklyLearningConstants">${learning.constants.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul><p class="muted">If more than one strategic variable changes, the next result will not show which change caused it.</p></div><h3>Three Priorities for the Coming Week</h3><div class="validation-workspace-table-wrap"><table class="validation-workspace-table"><thead><tr><th>#</th><th>Priority action</th><th>Owner</th><th>Due date</th><th>Status</th></tr></thead><tbody>${evidence.actions.map((action, index) => `<tr data-weekly-action><td>${index + 1}</td><td><textarea data-weekly-action-field="action">${escapeHtml(action)}</textarea></td><td><input data-weekly-action-field="owner" value=""></td><td><input type="date" data-weekly-action-field="dueDate" value=""></td><td><select data-weekly-action-field="status">${messagingOptions(["Not started", "In progress", "Waiting", "Complete", "Blocked"], "Not started")}</select></td></tr>`).join("")}</tbody></table></div><div class="messaging-editor-actions no-print"><button type="button" id="saveWeeklyReview">Save This Weekly Review</button><a class="secondary" href="${escapeHtml(reportAssetUrl("reconciliation"))}">Review Evidence-Driven Changes</a><a class="secondary" href="${escapeHtml(reportAssetUrl("active"))}">Active Plan</a><span class="messaging-save-status" id="weeklyReviewSaveStatus"></span></div>`;
+      decision.innerHTML = `<h2>Recommended Decision: ${escapeHtml(evidence.decision)}</h2><div class="messaging-recommendation"><p>${escapeHtml(evidence.reason)}</p></div><div class="messaging-results-grid"><label>Final decision<select id="weeklyReviewDecision">${messagingOptions(["Need more evidence", "Continue", "Revise", "Stop current sequence"], evidence.decision)}</select></label><label class="wide">Decision rationale<textarea id="weeklyReviewRationale" rows="4">${escapeHtml(evidence.reason)}</textarea></label></div><div class="messaging-recommendation" id="weeklyLearningChange"><h3>Change One Variable in the Next Cycle</h3><p><strong>Our recommendation: ${escapeHtml(learning.variable)}</strong></p><p>${escapeHtml(learning.reason)}</p><div class="messaging-results-grid"><label>Variable to change<select id="weeklyLearningVariable">${messagingOptions(learning.variables, learning.variable)}</select></label><label class="wide">Specific change for the next cycle<textarea id="weeklyLearningChangeText" rows="4">${escapeHtml(learning.change)}</textarea></label></div><h3>Keep These Constant</h3><ul class="two-column-list" id="weeklyLearningConstants">${learning.constants.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul><p class="muted">If more than one strategic variable changes, the next result will not show which change caused it.</p></div><h3>Three Priorities for the Coming Week</h3><div class="validation-workspace-table-wrap"><table class="validation-workspace-table"><thead><tr><th>#</th><th>Priority action</th><th>Owner</th><th>Due date</th><th>Status</th></tr></thead><tbody>${evidence.actions.map((action, index) => `<tr data-weekly-action><td>${index + 1}</td><td><textarea data-weekly-action-field="action">${escapeHtml(action)}</textarea></td><td><input data-weekly-action-field="owner" value=""></td><td><input type="date" data-weekly-action-field="dueDate" value=""></td><td><select data-weekly-action-field="status">${messagingOptions(["Not started", "In progress", "Waiting", "Complete", "Blocked"], "Not started")}</select></td></tr>`).join("")}</tbody></table></div><div class="messaging-editor-actions no-print"><button type="button" id="saveWeeklyReview">Save This Weekly Review</button><a class="secondary" href="${escapeHtml(reportAssetUrl("active"))}">Active Plan</a><span class="messaging-save-status" id="weeklyReviewSaveStatus"></span></div>`;
       main.appendChild(decision);
 
       const history = document.createElement("section");
@@ -15661,8 +15641,7 @@
 
       const data = await readData();
       const requestedAsset = new URLSearchParams(window.location.search).get("asset") || "";
-      const finishAsset = (asset) => {
-        renderAssetQualityControls(data, asset);
+      const finishAsset = () => {
         setupReportNavigation();
         applyStandardActionIcons();
       };
@@ -15839,7 +15818,6 @@
         trackerInline.textContent = "Download GTM Tracker";
         trackerInline.onclick = () => downloadPostRevenueTracker(data, blueprintModel);
       }
-      renderAssetQualityControls(data, "gtm");
       setupReportNavigation();
       applyStandardActionIcons();
     }

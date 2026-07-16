@@ -4,6 +4,16 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-16 Plan Status and Active Plan Simplification
+
+- Moved Plan Status to the first visible report section by removing the user-facing Asset Quality Control panel.
+- Kept asset-quality logic available for internal QA without asking users to recheck a technical score.
+- Removed the duplicated Current Priority and What the Evidence Changes analysis from Plan Status.
+- Removed Plan Resources blocks from Plan Status and Active Plan because the asset sidebar already provides navigation.
+- Removed the confusing Saved Execution Evidence Changes block from Active Plan.
+- Removed Evidence Reconciliation from normal asset navigation and routed weekly evidence decisions through Weekly GTM Review.
+- Changed internal GTM Tool links to remain in the same browser tab so plan work does not create a trail of duplicate windows.
+
 ## 2026-07-16 Portfolio Restoration and Asset Remediation
 
 - Corrected the initial row IDs for offer, targeting-strategy, and revenue-motion portfolios so saved portfolio data binds to the visible intake cards.
