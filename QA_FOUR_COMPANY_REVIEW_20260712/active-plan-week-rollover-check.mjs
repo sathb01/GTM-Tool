@@ -32,6 +32,28 @@ await page.locator("#active-plan-this-week h2").filter({ hasText: "Week 2 Priori
 const nextPriorities = await page.locator("[data-weekly-priority]").count();
 const historyText = await page.locator("#active-plan-week-history").textContent();
 const state = savedPayload?.data?.activePlanWeeklyWorkspace;
+const context2 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+const page2 = await context2.newPage();
+let fullRolloverPayload = null;
+page2.on("pageerror", (error) => errors.push(error.message));
+await page2.route(`**/api/records/${recordId}`, async (route) => {
+  if (route.request().method() !== "PUT") return route.continue();
+  fullRolloverPayload = JSON.parse(route.request().postData() || "{}");
+  await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ record: { id: recordId, name: fullRolloverPayload.name, data: fullRolloverPayload.data } }) });
+});
+await page2.goto(`${baseUrl}/results.html?asset=active&recordId=${recordId}`, { waitUntil: "networkidle" });
+const originalTitles = await page2.locator("[data-weekly-priority] h3").allTextContents();
+await page2.locator('[data-rollover-index="2"] [data-rollover-field="disposition"]').evaluate((select) => {
+  select.value = "Carry forward";
+  select.dispatchEvent(new Event("change", { bubbles: true }));
+});
+await page2.locator("#closeActivePlanWeek").evaluate((button) => button.click());
+const confirmationMessage = await page2.locator("#activeWeekCloseStatus").textContent();
+await page2.locator("#confirmFullRollover").evaluate((checkbox) => { checkbox.checked = true; });
+await page2.locator("#closeActivePlanWeek").evaluate((button) => button.click());
+await page2.locator("#active-plan-this-week h2").filter({ hasText: "Week 2 Priorities" }).waitFor();
+const fullRolloverState = fullRolloverPayload?.data?.activePlanWeeklyWorkspace;
+const fullRolloverTitles = fullRolloverState?.currentPriorities?.map((item) => item.title) || [];
 const result = {
   status: response?.status(),
   initialPriorities,
@@ -42,8 +64,11 @@ const result = {
   completedRecorded: state?.history?.at(-1)?.priorities?.filter((item) => item.status === "Complete").length,
   historyVisible: new RegExp(`2 of ${initialPriorities} completed`, "i").test(historyText || ""),
   carriedForward: state?.currentPriorities?.some((item) => item.title === carriedTitle),
+  fullRolloverConfirmationRequired: /confirm that all three priorities/i.test(confirmationMessage || ""),
+  fullRolloverCount: fullRolloverTitles.length,
+  fullRolloverPreserved: originalTitles.every((title) => fullRolloverTitles.includes(title.trim())),
   errors
 };
 console.log(JSON.stringify(result, null, 2));
 await browser.close();
-if (result.status !== 200 || result.initialPriorities < 3 || result.nextPriorities !== 3 || result.currentWeek !== 2 || result.historyCount < 1 || result.completedRecorded !== 2 || !result.historyVisible || !result.carriedForward || errors.length) process.exitCode = 1;
+if (result.status !== 200 || result.initialPriorities < 3 || result.nextPriorities !== 3 || result.currentWeek !== 2 || result.historyCount < 1 || result.completedRecorded !== 2 || !result.historyVisible || !result.carriedForward || !result.fullRolloverConfirmationRequired || result.fullRolloverCount !== 3 || !result.fullRolloverPreserved || errors.length) process.exitCode = 1;

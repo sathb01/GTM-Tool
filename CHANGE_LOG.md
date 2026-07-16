@@ -9,7 +9,8 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Replaced the static weekly checklist behavior with a saved close-week and rollover workflow.
 - Required a result or evidence note before a priority can be completed.
 - Added carry forward, revise, drop, and blocked decisions for unfinished priorities.
-- Limited each new week to three priorities, including no more than two unfinished items.
+- Limited each new week to three priorities, recommending two or fewer rollover items while allowing all three with confirmation that new planned work will be deferred.
+- Kept blocked work recorded without consuming next-week capacity unless the user defines an actionable unblock step.
 - Built the next week from selected rollover work, one evidence-based change, and the next planned stage.
 - Added current-week highlighting and saved weekly history with completion counts, decisions, learning, and next changes.
 - Synchronized progress saved in the Action Runner with the current weekly plan.

@@ -828,6 +828,21 @@
       margin: 4px 0 0;
     }
 
+    .weekly-capacity-confirm {
+      align-items: start;
+      background: #fff7f3;
+      border: 1px solid #f3c6b5;
+      border-radius: 6px;
+      display: flex;
+      gap: 9px;
+      padding: 11px 12px;
+    }
+
+    .weekly-capacity-confirm input {
+      margin-top: 3px;
+      width: auto;
+    }
+
     .weekly-rollover-list {
       display: grid;
       gap: 10px;
@@ -13617,9 +13632,9 @@
       const rolloverRows = weeklyWorkspace.currentPriorities.map((priority, index) => {
         const recommended = index < 2 ? "Carry forward" : "Drop";
         const selected = priority.disposition || recommended;
-        return `<div class="weekly-rollover-row" data-rollover-index="${index}"><div><strong>${escapeHtml(priority.title)}</strong><span data-rollover-status>${escapeHtml(priority.status)}</span></div><label>What should happen?<select data-rollover-field="disposition">${["Carry forward", "Revise", "Drop", "Blocked"].map((option) => `<option${selected === option ? " selected" : ""}>${option}</option>`).join("")}</select></label><label>Revised task, if needed<input data-rollover-field="revisedTask" value="${escapeHtml(priority.revisedTask || "")}" placeholder="Rewrite this priority for next week"></label></div>`;
+        return `<div class="weekly-rollover-row" data-rollover-index="${index}"><div><strong>${escapeHtml(priority.title)}</strong><span data-rollover-status>${escapeHtml(priority.status)}</span></div><label>What should happen?<select data-rollover-field="disposition">${["Carry forward", "Revise", "Drop", "Blocked"].map((option) => `<option${selected === option ? " selected" : ""}>${option}</option>`).join("")}</select></label><label>Revised task or unblock action<input data-rollover-field="revisedTask" value="${escapeHtml(priority.revisedTask || "")}" placeholder="Rewrite the priority or name the unblock step"></label></div>`;
       }).join("");
-      review.innerHTML = `<h2>Close Week ${weeklyWorkspace.currentWeek}</h2><p class="muted">Review the results, decide what happens to unfinished work, and create the next week. The next week is limited to three priorities.</p><div class="active-plan-review"><div class="weekly-close-summary"><strong>Rollover recommendation</strong><p>Carry forward no more than two unfinished priorities. Revise work when the evidence changed it, drop work that no longer affects the decision, and label a true dependency as Blocked.</p></div><label>What did we learn?<textarea id="activeWeekLearning" rows="4" placeholder="What evidence changed your confidence, and why?">${escapeHtml(data.activePlan__weeklyReview__learning || "")}</textarea></label><div class="grid"><label>Decision<select id="activeWeekDecision">${["Continue", "Revise", "Pause", "Need more evidence"].map((option) => `<option${(data.activePlan__weeklyReview__decision || "Continue") === option ? " selected" : ""}>${option}</option>`).join("")}</select></label><label>One focused change for next week<input id="activeWeekNextChange" value="${escapeHtml(data.activePlan__weeklyReview__nextChange || "")}" placeholder="Leave blank if the current approach should stay constant"></label></div><h3>Decide What Happens to Each Priority</h3><div class="weekly-rollover-list">${rolloverRows}</div><div class="active-plan-save-row"><button type="button" id="closeActivePlanWeek">${weeklyWorkspace.currentWeek === 4 ? "Close Week 4 and Start Next Cycle" : `Close Week ${weeklyWorkspace.currentWeek} and Build Week ${weeklyWorkspace.currentWeek + 1}`}</button><span class="active-plan-save-status" id="activeWeekCloseStatus"></span></div></div>`;
+      review.innerHTML = `<h2>Close Week ${weeklyWorkspace.currentWeek}</h2><p class="muted">Review the results, decide what happens to unfinished work, and create the next week. The next week is limited to three priorities.</p><div class="active-plan-review"><div class="weekly-close-summary"><strong>Rollover recommendation</strong><p>Carry forward two or fewer unfinished priorities when possible so the plan can advance. If all three are necessary, the next week becomes a completion week and no new planned work is added. Blocked work stays recorded without consuming a priority unless you name an actionable unblock step.</p></div><label>What did we learn?<textarea id="activeWeekLearning" rows="4" placeholder="What evidence changed your confidence, and why?">${escapeHtml(data.activePlan__weeklyReview__learning || "")}</textarea></label><div class="grid"><label>Decision<select id="activeWeekDecision">${["Continue", "Revise", "Pause", "Need more evidence"].map((option) => `<option${(data.activePlan__weeklyReview__decision || "Continue") === option ? " selected" : ""}>${option}</option>`).join("")}</select></label><label>One focused change for next week<input id="activeWeekNextChange" value="${escapeHtml(data.activePlan__weeklyReview__nextChange || "")}" placeholder="Leave blank if the current approach should stay constant"></label></div><h3>Decide What Happens to Each Priority</h3><div class="weekly-rollover-list">${rolloverRows}</div><label class="weekly-capacity-confirm" id="weeklyFullRolloverConfirm" hidden><input type="checkbox" id="confirmFullRollover"><span><strong>Carry all three and defer new work.</strong><br>The next week will be used entirely to finish these priorities.</span></label><div class="active-plan-save-row"><button type="button" id="closeActivePlanWeek">${weeklyWorkspace.currentWeek === 4 ? "Close Week 4 and Start Next Cycle" : `Close Week ${weeklyWorkspace.currentWeek} and Build Week ${weeklyWorkspace.currentWeek + 1}`}</button><span class="active-plan-save-status" id="activeWeekCloseStatus"></span></div></div>`;
       const syncWeeklyCards = () => {
         actions.querySelectorAll("[data-weekly-priority]").forEach((card, index) => {
           card.querySelectorAll("[data-weekly-priority-field]").forEach((control) => {
@@ -13634,8 +13649,18 @@
           row.classList.toggle("is-complete", priority.status === "Complete");
           row.querySelector("[data-rollover-status]").textContent = priority.status === "Complete" ? "Complete - no rollover needed" : priority.status;
         });
+        const activeRolloverCount = Array.from(review.querySelectorAll("[data-rollover-index]")).filter((row) => {
+          const priority = weeklyWorkspace.currentPriorities[Number(row.dataset.rolloverIndex)];
+          const disposition = row.querySelector('[data-rollover-field="disposition"]').value;
+          const unblockAction = row.querySelector('[data-rollover-field="revisedTask"]').value.trim();
+          return priority.status !== "Complete" && (disposition === "Carry forward" || disposition === "Revise" || (disposition === "Blocked" && unblockAction));
+        }).length;
+        review.querySelector("#weeklyFullRolloverConfirm").hidden = activeRolloverCount !== 3;
+        if (activeRolloverCount !== 3) review.querySelector("#confirmFullRollover").checked = false;
       };
       actions.querySelectorAll("[data-weekly-priority-field='status']").forEach((control) => control.addEventListener("change", refreshRolloverRows));
+      review.querySelectorAll("[data-rollover-field]").forEach((control) => control.addEventListener("change", refreshRolloverRows));
+      review.querySelectorAll('[data-rollover-field="revisedTask"]').forEach((control) => control.addEventListener("input", refreshRolloverRows));
       refreshRolloverRows();
       review.querySelector("#closeActivePlanWeek").addEventListener("click", async (event) => {
         const status = review.querySelector("#activeWeekCloseStatus");
@@ -13656,9 +13681,13 @@
           status.textContent = `Rewrite "${reviseWithoutTask.title}" before choosing Revise.`;
           return;
         }
-        const rolloverCount = weeklyWorkspace.currentPriorities.filter((priority) => priority.status !== "Complete" && priority.disposition !== "Drop").length;
-        if (rolloverCount > 2) {
-          status.textContent = "Carry forward, revise, or block no more than two unfinished priorities. Drop the rest so next week stays focused.";
+        const rolloverCount = weeklyWorkspace.currentPriorities.filter((priority) => priority.status !== "Complete" && (priority.disposition === "Carry forward" || priority.disposition === "Revise" || (priority.disposition === "Blocked" && priority.revisedTask))).length;
+        if (rolloverCount > 3) {
+          status.textContent = "The next week can contain no more than three active priorities.";
+          return;
+        }
+        if (rolloverCount === 3 && !review.querySelector("#confirmFullRollover").checked) {
+          status.textContent = "Confirm that all three priorities should carry forward and new planned work should be deferred.";
           return;
         }
         const learning = review.querySelector("#activeWeekLearning").value.trim();
@@ -13674,15 +13703,19 @@
           nextChange,
           priorities: closedPriorities
         });
+        weeklyWorkspace.blockedItems = Array.isArray(weeklyWorkspace.blockedItems) ? weeklyWorkspace.blockedItems : [];
+        closedPriorities
+          .filter((priority) => priority.status !== "Complete" && priority.disposition === "Blocked" && !priority.revisedTask)
+          .forEach((priority) => weeklyWorkspace.blockedItems.push({ ...priority, blockedAt: new Date().toISOString() }));
         const rollover = closedPriorities
-          .filter((priority) => priority.status !== "Complete" && priority.disposition !== "Drop")
-          .slice(0, 2)
+          .filter((priority) => priority.status !== "Complete" && (priority.disposition === "Carry forward" || priority.disposition === "Revise" || (priority.disposition === "Blocked" && priority.revisedTask)))
+          .slice(0, 3)
           .map((priority, index) => ({
             ...priority,
             id: `week-${weeklyWorkspace.currentWeek + 1}-rollover-${index + 1}-${Date.now()}`,
-            title: priority.disposition === "Revise" ? priority.revisedTask : priority.title,
-            output: priority.disposition === "Revise" ? priority.revisedTask : priority.output,
-            status: priority.disposition === "Blocked" ? "Blocked" : "Not started",
+            title: priority.disposition === "Revise" || priority.disposition === "Blocked" ? priority.revisedTask : priority.title,
+            output: priority.disposition === "Revise" || priority.disposition === "Blocked" ? priority.revisedTask : priority.output,
+            status: "Not started",
             evidence: "",
             disposition: "Carry forward",
             revisedTask: ""
