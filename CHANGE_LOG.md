@@ -6,6 +6,8 @@ This file records the major actions and changes made during the GTM Tool refinem
 
 ## 2026-07-17 Plan Summary Score Guidance
 
+- Fixed Offer readiness scoring so saved numeric ratings from 1 through 5 count as their intended scores instead of being treated as missing.
+- Made Proof Readiness recognize proof attached to a completed value claim, including evidence type and evidence notes, rather than requiring the same proof to be re-entered in a separate proof table.
 - Replaced the static Offer and Proof missing-data checklist with the actual weak dimensions and current scores for the selected primary offer.
 - Added guided `Save Changes and Return` and `Return Without Saving` controls at the bottom of improvement sections, replacing ordinary intake progression controls during a report round trip.
 - Made legacy primary-offer selections stored by offer name resolve to the correct offer row so newly completed assessments update the offer score.

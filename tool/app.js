@@ -8948,6 +8948,10 @@ function proofSummary(row) {
 
 function scoreFromChoice(value, choices) {
   const text = String(value || "").toLowerCase();
+  const numeric = Number(text);
+  if (Number.isFinite(numeric) && numeric >= 1 && numeric <= 5) {
+    return numeric;
+  }
   const match = choices.find(([pattern]) => pattern.test(text));
   return match ? match[1] : 0;
 }
@@ -8962,13 +8966,19 @@ function offerReadinessDimensions(data, rowId = null) {
   const proofRows = tableRowsFromData(data, proofTableId).filter((row) => (
     row.values.claim || row.values.proofType || row.values.assetExists || row.values.strength || row.values.gapNextAction
   ));
-  const proofScore = proofRows.some((row) => /repeatable|strong|measured|high/i.test(row.values.strength || "") || row.values.assetExists === "Yes")
+  const proofTableScore = proofRows.some((row) => /repeatable|strong|measured|high/i.test(row.values.strength || "") || row.values.assetExists === "Yes")
     ? 5
     : proofRows.some((row) => /customer|anecdotal|partially|medium/i.test(`${row.values.strength || ""} ${row.values.assetExists || ""}`))
       ? 3
       : proofRows.length
         ? 2
         : 0;
+  const valueClaimProofScore = firstValueClaim?.values.evidenceAvailable && firstValueClaim?.values.evidenceNotes
+    ? 4
+    : firstValueClaim?.values.evidenceAvailable || firstValueClaim?.values.proofStrength
+      ? 3
+      : 0;
+  const proofScore = Math.max(proofTableScore, valueClaimProofScore);
 
   return [
     {
