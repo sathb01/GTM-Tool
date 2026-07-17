@@ -4,6 +4,15 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-17 Plan Summary Score Guidance
+
+- Renamed the four plan-summary detail links from `See supporting details` to `Learn more` and made each link expand its matching support panel before scrolling to it.
+- Replaced the old self-rating-based Revenue Motion summary with the evidence-based Revenue Motion readiness score used by the overall scoring model.
+- Added the eight Revenue Motion scoring dimensions, their current scores, and the exact next move for every weak dimension to the readiness details.
+- Added separate improvement routes for the score areas that currently need work instead of sending every score issue to one generic intake review.
+- Made Revenue Motion remediation preserve its exact score gaps and place the relevant editable revenue fields directly inside the guided improvement card.
+- Clarified that a subscore can improve before the rounded weighted overall score changes.
+
 ## 2026-07-17 CRM-Centered Execution Assets
 
 - Replaced the duplicate in-tool Target List tracker with a Target List Setup Guide for the user's CRM or spreadsheet.

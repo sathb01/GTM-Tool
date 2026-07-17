@@ -5726,8 +5726,15 @@
         ${card.progressHtml || ""}
         <p class="metric-copy">${escapeHtml(card.copy || missingText)}</p>
         ${card.badge ? `<span class="status-badge ${card.badge.className || ""}">${escapeHtml(card.badge.label)}</span>` : ""}
-        ${card.target ? `<a class="metric-card-link" href="#${escapeHtml(card.target)}">See supporting details</a>` : ""}
+        ${card.target ? `<a class="metric-card-link" href="#${escapeHtml(card.target)}">Learn more</a>` : ""}
       `;
+      const detailLink = article.querySelector(".metric-card-link");
+      if (detailLink) {
+        detailLink.addEventListener("click", () => {
+          const details = document.getElementById(card.target);
+          if (details?.tagName === "DETAILS") details.open = true;
+        });
+      }
       container.appendChild(article);
     }
 
@@ -5874,9 +5881,22 @@
         tone: "readiness",
         title: "GTM Readiness: Evidence and Score Details",
         subtitle: "See what supports the score and what would improve it.",
-        content: `<p><strong>Current status:</strong> ${escapeHtml(status.label)} at ${escapeHtml(model.readinessScore)}/100.</p><div class="score-list"><div><h3>Strong points</h3><ul>${(scoreParts.strengths.length ? scoreParts.strengths : ["No strong score areas yet."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div><div><h3>Weak points</h3><ul>${(scoreParts.weaknesses.length ? scoreParts.weaknesses : ["No major score weaknesses detected."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div></div><h3>Best ways to improve the score</h3><ul>${(improvements.length ? improvements.map((item) => `${item.area}: ${item.action}`) : ["Continue collecting execution evidence against the current plan."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+        content: `<p><strong>Current status:</strong> ${escapeHtml(status.label)} at ${escapeHtml(model.readinessScore)}/100.</p><div class="score-list"><div><h3>Strong points</h3><ul>${(scoreParts.strengths.length ? scoreParts.strengths : ["No strong score areas yet."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div><div><h3>Weak points</h3><ul>${(scoreParts.weaknesses.length ? scoreParts.weaknesses : ["No major score weaknesses detected."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div></div><h3>Revenue Motion score details</h3><p><strong>${escapeHtml(model.revenueSnapshot.score)}/100</strong> based on the saved motion context, channel evidence, pipeline visibility, sales process, conversion health, ownership, stalled-deal learning, and next experiment.</p><ul>${model.revenueSnapshot.dimensions.map((item) => `<li><strong>${escapeHtml(item.name)}:</strong> ${escapeHtml(item.score * 20)}/100${item.score < 4 ? ` - ${escapeHtml(item.nextMove)}` : " - sufficiently defined"}</li>`).join("")}</ul><h3>Best ways to improve the score</h3><ul>${(improvements.length ? improvements.map((item) => `${item.area}: ${item.action}`) : ["Continue collecting execution evidence against the current plan."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul><p class="muted">A saved improvement can raise a subscore without immediately changing the rounded overall score because the overall score combines several weighted areas.</p>`
       });
-      appendReviewLink(readinessPanel.querySelector(".summary-support-content"), "Improve This Section", "score revenue icp offer buyer signals", { sameTab: true, returnSectionId: "summary-readiness-details" });
+      const readinessActions = readinessPanel.querySelector(".summary-support-content");
+      const linkedAreas = new Set();
+      improvements.forEach((item) => {
+        const topic = immediateActionTopic(item.area);
+        if (linkedAreas.has(topic)) return;
+        linkedAreas.add(topic);
+        appendReviewLink(readinessActions, `Improve ${item.area}`, topic, {
+          sameTab: true,
+          returnSectionId: "summary-readiness-details",
+          task: `Improve ${item.area}`,
+          focus: item.area === "Revenue Motion" ? revenueMotionScoreReviewFocus(model) : undefined
+        });
+      });
+      if (!improvements.length) appendReviewLink(readinessActions, "Review Score Inputs", "score", { sameTab: true, returnSectionId: "summary-readiness-details" });
       recommendation.appendChild(readinessPanel);
 
       const opportunityEvidence = strategicEvidence[0];
@@ -6088,7 +6108,7 @@
     function createReviewLink(label, topic, options = {}) {
       const link = document.createElement("a");
       const sectionId = intakeSectionForTopic(topic);
-      const focus = reviewFocusForTopic(topic);
+      const focus = options.focus || reviewFocusForTopic(topic);
       const reviewOptions = options.sameTab
         ? {
             returnToCurrentReport: true,
@@ -6111,10 +6131,25 @@
           missing: focus.missing,
           questions: focus.questions,
           example: focus.example,
+          fieldIds: focus.fieldIds,
           createdAt: new Date().toISOString()
         }));
       });
       return link;
+    }
+
+    function revenueMotionScoreReviewFocus(model) {
+      const snapshot = model.revenueSnapshot;
+      const motion = readableRevenueMotion(model) || "the selected revenue motion";
+      const weakDimensions = (snapshot?.dimensions || []).filter((item) => item.score < 4);
+      return {
+        area: `Revenue Motion: ${snapshot?.score || 0}/100`,
+        why: `Improve the specific operating dimensions below for ${motion}. Saved answers update this evidence-based subscore; the overall readiness score changes only when the weighted result moves enough to change the rounded total.`,
+        missing: weakDimensions.map((item) => `${item.name}: ${item.nextMove}`),
+        questions: weakDimensions.map((item) => `Complete this score input: ${item.nextMove}`),
+        example: "Complete the highlighted revenue operating inputs first. Then use the detailed Revenue Motion assessment below for any remaining channel results, pipeline metrics, stage criteria, conversion bottleneck, stalled-deal learning, or experiment gaps.",
+        fieldIds: ["primaryRevenueMotion", "revenueTrackingSystem", "revenueReportingCadence", "primaryRevenueOwner", "pipelineReviewOwner", "sellingCapacity"]
+      };
     }
 
     function immediateActionTopic(area) {
@@ -6153,8 +6188,18 @@
       const componentRows = diagnostic?.components || [];
       const categoryRows = model.categories.map((category) => ({
         label: category.name,
-        score: boundedScore(category.score * 20),
-        explanation: category.lowMove
+        score: category.name === "Market and Customer Priority"
+          ? diagnostic?.customerPriorityScore
+          : category.name === "Offer, Value, and Proof"
+            ? diagnostic?.offerScore
+            : category.name === "Revenue Motion"
+              ? diagnostic?.revenueMotionScore
+              : category.name === "Execution Readiness"
+                ? componentRows.find((item) => item.key === "execution")?.score
+                : boundedScore(category.score * 20),
+        explanation: category.name === "Revenue Motion"
+          ? model.revenueSnapshot?.nextMoves?.join(" ") || category.lowMove
+          : category.lowMove
       }));
       const rows = [...componentRows, ...categoryRows]
         .filter((item) => Number.isFinite(Number(item.score)));

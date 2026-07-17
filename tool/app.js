@@ -4531,19 +4531,19 @@ function firstDetailedSectionId() {
 
 function currentImprovementFocus() {
   const urlFocus = improvementFocusFromUrl();
-  if (urlFocus) {
-    return urlFocus;
-  }
-
   try {
-    const focus = JSON.parse(localStorage.getItem(IMPROVEMENT_FOCUS_KEY) || "null");
-    if (focus && focus.sectionId) {
-      return focus;
+    const storedFocus = JSON.parse(localStorage.getItem(IMPROVEMENT_FOCUS_KEY) || "null");
+    if (storedFocus && storedFocus.sectionId && (!urlFocus || storedFocus.sectionId === urlFocus.sectionId)) {
+      return {
+        ...(urlFocus || {}),
+        ...storedFocus,
+        returnTo: urlFocus?.returnTo || storedFocus.returnTo || ""
+      };
     }
   } catch (error) {
     localStorage.removeItem(IMPROVEMENT_FOCUS_KEY);
   }
-  return improvementFocusFromUrl();
+  return urlFocus;
 }
 
 function improvementFocusFromUrl() {
@@ -4798,18 +4798,18 @@ function renderImprovementFocusCard(sectionId) {
 
   card.appendChild(heading);
   card.appendChild(why);
-  if (Array.isArray(focus.fieldIds) && focus.fieldIds.length) {
-    card.appendChild(answerFields);
-  }
-  if (!focus.fieldIds?.length && missingList.children.length) {
+  if (missingList.children.length) {
     card.appendChild(missingHeading);
     card.appendChild(missingList);
   }
-  if (!focus.fieldIds?.length && questionsList.children.length) {
+  if (questionsList.children.length) {
     card.appendChild(questionsHeading);
     card.appendChild(questionsList);
   }
-  if (!focus.fieldIds?.length && example.textContent) {
+  if (Array.isArray(focus.fieldIds) && focus.fieldIds.length) {
+    card.appendChild(answerFields);
+  }
+  if (example.textContent) {
     card.appendChild(exampleHeading);
     card.appendChild(example);
   }
