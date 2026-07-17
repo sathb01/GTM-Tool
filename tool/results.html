@@ -14316,6 +14316,29 @@
       return rows;
     }
 
+    function personaRoleSpecificText(value, sharedContext = "", customerGroup = "") {
+      const text = cleanText(value);
+      if (!text) return "";
+      const normalized = text.toLowerCase();
+      const shared = cleanText(sharedContext).toLowerCase();
+      const customer = cleanText(customerGroup).toLowerCase();
+      const customerTokens = customer.split(/[^a-z0-9]+/).filter((token) => token.length >= 5).slice(0, 6);
+      const matchingCustomerTokens = customerTokens.filter((token) => normalized.includes(token)).length;
+      const looksLikeSharedNarrative = text.length > 120
+        && (matchingCustomerTokens >= 2 || /schedule\s+(?:a|an|the)?\s*\d+[- ]minute|diagnostic/i.test(text))
+        && ((text.match(/[.!?]/g) || []).length >= 2 || /schedule|diagnostic/i.test(text));
+      const repeatsSharedContext = (shared && normalized === shared)
+        || looksLikeSharedNarrative;
+      return repeatsSharedContext ? "" : text;
+    }
+
+    function personaRoleTitle(row, sharedContext, customerGroup) {
+      const titles = personaAssetItems(row.titles || row.values?.commonTitles)
+        .map((item) => personaRoleSpecificText(item, sharedContext, customerGroup))
+        .filter((item) => item && item.length <= 90 && !/[.!?]/.test(item));
+      return titles.join(" / ") || row.label;
+    }
+
     function postRevenuePersonaAssetModel(data) {
       const categories = categoryDefinitions.map((category) => ({ ...category, score: categoryScore(data, category) }));
       const confidence = quickScoreConfidence(data);
@@ -14327,6 +14350,7 @@
       const group = model.priorityGroup?.values || {};
       const offerName = model.primaryOffer ? offerDisplayName(model.primaryOffer, offerPortfolioRows(data).indexOf(model.primaryOffer)) : cleanText(data.primaryOfferName || data.quickPrimaryOffer);
       const customerGroup = cleanText(group.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer) || "Priority customer group not yet selected";
+      const sharedContext = cleanText(data.customerContextStarter || group.whoTheyAre || group.segmentIdentityDetails);
       const titles = personaAssetItems(primary.titles || values.commonTitles || model.buyer?.label);
       const roleName = titles.join(" / ") || primary.label;
       const actualFieldCount = Object.values(values).filter((value) => cleanText(value)).length + [data.buyingSituation, data.conversationStarter, data.budgetOwner, data.painOwner, data.peopleInvolved, data.reviewRequirements, data.bestFitPrimaryPain, data.bestFitTrigger].filter((value) => cleanText(value)).length;
@@ -14374,7 +14398,7 @@
         roleName,
         personaLabel: primary.label || "Primary Buyer",
         customerGroup,
-        specificContext: cleanText(data.customerContextStarter || group.whoTheyAre || group.segmentIdentityDetails),
+        specificContext: sharedContext,
         path: "Business buying decision",
         offerName: offerName || "Primary offer not yet selected",
         confidenceLabel: `${personaAssetCoverage(actualFieldCount)} input coverage`,
@@ -14394,10 +14418,11 @@
         discoverySource: discovery.length ? "From intake" : "GTM OS recommendation",
         nextAsk: nextAsk.length ? nextAsk : ["Ask for the smallest next step that creates evidence: a focused follow-up, proof review, pilot discussion, or buyer introduction."],
         supportingRoles: mappedRoles.slice(1).map((row) => ({
-          role: personaAssetItems(row.titles || row.values?.commonTitles).join(" / ") || row.label,
+          role: personaRoleTitle(row, sharedContext, customerGroup),
           label: row.label,
           relationship: personaAssetRoleRelationship(row.label),
-          need: cleanText(row.values?.needsToBelieve || row.concern || row.priorityWhy) || "Confirm what this role needs to believe and what could stop the decision."
+          need: personaRoleSpecificText(row.values?.needsToBelieve || row.concern || row.priorityWhy, sharedContext, customerGroup)
+            || `Confirm what the ${row.label.toLowerCase()} needs to believe and what could stop the decision.`
         })),
         evidence: evidence.length ? evidence : ["No direct persona evidence has been captured yet."],
         assumptions: personaAssetItems(group.assumptionEvidence, data.mostImportantPersonaRisk, data.personaRiskSeverity ? `Persona risk severity: ${data.personaRiskSeverity}` : ""),
