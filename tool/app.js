@@ -4913,6 +4913,7 @@ function renderSectionNavigation(sectionsToShow, nav) {
 
     const assetLinks = isPreRevenueMode()
       ? [
+        ["GTM Plan Summary", "gtm"],
         ["Active Plan", "active"],
         ["ICP Brief", "icp"],
         ["Persona Brief", "personas"],
@@ -4925,6 +4926,7 @@ function renderSectionNavigation(sectionsToShow, nav) {
         ["30-Day Validation Plan", "validation"]
       ]
       : [
+        ["GTM Plan Summary", "gtm"],
         ["Active Plan", "active"],
         ...(hasIcpAsset ? [["ICP Brief", "icp"]] : []),
         ["Persona Brief", "personas"],

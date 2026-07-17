@@ -111,6 +111,9 @@ requiredAssets.forEach((asset) => {
   check(`Navigation: ${asset} is routed from intake`, appSource.includes(`"${asset}"`));
   check(`Navigation: ${asset} is routed from report`, resultsSource.includes(`reportAssetUrl("${asset}")`) || resultsSource.includes(`asset") === "${asset}"`));
 });
+check("Navigation: GTM Plan Summary is the first asset", /addNavItem\("Assets", "GTM Plan Summary", reportAssetUrl\("gtm"\)\);\s*addNavItem\("Assets", "Plan Status"/.test(resultsSource));
+check("Intake assets: GTM Plan Summary is first", /const assetLinks = isPreRevenueMode\(\)\s*\? \[\s*\["GTM Plan Summary", "gtm"\]/.test(appSource));
+check("GTM Plan Summary: four cards use dynamic plan state", /const dynamicSummary = dynamicPlanSummary\(model\)/.test(resultsSource) && /currentPriorities/.test(resultsSource) && /Evidence: \$\{dynamicSummary\.feedback\.state\}/.test(resultsSource));
 check("Pipeline: weekly review consumes opportunity data", /pipelineWorkspaceState\(data, profile\)/.test(resultsSource) && /openOpportunities/.test(resultsSource));
 check("Pipeline: CRM source-of-truth mode exists", resultsSource.includes("CRM is the source of truth"));
 check("Persistence: asset workspaces update the saved record", /api\/records\//.test(resultsSource) && /method: "PUT"/.test(resultsSource));

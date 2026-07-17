@@ -5548,6 +5548,37 @@
       return [...new Set(assets)].slice(0, 6);
     }
 
+    function dynamicPlanSummary(model) {
+      const data = model.data;
+      const feedback = model.readinessDiagnostic?.executionFeedback || executionEvidenceFeedback(data);
+      const weekly = data.activePlanWeeklyWorkspace && typeof data.activePlanWeeklyWorkspace === "object"
+        ? data.activePlanWeeklyWorkspace
+        : {};
+      const priorities = Array.isArray(weekly.currentPriorities) ? weekly.currentPriorities : [];
+      const blocked = priorities.filter((item) => item?.status === "Blocked");
+      const nextPriority = priorities.find((item) => item && item.status !== "Complete" && item.status !== "Blocked");
+
+      let opportunity = executiveInsightOpportunity(model);
+      let nextAction = executiveInsightAction(model);
+      let risk = executiveInsightRisk(model);
+
+      if (feedback.state === "Supported") {
+        opportunity = `Execution evidence supports the current focus. ${feedback.nextAction}`;
+      } else if (feedback.state === "Challenged") {
+        opportunity = "Use the saved evidence to revise one core variable before adding more GTM activity.";
+        nextAction = feedback.nextAction;
+        risk = feedback.explanation;
+      }
+      if (nextPriority) {
+        nextAction = nextPriority.title || nextPriority.output || nextAction;
+      }
+      if (blocked.length) {
+        risk = `${blocked.length} current-week priorit${blocked.length === 1 ? "y is" : "ies are"} blocked. Resolve or revise ${blocked.length === 1 ? "it" : "them"} before adding new work.`;
+      }
+
+      return { feedback, opportunity, nextAction, risk };
+    }
+
     function renderWorkspaceDashboard(model) {
       const cards = document.getElementById("workspaceSummaryCards");
       const recommendation = document.getElementById("workspaceRecommendation");
@@ -5555,8 +5586,9 @@
       if (!cards || !recommendation || !actionPanel) return;
 
       const status = scoreStatusInfo(model.readinessScore);
-      const topRisk = executiveInsightRisk(model);
-      const nextAction = executiveInsightAction(model);
+      const dynamicSummary = dynamicPlanSummary(model);
+      const topRisk = dynamicSummary.risk;
+      const nextAction = dynamicSummary.nextAction;
       const decisionContent = executiveDecisionContent(model);
       const scoreParts = scoreStrengthsAndWeaknesses(model);
       const strategicEvidence = buildStrategicInsights(model).slice(0, 3);
@@ -5579,14 +5611,14 @@
       renderMetricCard(cards, {
         label: "GTM Readiness Score",
         valueHtml: `${model.readinessScore} <span class="muted">/ 100</span>`,
-        copy: status.label,
+        copy: dynamicSummary.feedback.hasEvidence ? `${status.label} | Evidence: ${dynamicSummary.feedback.state}` : status.label,
         badge: status,
         progressHtml: `<div class="score-progress" aria-label="Readiness score progress"><div class="score-progress-bar" style="width:${scorePercent}%; background:${status.color};"></div></div>`
       });
       renderMetricCard(cards, {
         label: "Top Opportunity",
         value: "Focus",
-        copy: executiveInsightOpportunity(model),
+        copy: dynamicSummary.opportunity,
         badge: { label: "Opportunity", className: "medium" }
       });
       renderMetricCard(cards, {
@@ -10286,7 +10318,7 @@
         ],
         health: [
           assetQualityCheck("Plan focus is clear", context.customer && context.goal, "Plan Status can identify the current customer focus and intended result.", "Review plan focus", customerFix),
-          assetQualityCheck("Active work exists", planCore || assetQualityDataMatch(data, /activePlan__/i), "At least one executable action is available to move the plan forward.", "Open Active Plan", reportAssetUrl("active")),
+          assetQualityCheck("Active work exists", planCore || assetQualityDataMatch(data, /activePlan__/i), "At least one executable action is available to move the plan forward.", "Active Plan", reportAssetUrl("active")),
           assetQualityCheck("Progress evidence exists", executionEvidenceFeedback(data).hasEvidence, "Status is informed by saved execution evidence, not intake answers alone.", "Capture evidence", context.preRevenue ? reportAssetUrl("validation-workspace") : reportAssetUrl("weekly-review")),
           assetQualityCheck("Next decision is visible", context.decisionRules || assetQualityDataMatch(data, /activePlan__.*decision/i), "Shows how evidence will change what the team does next.", "Review decision path", reportAssetUrl("active"))
         ],
@@ -10341,7 +10373,7 @@
       toc.innerHTML = "";
       sectionToc.innerHTML = "";
       let currentGroup = "";
-      const currentAsset = new URLSearchParams(window.location.search).get("asset") || "";
+      const currentAsset = new URLSearchParams(window.location.search).get("asset") || "gtm";
       const addNavItem = (group, label, href, onClick) => {
         const item = document.createElement("li");
         const link = document.createElement("a");
@@ -10369,6 +10401,7 @@
         item.appendChild(link);
         sectionToc.appendChild(item);
       };
+      addNavItem("Assets", "GTM Plan Summary", reportAssetUrl("gtm"));
       addNavItem("Assets", "Plan Status", reportAssetUrl("health"));
       addNavItem("Assets", "Active Plan", reportAssetUrl("active"));
       if (document.body.dataset.hasIcpAsset === "true") {
@@ -13773,13 +13806,14 @@
       const reportTitle = assetMode === "validation"
         ? "Validation Plan"
         : assetMode === "gtm"
-          ? "GTM Plan"
+          ? "GTM Plan Summary"
           : assetMode === "icp"
             ? "ICP Brief"
           : "First-Win Market Segment Plan";
       document.body.dataset.hasIcpAsset = primary ? "true" : "false";
       document.body.dataset.hasPersonaAsset = "true";
       document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} ${reportTitle}` : reportTitle;
+      document.title = data.companyName ? `${data.companyName} ${reportTitle}` : reportTitle;
       document.getElementById("companyMeta").textContent = [data.website, industryDisplay(data), businessModelDisplay(data), data.companyStage || "Pre-revenue"].filter(Boolean).join(" | ");
       document.getElementById("overallScore").textContent = scoreModel.overallScore;
       document.getElementById("readinessStage").textContent = preRevenueStage(scoreModel.overallScore);
@@ -16009,8 +16043,11 @@
       renderMetadataPills(blueprintModel);
 
       document.getElementById("companyName").textContent = data.companyName
-        ? `${data.companyName} GTM Action Plan`
-        : "GTM Action Plan";
+        ? `${data.companyName} GTM Plan Summary`
+        : "GTM Plan Summary";
+      document.title = data.companyName
+        ? `${data.companyName} GTM Plan Summary`
+        : "GTM Plan Summary";
       document.getElementById("companyMeta").textContent = [data.website, industryDisplay(data), businessModelDisplay(data), data.derivedGtmArchetypeLabel, data.companyStage]
         .filter(Boolean)
         .join(" | ");
