@@ -229,13 +229,23 @@
         }
       });
       help.querySelector("[data-use-ai-field]").addEventListener("click", async () => {
-        control.value = suggestionText.textContent.trim();
-        try { formStateData[fieldId] = control.value; } catch { /* visible input is sufficient */ }
-        control.dispatchEvent(new Event("input", { bubbles: true }));
-        control.dispatchEvent(new Event("change", { bubbles: true }));
-        if (typeof saveDraft === "function") await saveDraft(false);
-        fieldStatus.textContent = "Answer added and saved.";
-        suggestion.hidden = true;
+        const answer = suggestionText.textContent.trim();
+        if (!answer || !setFieldValue(fieldId, answer)) {
+          fieldStatus.textContent = "The suggestion could not be added. Try again.";
+          return;
+        }
+        const saved = typeof saveDraft === "function" ? await saveDraft(false) : false;
+        const currentControl = document.querySelector(`[name="${CSS.escape(fieldId)}"]`);
+        if (currentControl && currentControl.value !== answer) {
+          currentControl.value = answer;
+          try { formStateData[fieldId] = answer; } catch { /* visible input is sufficient */ }
+          currentControl.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        fieldStatus.textContent = saved
+          ? "Answer added and saved. It is shown in the field above."
+          : "Answer added, but it could not be saved to the workspace. Select Save Changes and Return to try again.";
+        suggestion.hidden = false;
+        help.querySelector("[data-use-ai-field]").textContent = saved ? "Answer added" : "Use this answer";
       });
       help.querySelector("[data-dismiss-ai-field]").addEventListener("click", () => {
         suggestion.hidden = true;
