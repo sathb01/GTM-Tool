@@ -1882,8 +1882,15 @@ function blockerStatement(values) {
   if (!values.blocker || !values.whyItMatters || !values.nextAction) {
     return "Complete the blocker, why it matters, and next action to generate a blocker summary.";
   }
-
-  return `Blocker for ${values.successFocus || "the success plan"}: ${values.blocker}. This matters because ${values.whyItMatters}. To move forward, ${values.mustBeTrue || "define what must be true"}. Next action: ${values.nextAction}. Owner: ${values.owner || "Not assigned"}. Timing: ${values.timeframe || "Not set"}.`;
+  const coreValues = [values.blocker, values.whyItMatters, values.mustBeTrue].map((value) => String(value || "").trim()).filter(Boolean);
+  const normalized = coreValues.map((value) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim());
+  const repeatsAnswer = normalized.some((value, index) => normalized.indexOf(value) !== index);
+  const looksLikeCopiedPlanSummary = coreValues.some((value) => value.length > 180 && (value.match(/[.!?]/g) || []).length >= 2 && /(?:schedule|diagnostic|customer|manufacturer|company|segment|buyer)/i.test(value));
+  if (repeatsAnswer || looksLikeCopiedPlanSummary) {
+    return "This blocker is not ready to use. Replace the repeated customer or plan summary with one specific obstacle, why it matters, what must change, and the next action.";
+  }
+  const sentence = (value, fallback) => String(value || fallback).trim().replace(/[.]+$/, "");
+  return `${sentence(values.successFocus, "Success plan")} blocker: ${sentence(values.blocker, "Not defined")}. Why it matters: ${sentence(values.whyItMatters, "Not defined")}. Required resolution: ${sentence(values.mustBeTrue, "Define what must be true")}. Next action: ${sentence(values.nextAction, "Not defined")}. Owner: ${sentence(values.owner, "Not assigned")}. Timing: ${sentence(values.timeframe, "Not set")}.`;
 }
 
 function createCardField(field, name) {
@@ -2069,7 +2076,9 @@ function createCardTable(table) {
         ? "Claim readiness:"
         : table.summaryType === "segmentFit"
         ? "Fit Score"
-        : ["successStatement", "blockerStatement"].includes(table.summaryType)
+        : table.summaryType === "blockerStatement"
+          ? "Blocker summary:"
+          : table.summaryType === "successStatement"
           ? "Generated statement:"
           : "Generated value claim:";
       hiddenSummary.type = "hidden";
@@ -3185,6 +3194,19 @@ function renderCustomerContextStarter(sectionEl) {
   sectionEl.appendChild(card);
 }
 
+function renderKnownBuyerBlockerContext(sectionEl) {
+  const blocker = String(getFormData().dealBlocker || "").trim();
+  if (!blocker || /^(?:none|unknown|not identified|not sure)$/i.test(blocker)) return;
+  const card = document.createElement("div");
+  const heading = document.createElement("h3");
+  const explanation = document.createElement("p");
+  card.className = "summary-card known-buyer-blocker-card";
+  heading.textContent = `Potential buyer blocker already identified: ${blocker}`;
+  explanation.textContent = "This is a buying-committee risk, not automatically an execution blocker. Add it to Top Blockers to Resolve only if this role could stop the 30-, 60-, or 90-day plan, and describe the specific objection or approval risk.";
+  card.append(heading, explanation);
+  sectionEl.appendChild(card);
+}
+
 function renderSectionBody(section, sectionEl) {
   if (section.introBlocks && section.introBlocks.length) {
     renderIntroBlocks(section.introBlocks, sectionEl);
@@ -3208,6 +3230,10 @@ function renderSectionBody(section, sectionEl) {
 
   if (section.helpBlocks && section.helpBlocks.length) {
     sectionEl.appendChild(renderHelpBlocks(section.helpBlocks));
+  }
+
+  if (section.id === "goals") {
+    renderKnownBuyerBlockerContext(sectionEl);
   }
 
   if (section.cards && section.cards.length) {
@@ -7957,6 +7983,81 @@ function sourceTruthConflictIssues(data) {
   return issues;
 }
 
+function hasSavedValueMatching(data, pattern) {
+  return Object.entries(data || {}).some(([key, value]) => pattern.test(key) && String(value || "").trim());
+}
+
+function planCompletenessIssues(data) {
+  if (currentReportMode !== "detailed" || isPreRevenueMode()) return [];
+  const checks = [
+    {
+      complete: Boolean(data.bestFitCustomerGroup || data["possibleCustomerGroups__customer-group-1__groupName"] || data.quickBestFitCustomer),
+      key: "bestFitCustomerGroup",
+      sectionId: "quickIcp",
+      title: "Choose the priority customer group",
+      detail: "The GTM plan needs one customer group to anchor targeting, messaging, proof, and execution."
+    },
+    {
+      complete: Boolean(data.primaryGtmOffer || data.primaryOfferName || data.quickPrimaryOffer || hasSavedValueMatching(data, /^offerPortfolio__.+__offerName$/)),
+      key: "primaryGtmOffer",
+      sectionId: "offer",
+      title: "Choose the primary offer",
+      detail: "The GTM plan needs one named offer connected to the priority customer group."
+    },
+    {
+      complete: Boolean(data.bestFitDecisionMaker || data.budgetOwner || data.primaryBuyer || hasSavedValueMatching(data, /^offerPortfolio__.+__primaryBuyer$/)),
+      key: "bestFitDecisionMaker",
+      sectionId: "personas",
+      title: "Identify the primary buyer",
+      detail: "The GTM plan needs a named buyer or decision-maker before it can recommend messaging and next actions."
+    },
+    {
+      complete: Boolean(data.primaryRevenueMotion || data.quickCurrentSalesMotion || hasSavedValueMatching(data, /^revenueMotionPortfolio__.+__(?:playName|salesMotionType)$/)),
+      key: "primaryRevenueMotion",
+      sectionId: "pipeline",
+      title: "Choose the revenue motion",
+      detail: "The GTM plan needs one motion to organize the 30-day execution cycle."
+    },
+    {
+      complete: Boolean(data.primaryRevenueChannel || data.quickPrimaryRevenueSource || hasSavedValueMatching(data, /^revenueMotionAssessments__.+__(?:channelSource|primaryChannel)$/)),
+      key: "primaryRevenueChannel",
+      sectionId: "pipeline",
+      title: "Choose the channel or opportunity source",
+      detail: "The GTM plan needs a channel or source that explains where the first opportunities will come from."
+    }
+  ];
+  return checks.filter((check) => !check.complete).map((check) => ({ ...check, severity: "warning", kind: "plan-completeness" }));
+}
+
+function repeatedSummaryTextIssues(data) {
+  const occurrences = new Map();
+  Object.entries(data || {}).forEach(([key, rawValue]) => {
+    if (/generated(?:Summary|Statement)|researchNotes|dataHygiene|Workspace$/i.test(key)) return;
+    const value = String(rawValue || "").trim();
+    if (value.length < 180 || (value.match(/[.!?]/g) || []).length < 2) return;
+    const normalized = value.toLowerCase().replace(/\s+/g, " ").trim();
+    if (!occurrences.has(normalized)) occurrences.set(normalized, []);
+    occurrences.get(normalized).push(key);
+  });
+  const issues = [];
+  occurrences.forEach((keys) => {
+    const sourceGroups = new Set(keys.map((key) => key.split("__")[0]));
+    if (keys.length < 3 || sourceGroups.size < 2) return;
+    const key = keys[0];
+    const section = sectionForDataKey(key);
+    issues.push({
+      key,
+      sectionId: section?.id || "company",
+      fieldLabel: dataQualityLabel(key),
+      severity: "error",
+      kind: "repeated-summary-text",
+      title: "Replace repeated summary text",
+      detail: `The same long answer appears in ${keys.length} unrelated fields. Replace it with a specific answer for each question before generating the plan.`
+    });
+  });
+  return issues;
+}
+
 function dataQualityIssues(data = getFormData()) {
   const issues = [];
   const duplicateCandidates = new Map();
@@ -7966,6 +8067,10 @@ function dataQualityIssues(data = getFormData()) {
 
   Object.entries(data || {}).forEach(([key, rawValue]) => {
     if (key.endsWith("__other") || ["savedAt", "recordId"].includes(key)) {
+      return;
+    }
+
+    if (rawValue && typeof rawValue === "object") {
       return;
     }
 
@@ -8061,6 +8166,8 @@ function dataQualityIssues(data = getFormData()) {
   });
 
   issues.push(...sourceTruthConflictIssues(data));
+  issues.push(...planCompletenessIssues(data));
+  issues.push(...repeatedSummaryTextIssues(data));
 
   return issues.filter((issue, index, allIssues) => allIssues.findIndex((candidate) => (
     candidate.key === issue.key && candidate.title === issue.title && candidate.detail === issue.detail
@@ -8346,7 +8453,7 @@ function showDataQualityReview(issues, mode, asset) {
   const intro = document.createElement("p");
   intro.textContent = errors.length
     ? "Fix the items marked Required so system labels or incomplete answers do not appear in the plan."
-    : "Review the confirmed data differences below. The tool will not combine entries or choose a source of truth without your confirmation.";
+    : "Review the missing plan foundations or confirmed data differences below. You can return to the intake or generate with clearly labeled gaps.";
   const summary = document.createElement("div");
   summary.className = "data-quality-summary";
   if (errors.length) {
