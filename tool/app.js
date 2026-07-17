@@ -5652,6 +5652,86 @@ function carryForwardToBlankFields() {
   setFormData(data);
 }
 
+function hasReportInput(data) {
+  const directFields = [
+    "companyName",
+    "website",
+    "primaryOfferName",
+    "quickBestFitCustomer",
+    "quickPrimaryProblem",
+    "quickOfferPromise",
+    "customerContextStarter",
+    "preBroadMarket",
+    "preOfferStage"
+  ];
+
+  if (directFields.some((key) => String(data[key] || "").trim())) {
+    return true;
+  }
+
+  return Object.entries(data || {}).some(([key, value]) => (
+    /^(?:possibleCustomerGroups|preCustomerHypotheses|offerPortfolio)__/.test(key)
+    && String(value || "").trim()
+  ));
+}
+
+function reportFoundationGaps(data, mode) {
+  const valuesFor = (keys) => keys.some((key) => String(data[key] || "").trim());
+  const hasMatchingValue = (pattern) => Object.entries(data || {}).some(([key, value]) => (
+    pattern.test(key) && String(value || "").trim()
+  ));
+  const gaps = [];
+
+  if (!valuesFor(["companyName", "website"])) {
+    gaps.push("company name or website");
+  }
+
+  if (mode === "preRevenue") {
+    if (!valuesFor(["customerContextStarter", "quickBestFitCustomer"]) && !hasMatchingValue(/^preCustomerHypotheses__.+__(?:segmentName|segmentName__other|groupName|description|specificUseCaseDefinition)$/)) {
+      gaps.push("first customer or user hypothesis");
+    }
+    if (!valuesFor(["primaryOfferName", "quickOfferPromise", "preBroadMarket", "preOfferStage"])) {
+      gaps.push("product or offer");
+    }
+  } else {
+    if (!valuesFor(["quickBestFitCustomer", "bestFitCustomerGroup"]) && !hasMatchingValue(/^possibleCustomerGroups__.+__groupName$/)) {
+      gaps.push("priority customer");
+    }
+    if (!valuesFor(["quickPrimaryProblem", "bestFitPrimaryPain"]) && !hasMatchingValue(/^possibleCustomerGroups__.+__problem$/)) {
+      gaps.push("customer problem");
+    }
+    if (!valuesFor(["primaryOfferName", "quickOfferPromise", "primaryGtmOffer"]) && !hasMatchingValue(/^offerPortfolio__.+__offerName$/)) {
+      gaps.push("offer");
+    }
+  }
+
+  return gaps;
+}
+
+function validateReportFoundation(mode) {
+  const data = getFormData();
+  const status = document.getElementById("saveStatus");
+
+  if (!hasReportInput(data)) {
+    const message = "I would love to provide a report! Unfortunately, it looks like the intake has not been filled out yet.";
+    if (status) status.textContent = message;
+    window.alert(message);
+    switchActiveSection("company");
+    return false;
+  }
+
+  const gaps = reportFoundationGaps(data, mode);
+  if (!gaps.length) {
+    return true;
+  }
+
+  const message = `The report is not ready yet. Please add the ${gaps.join(", ")} before creating it.`;
+  if (status) status.textContent = message;
+  window.alert(message);
+  switchActiveSection(mode === "preRevenue" ? "preRevenueContext" : "company");
+  return false;
+}
+
 function baseFieldName(name = "") {
   return String(name || "").replace(/__other$/, "");
 }
@@ -8514,6 +8594,10 @@ function showDataQualityReview(issues, mode, asset) {
 async function submitIntake(mode = "detailed", asset = "", skipQualityReview = false) {
   currentReportMode = isPreRevenueMode() || mode === "preRevenue" ? "preRevenue" : mode === "quick" ? "quick" : "detailed";
 
+  if (!validateReportFoundation(currentReportMode)) {
+    return;
+  }
+
   if (currentReportMode !== "preRevenue") {
     if (!validateReadinessScores()) {
       return;
@@ -9317,6 +9401,7 @@ function loadDraft() {
 
 async function initializeIntake() {
   migrateLegacyDraft();
+  const reportNotice = new URLSearchParams(window.location.search).get("reportNotice");
   const incomingRecordId = requestedRecordIdFromUrl();
   if (incomingRecordId) {
     setActiveRecordId(incomingRecordId);
@@ -9343,6 +9428,16 @@ async function initializeIntake() {
   updateBuyingCommitteeMessageAngles();
   updateDetailedActionBar();
   updatePlanStaleWarning();
+
+  if (reportNotice === "empty") {
+    const message = "I would love to provide a report! Unfortunately, it looks like the intake has not been filled out yet.";
+    const status = document.getElementById("saveStatus");
+    if (status) status.textContent = message;
+    window.alert(message);
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete("reportNotice");
+    window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+  }
 
   document.getElementById("saveDraftButton").addEventListener("click", () => saveDraft(true));
   document.getElementById("saveCompanyButton").addEventListener("click", () => saveDraft(true));
@@ -9372,6 +9467,14 @@ async function initializeIntake() {
   }
   document.getElementById("regenerateStalePlanButton").addEventListener("click", () => {
     submitIntake(isPreRevenueMode() ? "preRevenue" : "detailed", isPreRevenueMode() ? "gtm" : "");
+  });
+  ["viewResultsLink", "topResultsLink"].forEach((id) => {
+    const link = document.getElementById(id);
+    if (!link) return;
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      submitIntake(isPreRevenueMode() ? "preRevenue" : "detailed", isPreRevenueMode() ? "gtm" : "");
+    });
   });
   document.getElementById("intakeForm").addEventListener("input", (event) => {
     if (quickAddContainerFor(event.target)) {

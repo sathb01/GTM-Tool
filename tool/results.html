@@ -3011,35 +3011,6 @@
       return null;
     }
 
-    async function fetchLatestRecordFromBackend() {
-      if (!API_BASE) {
-        return null;
-      }
-
-      try {
-        const response = await fetch(`${API_BASE}/api/records`, { cache: "no-store" });
-
-        if (!response.ok) {
-          return null;
-        }
-
-        const result = await response.json();
-        const records = Array.isArray(result.records) ? result.records : [];
-        const latest = records
-          .filter((record) => record && record.id && record.data)
-          .sort((a, b) => String(b.updatedAt || b.createdAt || "").localeCompare(String(a.updatedAt || a.createdAt || "")))[0];
-
-        if (latest) {
-          cacheRecord(latest);
-          return latest.data;
-        }
-      } catch (error) {
-        console.warn(error.message);
-      }
-
-      return null;
-    }
-
     async function readData() {
       const requestedId = requestedRecordId();
       const activeId = requestedId || localStorage.getItem(ACTIVE_RECORD_KEY) || "";
@@ -3070,12 +3041,6 @@
 
       if (backendData) {
         return backendData;
-      }
-
-      const latestBackendData = await fetchLatestRecordFromBackend();
-
-      if (latestBackendData) {
-        return latestBackendData;
       }
 
       return fallbackData;
@@ -16139,6 +16104,14 @@
       updateIntakeReturnLinks();
 
       const data = await readData();
+      const hasReportData = Object.entries(data || {}).some(([key, value]) => (
+        !["savedAt", "reviewMode", "lastPlanGeneratedAt", "lastPlanInputSignature"].includes(key)
+        && String(value || "").trim()
+      ));
+      if (!hasReportData) {
+        window.location.replace("index.html?reportNotice=empty");
+        return;
+      }
       const requestedAsset = new URLSearchParams(window.location.search).get("asset") || "";
       const finishAsset = () => {
         setupReportNavigation();

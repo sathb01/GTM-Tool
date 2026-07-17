@@ -4,6 +4,14 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-17 Report Generation Guardrails
+
+- Routed every intake `View Report` action through the same completeness and data-quality checks used by plan generation.
+- Added a friendly empty-intake message instead of generating a blank report.
+- Added minimum report-foundation checks for company identity, customer, problem, and offer context before report generation.
+- Stopped the results page from silently loading the most recently updated backend company when no company is active or requested.
+- Redirected direct empty-report routes to the intake with a clear explanation.
+
 ## 2026-07-16 Guided Improvement Round Trip
 
 - Standardized every `Improve This Section` action to open its facilitation flow in the same browser tab.
