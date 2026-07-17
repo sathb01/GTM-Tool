@@ -10,6 +10,7 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Renamed that opening view from `GTM Action Plan` to `GTM Plan Summary` so its role is clear and its navigation label matches the page.
 - Preserved the existing `asset=gtm` route so saved and shared links remain compatible.
 - Made all four summary cards recalculate from the latest saved intake and execution state, including evidence support, current weekly priorities, and blocked work.
+- Reformatted the Recommended 90-Day Focus statement as four concise action bullets.
 
 ## 2026-07-16 Split Intake Sidebar Navigation
 

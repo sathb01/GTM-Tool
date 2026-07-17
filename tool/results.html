@@ -5636,7 +5636,12 @@
 
       recommendation.innerHTML = `
         <h3>Recommended 90-Day Focus</h3>
-        <p>${escapeHtml(decisionContent.bottomLine)}</p>
+        <ul class="two-column-list">
+          <li>Focus on one reachable customer group.</li>
+          <li>Use one sellable offer.</li>
+          <li>Run one revenue motion.</li>
+          <li>Maintain one measurable weekly operating rhythm before scaling.</li>
+        </ul>
         <div class="recommendation-detail-grid">
           <div class="field"><h3>Recommended Focus</h3><ul>${decisionContent.recommendedFocusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>
           <div class="field"><h3>Why This Matters</h3><p>${escapeHtml(executiveInsightMeaning(model))}</p></div>
