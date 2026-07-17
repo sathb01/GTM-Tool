@@ -990,6 +990,32 @@
       resize: vertical;
     }
 
+    #target-list-table .target-outreach-table {
+      min-width: 2800px;
+      table-layout: fixed;
+    }
+
+    #target-list-table .target-outreach-table th:nth-child(1) { width: 48px; }
+    #target-list-table .target-outreach-table th:nth-child(2) { width: 150px; }
+    #target-list-table .target-outreach-table th:nth-child(3) { width: 270px; }
+    #target-list-table .target-outreach-table th:nth-child(4) { width: 170px; }
+    #target-list-table .target-outreach-table th:nth-child(5) { width: 230px; }
+    #target-list-table .target-outreach-table th:nth-child(6) { width: 115px; }
+    #target-list-table .target-outreach-table th:nth-child(7) { width: 320px; }
+    #target-list-table .target-outreach-table th:nth-child(8) { width: 190px; }
+    #target-list-table .target-outreach-table th:nth-child(9) { width: 250px; }
+    #target-list-table .target-outreach-table th:nth-child(10) { width: 190px; }
+    #target-list-table .target-outreach-table th:nth-child(11) { width: 190px; }
+    #target-list-table .target-outreach-table th:nth-child(12) { width: 145px; }
+    #target-list-table .target-outreach-table th:nth-child(13) { width: 270px; }
+    #target-list-table .target-outreach-table th:nth-child(14) { width: 145px; }
+    #target-list-table .target-outreach-table th:nth-child(15) { width: 280px; }
+
+    #target-list-table .target-outreach-table td:nth-child(7) textarea,
+    #target-list-table .target-outreach-table td:nth-child(15) textarea {
+      min-height: 88px;
+    }
+
     .validation-interview-nav label {
       display: grid;
       min-width: min(340px, 100%);
@@ -15026,7 +15052,7 @@
       const personaOptions = [`<option value="">Choose persona</option>`, ...personas.map((persona) => `<option value="${escapeHtml(persona.id)}">${escapeHtml(persona.role)}</option>`)].join("");
       const messageOptions = [`<option value="">Choose message</option>`, ...messages.map((message) => `<option value="${escapeHtml(message.id)}">${escapeHtml(message.name)}</option>`)].join("");
       const rows = workspace.targets.map((target, index) => `<tr data-target-list-row="${escapeHtml(target.id)}"><td>${index + 1}</td><td><input data-target-list-field="name" value="${escapeHtml(target.name)}" placeholder="Contact or buyer"></td><td><input data-target-list-field="profile" value="${escapeHtml(target.profile)}" placeholder="Company or profile"></td><td><input data-target-list-field="source" value="${escapeHtml(target.source)}" placeholder="List, referral, event, community"></td><td><input data-target-list-field="contact" value="${escapeHtml(target.contact)}" placeholder="Email, URL, or details"></td><td><select data-target-list-field="fitTier">${messagingOptions(["Not reviewed", "Tier A", "Tier B", "Tier C", "Exclude"], target.fitTier)}</select></td><td><textarea data-target-list-field="fitReason" placeholder="Why this target belongs">${escapeHtml(target.fitReason)}</textarea></td><td><select data-target-list-field="personaId">${personaOptions.replace(`value="${escapeHtml(target.personaId)}"`, `value="${escapeHtml(target.personaId)}" selected`)}</select></td><td><select data-target-list-field="messageId">${messageOptions.replace(`value="${escapeHtml(target.messageId)}"`, `value="${escapeHtml(target.messageId)}" selected`)}</select></td><td><select data-target-list-field="status">${messagingOptions(["Not contacted", "Ready for outreach", "Contacted", "Replied", "Conversation scheduled", "Conversation complete", "Meaningful next step", "Not a fit", "Do not pursue"], target.status)}</select></td><td><input data-target-list-field="owner" value="${escapeHtml(target.owner)}" placeholder="Owner"></td><td><input type="date" data-target-list-field="lastTouch" value="${escapeHtml(target.lastTouch)}"></td><td><input data-target-list-field="nextAction" value="${escapeHtml(target.nextAction)}" placeholder="Specific next action"></td><td><input type="date" data-target-list-field="dueDate" value="${escapeHtml(target.dueDate)}"></td><td><textarea data-target-list-field="notes" placeholder="Evidence or context">${escapeHtml(target.notes)}</textarea></td></tr>`).join("");
-      list.innerHTML = `<h2>Targets and Outreach</h2><p class="muted">Assign each target to a persona and saved message version before outreach. Keep the next action and due date current.</p><div class="validation-workspace-table-wrap"><table class="validation-workspace-table"><thead><tr><th>#</th><th>Contact</th><th>Company / profile</th><th>Source</th><th>Contact details</th><th>Fit tier</th><th>Why it fits</th><th>Persona</th><th>Message version</th><th>Status</th><th>Owner</th><th>Last touch</th><th>Next action</th><th>Due date</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table></div><div class="messaging-editor-actions no-print"><button type="button" id="saveTargetList">Save Target List</button>${profile.isPreRevenue ? "" : '<button type="button" class="secondary" id="addTargetListRow">Add Target</button>'}<a class="secondary" href="${escapeHtml(reportAssetUrl("messaging"))}">Log Responses in Messaging Kit</a><span class="messaging-save-status" id="targetListSaveStatus"></span></div>`;
+      list.innerHTML = `<h2>Targets and Outreach</h2><p class="muted">Assign each target to a persona and saved message version before outreach. Keep the next action and due date current.</p><div class="validation-workspace-table-wrap"><table class="validation-workspace-table target-outreach-table"><thead><tr><th>#</th><th>Contact</th><th>Company / profile</th><th>Source</th><th>Contact details</th><th>Fit tier</th><th>Why it fits</th><th>Persona</th><th>Message version</th><th>Status</th><th>Owner</th><th>Last touch</th><th>Next action</th><th>Due date</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table></div><div class="messaging-editor-actions no-print"><button type="button" id="saveTargetList">Save Target List</button>${profile.isPreRevenue ? "" : '<button type="button" class="secondary" id="addTargetListRow">Add Target</button>'}<a class="secondary" href="${escapeHtml(reportAssetUrl("messaging"))}">Log Responses in Messaging Kit</a><span class="messaging-save-status" id="targetListSaveStatus"></span></div>`;
       main.appendChild(list);
 
       const review = document.createElement("section");
