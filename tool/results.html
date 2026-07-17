@@ -6829,8 +6829,11 @@
         });
       }
 
+      const structuredMotionName = [model.revenueMotion?.values.playName, data.primaryRevenueMotion, model.revenueMotion?.values.salesMotionType, data.primarySalesMotion, data.quickCurrentSalesMotion]
+        .map((value) => cleanText(value))
+        .find(Boolean) || "";
       const hasStructuredMotion = Boolean(
-        cleanText(model.revenueMotion?.values.playName || data.primaryRevenueMotion)
+        structuredMotionName
         && model.conversionStages.some((row) => row.values.stageName && row.values.entryCriteria && row.values.exitCriteria)
         && cleanText(data[revenueScopedField(model.revenueMotion?.rowId || primaryRevenueMotionRowId(data), "nextExperiment", "reviewCadence")] || data.revenueReportingCadence)
       );
@@ -7054,7 +7057,9 @@
       const targetList = targetListGuidance(model);
       const executionFeedback = model.readinessDiagnostic?.executionFeedback || executionEvidenceFeedback(data);
       const motionRowId = model.revenueMotion?.rowId || primaryRevenueMotionRowId(data);
-      const motionName = cleanText(model.revenueMotion?.values.playName || data.primaryRevenueMotion || data.primarySalesMotion || data.quickCurrentSalesMotion);
+      const motionName = [model.revenueMotion?.values.playName, data.primaryRevenueMotion, model.revenueMotion?.values.salesMotionType, data.primarySalesMotion, data.quickCurrentSalesMotion]
+        .map((value) => cleanText(value))
+        .find(Boolean) || "";
       const motionStages = model.conversionStages || [];
       const experimentMetric = cleanText(data[revenueScopedField(motionRowId, "nextExperiment", "successMetric")]);
       const experimentCadence = cleanText(data[revenueScopedField(motionRowId, "nextExperiment", "reviewCadence")]);

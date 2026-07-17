@@ -4,6 +4,12 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-17 Revenue Motion Name Resolution
+
+- Fixed a false `Named Revenue Motion` gap when the primary-motion selector stored a relationship ID such as `motion-1`.
+- Cleans each possible motion-name source separately and uses the first usable display value.
+- Applies the same resolved name to Ranked Action Plan priorities and Strategic Insights.
+
 ## 2026-07-17 Data Quality Review Navigation and QA Repair
 
 - Changed guided improvement `Save Answers` buttons to the consistent label `Save`.
