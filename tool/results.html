@@ -14340,15 +14340,26 @@
       const looksLikeSharedNarrative = text.length > 120
         && (matchingCustomerTokens >= 2 || /schedule\s+(?:a|an|the)?\s*\d+[- ]minute|diagnostic/i.test(text))
         && ((text.match(/[.!?]/g) || []).length >= 2 || /schedule|diagnostic/i.test(text));
+      const looksLikeCustomerGroup = matchingCustomerTokens >= 2
+        && /\b(?:employees|companies|businesses|manufacturers|consumers|customers|teams|segment|market|urgent|constraints)\b/i.test(text);
       const repeatsSharedContext = (shared && normalized === shared)
-        || looksLikeSharedNarrative;
+        || looksLikeSharedNarrative
+        || looksLikeCustomerGroup;
       return repeatsSharedContext ? "" : text;
     }
 
     function personaRoleTitle(row, sharedContext, customerGroup) {
+      const customerTokens = cleanText(customerGroup).toLowerCase().split(/[^a-z0-9]+/).filter((token) => token.length >= 5).slice(0, 6);
       const titles = personaAssetItems(row.titles || row.values?.commonTitles)
         .map((item) => personaRoleSpecificText(item, sharedContext, customerGroup))
-        .filter((item) => item && item.length <= 90 && !/[.!?]/.test(item));
+        .filter((item) => {
+          if (!item || item.length > 90 || /[.!?]/.test(item)) return false;
+          const normalized = item.toLowerCase();
+          const matchingCustomerTokens = customerTokens.filter((token) => normalized.includes(token)).length;
+          const looksLikeCustomerGroup = matchingCustomerTokens >= 2
+            && /\b(?:employees|companies|businesses|manufacturers|consumers|customers|teams|segment|market|urgent|constraints)\b/i.test(item);
+          return !looksLikeCustomerGroup;
+        });
       return titles.join(" / ") || row.label;
     }
 
