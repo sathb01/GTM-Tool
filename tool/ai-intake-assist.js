@@ -225,7 +225,7 @@
           suggestion.hidden = false;
           fieldStatus.textContent = "Suggestion ready. Review it before using it.";
         } catch (error) {
-          fieldStatus.textContent = error.message;
+          fieldStatus.textContent = `${error.message} Your current answer has not been changed.`;
         }
       });
       help.querySelector("[data-use-ai-field]").addEventListener("click", async () => {

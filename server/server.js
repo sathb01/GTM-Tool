@@ -374,6 +374,36 @@ function compactAssistantRecord(data = {}) {
   return Object.fromEntries(entries);
 }
 
+async function fetchAssistantResponse(payload) {
+  let lastError = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
+    try {
+      const response = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+      if (response.ok || ![500, 502, 503, 504].includes(response.status) || attempt === 1) {
+        return response;
+      }
+      lastError = new Error(`OpenAI assistant temporarily returned status ${response.status}.`);
+    } catch (error) {
+      lastError = error;
+      if (attempt === 1) throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 600));
+  }
+  throw lastError || new Error("AI help could not connect.");
+}
+
 async function handleAssistant(request, response, url) {
   if (url.pathname !== "/api/assistant") return false;
 
@@ -445,14 +475,16 @@ async function handleAssistant(request, response, url) {
     safety_identifier: sign(recordId || "gtm-os-shared-alpha").slice(0, 32)
   };
 
-  const apiResponse = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
+  let apiResponse;
+  try {
+    apiResponse = await fetchAssistantResponse(payload);
+  } catch (error) {
+    console.error(`OpenAI assistant connection failed: ${error.message}`);
+    sendJson(response, 502, { error: error.name === "AbortError"
+      ? "AI help took too long to respond. Try again."
+      : "AI help could not connect right now. Try again in a moment." });
+    return true;
+  }
   const raw = await apiResponse.text();
   if (!apiResponse.ok) {
     console.error(`OpenAI assistant failed with status ${apiResponse.status}.`);
