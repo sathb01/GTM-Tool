@@ -407,6 +407,11 @@
       background: #ffffff;
     }
 
+    body.intake-initializing .app-topbar,
+    body.intake-initializing main {
+      visibility: hidden;
+    }
+
     .required {
       color: var(--warn);
     }
@@ -1679,7 +1684,7 @@
   <link rel="stylesheet" href="ai-intake-assist.css">
   <script src="assistant-ui.js" defer></script>
 </head>
-<body>
+<body class="intake-initializing">
   <div class="app-topbar" aria-label="GTM OS workspace navigation">
     <div class="app-brand">
       <strong>GTM OS</strong>
@@ -1748,7 +1753,7 @@
 
   <script src="gtm-taxonomy.js?v=20260617-revenue-motions"></script>
   <script src="intake-schema.js?v=20260713-copyable-examples-5"></script>
-  <script src="app.js?v=20260713-copyable-examples-5"></script>
+  <script src="app.js?v=20260717-improvement-route-no-flash"></script>
   <script src="ai-research.js?v=20260616-quick-review"></script>
   <script src="ai-intake-assist.js?v=20260716-ai-answer-value-4"></script>
 </body>

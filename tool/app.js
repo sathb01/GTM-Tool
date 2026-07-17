@@ -9406,6 +9406,17 @@ async function initializeIntake() {
   if (incomingRecordId) {
     setActiveRecordId(incomingRecordId);
   }
+  const incomingImprovementFocus = currentImprovementFocus();
+  if (incomingImprovementFocus?.sectionId) {
+    const targetSection = schema.sections.find((section) =>
+      section.id === incomingImprovementFocus.sectionId && !section.hidden && !section.deprecated
+    );
+    if (targetSection) {
+      currentReportMode = "detailed";
+      detailedSectionsVisible = true;
+      activeSectionId = targetSection.id;
+    }
+  }
   renderSections();
   updateDetailedActionBar();
   await loadBackendRecords();
@@ -9539,4 +9550,10 @@ async function initializeIntake() {
   });
 }
 
-initializeIntake();
+initializeIntake()
+  .catch((error) => {
+    console.error("The intake could not finish loading.", error);
+  })
+  .finally(() => {
+    document.body.classList.remove("intake-initializing");
+  });

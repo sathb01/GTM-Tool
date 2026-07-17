@@ -4,6 +4,12 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-17 Improvement Route Loading
+
+- Prevented the default GTM OS intake section from flashing before an `Improve This Section` destination loads.
+- Resolves the requested improvement section before the intake's first render.
+- Keeps the workspace hidden only during initialization, then reveals the correctly routed section.
+
 ## 2026-07-17 Ranked Action Remediation Links
 
 - Turned each missing Revenue Motion Discipline operating element into a direct guided intake link.
