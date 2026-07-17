@@ -6781,13 +6781,15 @@
         });
       }
 
-      if (data.revenueTrackingSystem && !/none/i.test(data.revenueTrackingSystem) && /low|not sure|incomplete/i.test(data.revenueDataQuality || data.revenueInfrastructureNotes || "")) {
+      if (data.revenueTrackingSystem && !/none/i.test(data.revenueTrackingSystem) && /low|not sure|incomplete|inconsistent/i.test(`${data.revenueDataQuality || ""} ${data.revenueInfrastructureNotes || ""}`)) {
         addStrategicInsight(insights, {
           type: "risk",
-          title: "CRM data quality may block learning.",
-          observation: "The company has a CRM, but data quality is low or incomplete.",
+          title: "Specific CRM fields may weaken learning.",
+          observation: cleanText(data.revenueInfrastructureNotes) || "The company has a CRM, but one or more data fields are incomplete or inconsistent.",
           whyItMatters: "Without reliable source, stage, owner, and next-action data, the team cannot learn which GTM motion is working.",
-          recommendedAction: "Configure the minimum CRM fields and run a weekly pipeline review before increasing activity volume.",
+          recommendedAction: /loss reason|source attribution/i.test(data.revenueInfrastructureNotes || "")
+            ? "Standardize loss reasons and source attribution within the existing CRM and weekly review."
+            : "Correct the specific incomplete CRM fields within the existing review process.",
           confidence: "High",
           severity: "High",
           affectedSections: ["CRM Setup Brief", "Revenue Motion"],
@@ -6817,7 +6819,12 @@
         });
       }
 
-      if (model.revenueSnapshot.score < 66 || /no defined|manual|not tracked|inconsistent/i.test([data.salesMotion, data.funnelTracking, data.revenueInfrastructureNotes].filter(Boolean).join(" "))) {
+      const hasStructuredMotion = Boolean(
+        cleanText(model.revenueMotion?.values.playName || data.primaryRevenueMotion)
+        && model.conversionStages.some((row) => row.values.stageName && row.values.entryCriteria && row.values.exitCriteria)
+        && cleanText(data[revenueScopedField(model.revenueMotion?.rowId || primaryRevenueMotionRowId(data), "nextExperiment", "reviewCadence")] || data.revenueReportingCadence)
+      );
+      if (model.revenueSnapshot.score < 66 && !hasStructuredMotion) {
         addStrategicInsight(insights, {
           type: "risk",
           title: "Revenue motion needs structure before scale.",
@@ -7035,6 +7042,31 @@
       const activity = buildActivityModel(model);
       const targetList = targetListGuidance(model);
       const executionFeedback = model.readinessDiagnostic?.executionFeedback || executionEvidenceFeedback(data);
+      const motionRowId = model.revenueMotion?.rowId || primaryRevenueMotionRowId(data);
+      const motionName = cleanText(model.revenueMotion?.values.playName || data.primaryRevenueMotion || data.primarySalesMotion || data.quickCurrentSalesMotion);
+      const motionStages = model.conversionStages || [];
+      const experimentMetric = cleanText(data[revenueScopedField(motionRowId, "nextExperiment", "successMetric")]);
+      const experimentCadence = cleanText(data[revenueScopedField(motionRowId, "nextExperiment", "reviewCadence")]);
+      const channelActivity = cleanText(data[revenueScopedField(motionRowId, "channelPerformance", "currentActivity")]);
+      const savedTargets = Array.isArray(data.targetListWorkspace?.targets) ? data.targetListWorkspace.targets.filter((item) => item && (item.name || item.profile)) : [];
+      const operatingCoverage = {
+        motion: Boolean(motionName),
+        target: Boolean(savedTargets.length || model.priorityGroup?.values.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer),
+        activityTarget: Boolean(experimentMetric || channelActivity || activity.totals?.weeklyActivity),
+        stageCriteria: motionStages.some((row) => row.values.stageName && row.values.entryCriteria && row.values.exitCriteria),
+        reviewCadence: Boolean(experimentCadence || data.revenueReportingCadence),
+        tracking: Boolean(data.revenueTrackingSystem && !/none/i.test(data.revenueTrackingSystem))
+      };
+      const missingMotionParts = Object.entries(operatingCoverage)
+        .filter(([, complete]) => !complete)
+        .map(([part]) => ({
+          motion: "named revenue motion",
+          target: "priority target or target list",
+          activityTarget: "30-day activity or result target",
+          stageCriteria: "pipeline stage criteria",
+          reviewCadence: "review cadence",
+          tracking: "CRM or pipeline tracking system"
+        })[part]);
       if (executionFeedback.state === "Challenged") {
         addRevenueImpactPriority(priorities, model, {
           category: "Execution Evidence",
@@ -7049,22 +7081,21 @@
         });
       }
       const motionReadinessLow = model.revenueSnapshot.score < 66
-        || choiceScore(data.salesMotion) < 3
-        || choiceScore(data.funnelTracking) < 3
-        || /no defined|manual|not tracked|inconsistent|unclear/i.test([data.salesMotion, data.funnelTracking, data.revenueInfrastructureNotes].filter(Boolean).join(" "));
+        || missingMotionParts.length > 0
+        || (choiceScore(data.salesMotion) < 3 && !operatingCoverage.stageCriteria)
+        || (choiceScore(data.funnelTracking) < 3 && !operatingCoverage.tracking);
       if (motionReadinessLow) {
-        const namedMotion = cleanText(model.revenueMotion?.values.playName || data.primaryRevenueMotion);
         addRevenueImpactPriority(priorities, model, {
           category: "Revenue Motion Discipline",
           priority: "Revenue motion discipline",
           impact: "High",
           whyItMatters: "The company cannot reliably create revenue until it can create, track, and improve qualified opportunities.",
-          drivers: namedMotion
-            ? `The selected motion (${namedMotion}) still lacks complete activity, stage, conversion, or review rules.`
-            : "Low sales process maturity, weak funnel tracking, and unclear revenue motion structure.",
-          recommendedAction: namedMotion
-            ? `Operationalize ${namedMotion} with a 30-day activity target, result target, stage criteria, and weekly review cadence.`
-            : "Define one revenue motion, one target list, one weekly activity target, and one pipeline review cadence.",
+          drivers: missingMotionParts.length
+            ? `${motionName ? `The selected motion (${motionName})` : "The revenue motion"} is missing: ${toSentence(missingMotionParts)}.`
+            : `The selected motion (${motionName || "current motion"}) has a readiness score of ${model.revenueSnapshot.score}/100 and needs improvement in ${toSentence(model.revenueSnapshot.gaps.map((item) => item.name))}.`,
+          recommendedAction: missingMotionParts.length
+            ? `Complete only the missing operating elements: ${toSentence(missingMotionParts)}.`
+            : (model.revenueSnapshot.nextMoves[0] || `Improve the weakest measured part of ${motionName || "the current revenue motion"}.`),
           confidence: "High",
           blocksOthers: true,
           connectedTo90DayGoal: true
@@ -7121,14 +7152,16 @@
         });
       }
 
-      if (data.revenueTrackingSystem && !/none/i.test(data.revenueTrackingSystem) && /low|not sure|incomplete/i.test(data.revenueDataQuality || data.revenueInfrastructureNotes || "")) {
+      if (data.revenueTrackingSystem && !/none/i.test(data.revenueTrackingSystem) && /low|not sure|incomplete|inconsistent/i.test(`${data.revenueDataQuality || ""} ${data.revenueInfrastructureNotes || ""}`)) {
         addRevenueImpactPriority(priorities, model, {
           category: "CRM / Data Quality",
           priority: "CRM data quality",
           impact: "Medium",
           whyItMatters: "Poor CRM data prevents the team from learning which sources, stages, and actions create revenue.",
-          drivers: "CRM exists, but data quality is low or incomplete.",
-          recommendedAction: "Configure minimum fields, dashboards, source tracking, next-action fields, and weekly review.",
+          drivers: cleanText(data.revenueInfrastructureNotes) || "CRM exists, but one or more data fields are incomplete or inconsistent.",
+          recommendedAction: /loss reason|source attribution/i.test(data.revenueInfrastructureNotes || "")
+            ? "Standardize required loss reasons and source attribution, then review completion during the existing weekly pipeline review."
+            : "Complete the specific missing CRM fields and verify them during the existing review cadence.",
           confidence: "High",
           blocksOthers: true
         });
@@ -7191,13 +7224,26 @@
       }
 
       const fallbackPriorities = [
-        {
+        operatingCoverage.motion && operatingCoverage.target && operatingCoverage.activityTarget && operatingCoverage.stageCriteria && operatingCoverage.reviewCadence
+          ? {
+            category: "Revenue Motion Optimization",
+            priority: "Optimize the proven revenue motion",
+            impact: "Medium",
+            whyItMatters: "The operating structure is already defined, so the next gain should come from improving measured performance rather than redefining the motion.",
+            drivers: `${motionName} already has a target, activity or result target, stage criteria, and review cadence.`,
+            recommendedAction: model.revenueMotion?.values.evidenceOrUnknowns
+              ? `Use the existing weekly review to improve this constraint: ${cleanText(model.revenueMotion.values.evidenceOrUnknowns)}`
+              : "Use the existing weekly review to identify and improve the weakest measured conversion or source.",
+            confidence: "High",
+            connectedTo90DayGoal: true
+          }
+          : {
           category: "Revenue Motion Discipline",
           priority: "Revenue motion discipline",
           impact: "Medium",
           whyItMatters: "A disciplined motion keeps revenue activity measurable and easier to improve.",
-          drivers: "Revenue impact depends on the clarity of the motion, owner, target list, and review cadence.",
-          recommendedAction: "Confirm the primary revenue motion, weekly activity target, owner, and review cadence.",
+          drivers: `The motion still needs ${toSentence(missingMotionParts)}.`,
+          recommendedAction: `Complete only the missing operating elements: ${toSentence(missingMotionParts)}.`,
           confidence: "Medium",
           blocksOthers: true,
           connectedTo90DayGoal: true

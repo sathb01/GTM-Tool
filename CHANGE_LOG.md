@@ -4,6 +4,15 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-17 Evidence-Aware Revenue Motion Priorities
+
+- Corrected the Ranked Action Plan so an isolated CRM hygiene note cannot imply that the entire revenue motion is undefined.
+- Verified that both ForgeLine QA records contain a named motion, target, activity and result targets, conversion stages, owners, tracking, and weekly review cadence.
+- Made Revenue Motion Discipline recommendations list only the operating elements that are actually missing.
+- Replaced the generic fallback with motion optimization when the operating structure is already complete.
+- Routed inconsistent loss-reason or source-attribution data to a specific CRM Data Quality recommendation instead of a rebuild-the-motion recommendation.
+- Removed the same false-positive pattern from Strategic Insights.
+
 ## 2026-07-17 GTM Summary Output Mapping
 
 - Removed the standalone Decision and Immediate Action box from the summary.
