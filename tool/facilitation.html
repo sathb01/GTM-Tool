@@ -61,17 +61,33 @@
     .duplicate-row { border-top: 1px solid #fcd34d; margin-top: 10px; padding-top: 10px; }
     .duplicate-row:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
     .duplicate-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .improvement-journey { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px max(16px, calc((100% - 1040px) / 2)); background: #fff; border-bottom: 1px solid var(--border); box-shadow: 0 4px 14px rgba(22, 32, 51, 0.08); }
+    .improvement-journey-copy { min-width: 0; }
+    .improvement-journey-label { display: block; color: var(--accent-dark); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    .improvement-journey strong, .improvement-journey span { display: block; overflow-wrap: anywhere; }
+    .improvement-journey-origin { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    .improvement-journey a { flex: 0 0 auto; }
     @media (max-width: 760px) { main { width: min(100% - 20px, 1040px); margin: 16px auto; } .grid { grid-template-columns: 1fr; } }
     @media (max-width: 760px) { .flow-picker { grid-template-columns: 1fr; } }
+    @media (max-width: 760px) { .improvement-journey { align-items: flex-start; flex-direction: column; } }
   </style>
 </head>
 <body>
+  <aside class="improvement-journey" id="improvementJourney" hidden>
+    <div class="improvement-journey-copy">
+      <span class="improvement-journey-label">Improving</span>
+      <strong id="improvementJourneyName">This section</strong>
+      <span class="improvement-journey-origin" id="improvementJourneyOrigin">Return to your plan</span>
+      <span class="improvement-journey-origin" id="improvementJourneyProgress">0 questions answered</span>
+    </div>
+    <a class="secondary" id="journeyReturnLink" href="results.html">Return Without Saving</a>
+  </aside>
   <main>
     <header>
       <h1 id="flowTitle">Guided Facilitation</h1>
       <p class="muted" id="flowSubtitle">Answer the prompts, save the output, then regenerate the GTM OS report.</p>
       <div class="actions">
-        <a class="secondary" id="backLink" href="results.html">Back to Report</a>
+        <a class="secondary" id="backLink" href="results.html">Return Without Saving</a>
         <a class="secondary" id="reportLink" href="results.html" hidden>Back to Report</a>
       </div>
     </header>
@@ -112,9 +128,9 @@
       <h2 class="draft-section">Draft improved output</h2>
       <pre class="draft-section" id="draftOutput"></pre>
       <div class="actions">
-        <button type="button" id="saveButton">Save Answers</button>
-        <button type="button" id="regenerateButton">Regenerate GTM OS Report</button>
-        <a class="secondary" id="backLinkBottom" href="results.html">Back to Report</a>
+        <button type="button" id="saveButton">Save Changes and Return</button>
+        <button type="button" id="regenerateButton" hidden>Regenerate GTM OS Report</button>
+        <a class="secondary" id="backLinkBottom" href="results.html">Return Without Saving</a>
         <a class="secondary" id="reportLinkBottom" href="results.html" hidden>Back to Report</a>
       </div>
       <p class="status" id="saveStatus"></p>
@@ -139,6 +155,8 @@
       return text;
     }
     const requestedReturnTo = safeRelativeUrl(params.get("returnTo"), "");
+    const requestedReturnLabel = String(params.get("returnLabel") || "").trim();
+    const requestedImprovementLabel = String(params.get("improving") || "").trim();
     const FACILITATION_SCHEMA_VERSION = "20260701-remediation-anchor-cleanup-v1";
     const FLOW_SCHEMA_VERSIONS = {
       icp: "20260701-icp-offer-anchor-v1",
@@ -1468,7 +1486,7 @@
 
     function updateBackLinks(reportUrl) {
       const primaryBackUrl = requestedReturnTo || reportUrl;
-      const primaryBackText = requestedReturnTo ? "Back to Intake" : "Back to Report";
+      const primaryBackText = "Return Without Saving";
       const backLink = document.getElementById("backLink");
       const backLinkBottom = document.getElementById("backLinkBottom");
       const reportLink = document.getElementById("reportLink");
@@ -1479,12 +1497,44 @@
         link.href = primaryBackUrl;
         link.textContent = primaryBackText;
       });
+      if (backLink) backLink.hidden = Boolean(requestedReturnTo);
+      if (backLinkBottom) backLinkBottom.hidden = false;
 
       [reportLink, reportLinkBottom].forEach((link) => {
         if (!link) return;
         link.href = reportUrl;
-        link.hidden = !requestedReturnTo;
+        link.hidden = true;
       });
+
+      const journey = document.getElementById("improvementJourney");
+      const journeyReturnLink = document.getElementById("journeyReturnLink");
+      if (requestedReturnTo && journey && journeyReturnLink) {
+        journey.hidden = false;
+        journeyReturnLink.href = primaryBackUrl;
+        document.getElementById("improvementJourneyName").textContent = requestedImprovementLabel || flows[flowType]?.title || "This section";
+        document.getElementById("improvementJourneyOrigin").textContent = `Return to: ${requestedReturnLabel || "the section where you started"}`;
+      }
+    }
+
+    function savedReturnUrl(reportUrl) {
+      const destination = new URL(requestedReturnTo || reportUrl, window.location.href);
+      destination.searchParams.set("facilitation", "saved");
+      destination.searchParams.set("improvement", "saved");
+      if (requestedImprovementLabel) destination.searchParams.set("improved", requestedImprovementLabel);
+      return `${destination.pathname.split("/").pop() || "results.html"}${destination.search}${destination.hash}`;
+    }
+
+    function updateJourneyProgress() {
+      const progress = document.getElementById("improvementJourneyProgress");
+      if (!progress || !flows[flowType]) return;
+      const answers = collectAnswers();
+      const total = flows[flowType].questions.length;
+      const answered = flows[flowType].questions.reduce((count, _question, index) => {
+        const value = answers[`q${index}`];
+        const hasAnswer = Array.isArray(value) ? value.length > 0 : String(value || "").trim() !== "";
+        return count + (hasAnswer ? 1 : 0);
+      }, 0);
+      progress.textContent = `${answered} of ${total} questions answered`;
     }
 
     function render() {
@@ -1535,6 +1585,9 @@
       });
       updateConditionalQuestions();
       document.getElementById("draftOutput").textContent = savedMatchesCurrentQuestions && saved.draft?.text ? saved.draft.text : draftText(flow, answers);
+      updateJourneyProgress();
+      document.getElementById("questionList").addEventListener("input", updateJourneyProgress);
+      document.getElementById("questionList").addEventListener("change", updateJourneyProgress);
     }
 
     async function saveOutput() {
@@ -1569,10 +1622,14 @@
           body: JSON.stringify(activeRecord)
         });
       }
-      document.getElementById("saveStatus").textContent = "Saved as facilitation output. Regenerate the GTM OS report to refresh the recommendations.";
+      document.getElementById("saveStatus").textContent = "Changes saved.";
     }
 
-    document.getElementById("saveButton").addEventListener("click", saveOutput);
+    document.getElementById("saveButton").addEventListener("click", async () => {
+      await saveOutput();
+      const reportParams = new URLSearchParams({ v: "20260623-sprint10", recordId: activeRecord.id });
+      window.location.href = savedReturnUrl(`results.html?${reportParams.toString()}`);
+    });
     document.getElementById("regenerateButton").addEventListener("click", async () => {
       await saveOutput();
       const query = new URLSearchParams({

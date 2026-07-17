@@ -5,6 +5,7 @@ const root = path.resolve(import.meta.dirname, "..");
 const records = JSON.parse(fs.readFileSync(path.join(root, "server/data/records.json"), "utf8"));
 const appSource = fs.readFileSync(path.join(root, "tool/app.js"), "utf8");
 const resultsSource = fs.readFileSync(path.join(root, "tool/results.html"), "utf8");
+const facilitationSource = fs.readFileSync(path.join(root, "tool/facilitation.html"), "utf8");
 
 const ids = {
   pawpath: "qa-pre-dtc-pawpath-20260712",
@@ -116,6 +117,8 @@ check("Intake assets: GTM Plan Summary is first", /const assetLinks = isPreReven
 check("GTM Plan Summary: four cards use dynamic plan state", /const dynamicSummary = dynamicPlanSummary\(model\)/.test(resultsSource) && /currentPriorities/.test(resultsSource) && /Evidence: \$\{dynamicSummary\.feedback\.state\}/.test(resultsSource));
 check("GTM Plan Summary: 90-day focus is bulleted", /<h3>Recommended 90-Day Focus<\/h3>\s*<ul class="two-column-list">/.test(resultsSource));
 check("GTM Plan Summary: decision and completeness are bulleted", /<h3>Decision Required<\/h3>\$\{summaryBulletList\(decisionContent\.decisionRequired, true\)\}/.test(resultsSource) && /<h3>Plan Completeness<\/h3>\$\{summaryBulletList\(planCompletenessCopy\(model\)\)\}/.test(resultsSource));
+check("Improvement flow: exact report return is preserved", /function reportImprovementReturn\(trigger\)/.test(resultsSource) && /resumeY/.test(resultsSource));
+check("Improvement flow: save and return actions are explicit", /Save Changes and Return/.test(resultsSource + facilitationSource) && /Return Without Saving/.test(facilitationSource));
 check("Pipeline: weekly review consumes opportunity data", /pipelineWorkspaceState\(data, profile\)/.test(resultsSource) && /openOpportunities/.test(resultsSource));
 check("Pipeline: CRM source-of-truth mode exists", resultsSource.includes("CRM is the source of truth"));
 check("Persistence: asset workspaces update the saved record", /api\/records\//.test(resultsSource) && /method: "PUT"/.test(resultsSource));

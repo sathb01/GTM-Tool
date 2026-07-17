@@ -1936,6 +1936,9 @@
     .insight-card p {
       margin-bottom: 8px;
     }
+    .improvement-return-notice { margin: 0 0 16px; padding: 14px 16px; border: 1px solid #f6b39f; border-radius: 8px; background: #fff1ec; color: #6f2d1f; }
+    .improvement-return-notice strong { display: block; margin-bottom: 3px; }
+    main > section.improvement-return-highlight { outline: 3px solid rgba(255, 122, 89, 0.45); outline-offset: 4px; }
 
     .revenue-impact-helper {
       margin: 12px 0 14px;
@@ -7118,7 +7121,7 @@
       actions.className = "card-actions no-print";
       improveButton.type = "button";
       improveButton.textContent = "Improve This Section";
-      improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(area.area)));
+      improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(area.area), improveButton, area.area));
       actions.appendChild(improveButton);
       block.appendChild(actions);
       container.appendChild(block);
@@ -7155,7 +7158,7 @@
       actions.className = "card-actions no-print";
       improveButton.type = "button";
       improveButton.textContent = "Improve This Section";
-      improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(`${recommendation.category} ${recommendation.title}`)));
+      improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(`${recommendation.category} ${recommendation.title}`), improveButton, recommendation.title));
       actions.appendChild(improveButton);
       block.appendChild(actions);
       container.appendChild(block);
@@ -7177,7 +7180,7 @@
       actions.className = "card-actions no-print";
       improveButton.type = "button";
       improveButton.textContent = "Improve This Section";
-      improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(asset.title)));
+      improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(asset.title), improveButton, asset.title));
       actions.appendChild(improveButton);
       block.appendChild(actions);
       container.appendChild(block);
@@ -7199,7 +7202,7 @@
       actions.className = "card-actions no-print";
       improveButton.type = "button";
       improveButton.textContent = "Improve This Section";
-      improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(plan.title)));
+      improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(plan.title), improveButton, plan.title));
       actions.appendChild(improveButton);
       block.appendChild(actions);
       container.appendChild(block);
@@ -7582,7 +7585,7 @@
         });
         improveButton.type = "button";
         improveButton.textContent = "Improve This Section";
-        improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(area.area)));
+        improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(area.area), improveButton, area.area));
         actions.appendChild(copyButton);
         actions.appendChild(improveButton);
         card.appendChild(actions);
@@ -7739,17 +7742,73 @@
       return "icp";
     }
 
-    function facilitationUrl(type) {
+    function reportImprovementReturn(trigger) {
+      const returnUrl = new URL(window.location.href);
+      returnUrl.searchParams.delete("improvement");
+      returnUrl.searchParams.delete("improved");
+      returnUrl.searchParams.delete("resumeY");
+      returnUrl.searchParams.set("resumeY", String(Math.max(0, Math.round(window.scrollY))));
+      const section = trigger?.closest("main > section");
+      if (section?.id) returnUrl.hash = section.id;
+      const pageLabel = document.getElementById("companyName")?.textContent.trim() || "GTM plan";
+      const sectionLabel = section?.dataset.toc || section?.querySelector("h2")?.textContent.trim() || "current section";
+      return {
+        url: `${returnUrl.pathname.split("/").pop() || "results.html"}${returnUrl.search}${returnUrl.hash}`,
+        label: `${pageLabel} / ${sectionLabel}`
+      };
+    }
+
+    function facilitationUrl(type, trigger, improvementLabel = "") {
       const recordId = activeReportRecordId();
       const query = new URLSearchParams({ type, v: "20260623-sprint10" });
       if (recordId) query.set("recordId", recordId);
-      const returnTo = intakeReturnUrl();
-      if (returnTo !== "index.html") query.set("returnTo", returnTo);
+      const origin = reportImprovementReturn(trigger);
+      query.set("returnTo", origin.url);
+      query.set("returnLabel", origin.label);
+      query.set("improving", improvementLabel || type);
       return `facilitation.html?${query.toString()}`;
     }
 
-    function openFacilitation(type) {
-      window.location.href = facilitationUrl(type);
+    function openFacilitation(type, trigger, improvementLabel = "") {
+      window.location.href = facilitationUrl(type, trigger, improvementLabel);
+    }
+
+    function restoreImprovementReturnState() {
+      const params = new URLSearchParams(window.location.search);
+      const resumeValue = params.get("resumeY");
+      const resumeY = resumeValue === null ? Number.NaN : Number(resumeValue);
+      const saved = params.get("improvement") === "saved";
+      const improved = params.get("improved") || "This section";
+      const target = window.location.hash ? document.getElementById(decodeURIComponent(window.location.hash.slice(1))) : null;
+
+      if (saved && !document.getElementById("improvementReturnNotice")) {
+        const header = document.querySelector("main > header");
+        const notice = document.createElement("div");
+        notice.id = "improvementReturnNotice";
+        notice.className = "improvement-return-notice no-print";
+        notice.innerHTML = `<strong>Changes saved and the plan has been updated.</strong><span>${escapeHtml(improved)}</span>`;
+        header?.insertAdjacentElement("afterend", notice);
+      }
+      if (target) target.classList.add("improvement-return-highlight");
+      if (Number.isFinite(resumeY)) {
+        window.__improvementResumeY = resumeY;
+      }
+      if (saved || Number.isFinite(resumeY)) {
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete("improvement");
+        cleanUrl.searchParams.delete("improved");
+        cleanUrl.searchParams.delete("resumeY");
+        window.history.replaceState({}, "", `${cleanUrl.pathname.split("/").pop() || "results.html"}${cleanUrl.search}${cleanUrl.hash}`);
+      }
+    }
+
+    function finalizeImprovementReturnPosition() {
+      const resumeY = Number(window.__improvementResumeY);
+      if (!Number.isFinite(resumeY)) return;
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: resumeY, behavior: "auto" });
+        delete window.__improvementResumeY;
+      });
     }
 
     function escapeHtml(value) {
@@ -8473,7 +8532,7 @@
         actions.className = "card-actions no-print";
         workButton.type = "button";
         workButton.textContent = "Improve This Section";
-        workButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(`${recommendation.category} ${recommendation.title}`)));
+        workButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(`${recommendation.category} ${recommendation.title}`), workButton, recommendation.title));
         actions.appendChild(workButton);
         card.appendChild(actions);
         list.appendChild(card);
@@ -8867,7 +8926,7 @@
         actions.className = "card-actions no-print";
         improveButton.type = "button";
         improveButton.textContent = "Improve This Section";
-        improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(asset.title)));
+        improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(asset.title), improveButton, asset.title));
         actions.appendChild(improveButton);
         card.appendChild(actions);
         list.appendChild(card);
@@ -9078,7 +9137,7 @@
         actions.className = "card-actions no-print";
         startButton.type = "button";
         startButton.textContent = "Improve This Section";
-        startButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(plan.title)));
+        startButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(plan.title), startButton, plan.title));
         actions.appendChild(startButton);
         card.appendChild(actions);
         list.appendChild(card);
@@ -10494,13 +10553,14 @@
       };
 
       const links = Array.from(sectionToc.querySelectorAll("a"));
-      const requestedAsset = new URLSearchParams(window.location.search).get("asset") || "";
+      const navigationParams = new URLSearchParams(window.location.search);
+      const requestedAsset = navigationParams.get("asset") || "";
       const requestedAssetId = requestedAsset === "validation"
         ? "plan-decision"
         : requestedAsset === "gtm"
           ? "draft-icp"
           : "";
-      if (requestedAssetId) {
+      if (requestedAssetId && !navigationParams.has("resumeY")) {
         const requestedSection = document.getElementById(requestedAssetId);
         const requestedDetails = requestedSection?.querySelector(":scope > details.section-details");
         if (requestedDetails) {
@@ -10521,6 +10581,7 @@
         sections.forEach((section) => observer.observe(section));
       }
       applyStandardActionIcons();
+      restoreImprovementReturnState();
     }
 
     function safeRenderSection(sectionName, renderFn) {
@@ -16169,7 +16230,7 @@
       }
     }
 
-    render().catch(showRenderError);
+    render().then(finalizeImprovementReturnPosition).catch(showRenderError);
   </script>
 </body>
 </html>

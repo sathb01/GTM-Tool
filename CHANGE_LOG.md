@@ -4,6 +4,15 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-16 Guided Improvement Round Trip
+
+- Standardized every `Improve This Section` action to open its facilitation flow in the same browser tab.
+- Added a persistent improvement bar showing what is being improved, where the user will return, and answered-question progress.
+- Replaced the old save/regenerate controls with `Save Changes and Return` and `Return Without Saving`.
+- Returns users to the exact originating asset, section, and scroll position.
+- Shows a saved-and-updated confirmation and briefly highlights the originating report section after a successful save.
+- Added an isolated end-to-end test for both saved and unsaved return paths.
+
 ## 2026-07-16 GTM Plan Summary Navigation
 
 - Added the opening GTM plan view as the first item in every Assets navigation list.
