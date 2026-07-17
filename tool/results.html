@@ -2730,7 +2730,7 @@
     </section>
 
     <section data-toc="Offer">
-      <h2>Offer Plan</h2>
+      <h2>Offer and Value Proof Plan</h2>
       <div id="offerStrategy"></div>
     </section>
 
@@ -4022,10 +4022,82 @@
       const values = row?.values || {};
       const text = `${valueClaimOutcome(row)} ${valueClaimMetric(row)} ${values.missingProof || values.proofGap || ""}`;
       if (/roi|business case/i.test(text)) return "ROI calculator or business-case worksheet";
-      if (/margin|cost|dollar|savings/i.test(text)) return "Cost or margin proof sheet";
+      if (/contribution margin/i.test(text)) return "Contribution margin baseline and proof worksheet";
+      if (/margin|cost|dollar|savings/i.test(text)) return "Cost or margin baseline and proof worksheet";
       if (/time|hours|days|cycle|manual/i.test(text)) return "Time-savings proof point or quantified case study";
       if (/risk|quality|compliance|delay/i.test(text)) return "Risk-reduction proof story";
       return "Customer quote, before/after example, or one-page proof asset";
+    }
+
+    function valueClaimProofSteps(row) {
+      const values = row?.values || {};
+      const metric = valueClaimMetric(row) || "the selected success metric";
+      const outcome = valueClaimOutcome(row) || "the value claim";
+      const gap = valueClaimTopGap(row);
+      if (/baseline/i.test(gap) && /contribution margin/i.test(metric)) {
+        return [
+          "Choose the level being measured: company, offer, product line, customer, or project.",
+          "Record contribution margin for a recent representative period, using either dollars (revenue minus direct variable costs) or percentage ((revenue minus direct variable costs) divided by revenue). Use the same method for the baseline and target.",
+          "Record the revenue, direct variable costs, period, and source used in the calculation so the baseline can be checked.",
+          "Define the target improvement and time period, such as increasing contribution margin from 28% to 34% within 90 days.",
+          "Add a customer result, before-and-after comparison, benchmark, or internal calculation that supports the expected improvement."
+        ];
+      }
+      if (/baseline/i.test(gap)) {
+        return [
+          `Choose the customer, offer, process, or period that ${metric.toLowerCase()} will measure.`,
+          `Record the current ${metric.toLowerCase()}, measurement period, calculation method, and source.`,
+          "Define the target improvement and the date by which it should occur.",
+          "Add the strongest available evidence supporting the expected change."
+        ];
+      }
+      if (/metric/i.test(gap)) {
+        return [
+          `Choose one metric a buyer would use to verify "${outcome}."`,
+          "Define how it will be calculated, where the data comes from, and how often it can be measured.",
+          "Capture the current baseline and target improvement before using the claim in sales messaging."
+        ];
+      }
+      if (/proof|sales-ready/i.test(gap)) {
+        return [
+          "Identify the customer, project, benchmark, or internal calculation that best supports the claim.",
+          "Capture the before state, what changed, the result, and the source of the evidence.",
+          "Confirm whether the evidence can be named, anonymized, or used only internally.",
+          "Turn the evidence into the recommended proof asset before promoting the claim broadly."
+        ];
+      }
+      return [
+        "Confirm the buyer, metric, baseline, target improvement, and evidence supporting the claim.",
+        "Use the claim in messaging only after the proof can be explained and checked."
+      ];
+    }
+
+    function renderValueClaimProofAction(container, row) {
+      const score = scoreValueClaim(row);
+      const claim = polishedText(row.values.buyerFacingClaim || row.values.buyerLanguage || valueClaimOutcome(row));
+      const metric = valueClaimMetric(row) || missingText;
+      const gap = valueClaimTopGap(row);
+      const action = document.createElement("article");
+      const heading = document.createElement("h4");
+      const intro = document.createElement("p");
+      const stepsHeading = document.createElement("h4");
+      const steps = document.createElement("ul");
+      const deliverable = document.createElement("p");
+      const done = document.createElement("p");
+      action.className = "blueprint-card value-claim-proof-action avoid-break";
+      heading.textContent = `Validate the "${claim || valueClaimOutcome(row)}" claim`;
+      intro.innerHTML = `<strong>What this refers to:</strong> The offer claims "${escapeHtml(claim || valueClaimOutcome(row))}" and measures success using ${escapeHtml(metric)}. Its current readiness is ${escapeHtml(valueClaimStatus(score).toLowerCase())} because ${escapeHtml(gap.toLowerCase())}`;
+      stepsHeading.textContent = "What to capture";
+      valueClaimProofSteps(row).forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        steps.appendChild(li);
+      });
+      deliverable.innerHTML = `<strong>Deliverable:</strong> ${escapeHtml(valueClaimSuggestedAsset(row))}`;
+      done.innerHTML = `<strong>Done when:</strong> The baseline, calculation source, target improvement, and supporting evidence are recorded clearly enough for a buyer or sales lead to verify the claim.`;
+      action.append(heading, intro, stepsHeading, steps, deliverable, done);
+      appendReviewLink(action, "Complete Claim and Proof Inputs", "offer value claim baseline proof", { sameTab: true, returnSectionId: "offerStrategy", task: `Complete proof for ${claim || valueClaimOutcome(row)}` });
+      container.appendChild(action);
     }
 
     function renderMeasurableValueClaims(data) {
@@ -5841,7 +5913,7 @@
     function appendPlanOutputLinks() {
       const mappings = [
         ["icpPlaybook", [["ICP Brief", "icp"], ["Target List", "targets"]]],
-        ["offerStrategy", [["Messaging Kit", "messaging"], ["Proof Asset Builder", "proof-assets"]]],
+        ["offerStrategy", [["Proof Asset Builder", "proof-assets"], ["Messaging Kit", "messaging"]], "Complete the proof work first. Once the claim is supported, use it in the Messaging Kit."],
         ["buyerPersonaBlueprint", [["Persona Brief", "personas"], ["Messaging Kit", "messaging"]]],
         ["triggerSignalStrategy", [["Target List", "targets"], ["Outreach Sequence", "outreach"]]],
         ["salesMotionBlueprint", [["Outreach Sequence", "outreach"], ["Pipeline and Opportunities", "pipeline-workspace"], ["Weekly GTM Review", "weekly-review"]]],
@@ -5849,12 +5921,12 @@
         ["activityModel", [["Active Plan", "active"], ["Weekly GTM Review", "weekly-review"]]]
       ];
 
-      mappings.forEach(([containerId, outputs]) => {
+      mappings.forEach(([containerId, outputs, guidance]) => {
         const container = document.getElementById(containerId);
         if (!container || container.querySelector(".plan-output-map")) return;
         const map = document.createElement("div");
         map.className = "plan-output-map no-print";
-        map.innerHTML = `<h3>Use this plan in</h3><p>Each output opens as its own usable, printable, and downloadable asset.</p><div class="plan-output-links">${outputs.map(([label, asset]) => `<a href="${escapeHtml(reportAssetUrl(asset))}">${escapeHtml(label)}</a>`).join("")}</div>`;
+        map.innerHTML = `<h3>Use this plan in</h3><p>${escapeHtml(guidance || "Each output opens as its own usable, printable, and downloadable asset.")}</p><div class="plan-output-links">${outputs.map(([label, asset]) => `<a href="${escapeHtml(reportAssetUrl(asset))}">${escapeHtml(label)}</a>`).join("")}</div>`;
         container.appendChild(map);
       });
     }
@@ -9914,25 +9986,12 @@
         });
 
         const actionsHeading = document.createElement("h3");
-        actionsHeading.textContent = "Value Claim Proof Actions";
+        actionsHeading.textContent = "Value Claim Proof Work";
         container.appendChild(actionsHeading);
         valueClaims
           .filter((row) => valueClaimStatus(scoreValueClaim(row)) !== "Strong" || valueClaimTopGap(row) !== "No immediate proof gap identified.")
           .slice(0, 4)
-          .forEach((row) => {
-            const score = scoreValueClaim(row);
-            const priority = score < 7 || /baseline|proof|metric/i.test(valueClaimTopGap(row)) ? "High" : "Medium";
-            renderBlueprintGrid(container, [
-              ["Action title", valueClaimRecommendedAction(row)],
-              ["Related value claim", valueClaimOutcome(row)],
-              ["Why it matters", `This claim is ${valueClaimStatus(score).toLowerCase()} and needs stronger measurement or proof before sales can use it confidently.`],
-              ["Owner", priority === "High" ? "Founder / Sales Lead" : "Sales Lead"],
-              ["Priority", priority],
-              ["Suggested due date", priority === "High" ? "This week" : "Next two weeks"],
-              ["Asset produced", valueClaimSuggestedAsset(row)],
-              ["Status", "Not started"]
-            ]);
-          });
+          .forEach((row) => renderValueClaimProofAction(container, row));
       }
     }
 

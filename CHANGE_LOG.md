@@ -4,6 +4,14 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-17 Offer and Value Proof Plan
+
+- Rebuilt the vague Offer Plan task list as an Offer and Value Proof Plan.
+- Replaced administrative task fields with the exact claim, metric, reason for the gap, evidence to capture, deliverable, and completion rule.
+- Added contribution-margin-specific guidance including the baseline formula, measurement level, period, source, target improvement, and supporting proof.
+- Added a guided route to complete the claim and proof inputs.
+- Reordered the linked outputs so users complete proof in the Proof Asset Builder before using the claim in the Messaging Kit.
+
 ## 2026-07-17 Recommendation Status and Example Hygiene
 
 - Removed `Improve This Section` from prescriptive recommendations when no specific deficiency is identified.
