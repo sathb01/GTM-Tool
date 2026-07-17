@@ -934,6 +934,102 @@
       min-height: 64px;
     }
 
+    #quickIcp .repeatable-add-button,
+    #quickIcp .card-add-button {
+      background: transparent;
+      border: 0;
+      color: var(--accent-dark);
+      display: inline-flex;
+      font-weight: 800;
+      margin-top: 8px;
+      padding: 4px 0;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      width: auto;
+    }
+
+    #quickIcp .repeatable-add-button:hover,
+    #quickIcp .repeatable-add-button:focus,
+    #quickIcp .card-add-button:hover,
+    #quickIcp .card-add-button:focus {
+      background: transparent;
+      color: var(--accent);
+    }
+
+    #quickIcp .repeatable-remove-button,
+    #quickIcp .card-remove-button {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--muted);
+      flex: 0 0 auto;
+      font-size: 12px;
+      min-height: 30px;
+      padding: 4px 9px;
+    }
+
+    #quickIcp .repeatable-item {
+      align-items: end;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(140px, 0.75fr) 34px;
+    }
+
+    #quickIcp .repeatable-item > input,
+    #quickIcp .repeatable-item > select,
+    #quickIcp .repeatable-item > textarea,
+    #quickIcp .repeatable-item > .multi-select-dropdown {
+      grid-column: 1;
+      min-width: 0;
+      width: 100%;
+    }
+
+    #quickIcp .repeatable-item > .other-field {
+      grid-column: 2;
+      margin: 0;
+      min-width: 0;
+    }
+
+    #quickIcp .repeatable-item > .repeatable-remove-button {
+      align-self: end;
+      font-size: 20px;
+      grid-column: 3;
+      line-height: 1;
+      width: 34px;
+    }
+
+    #quickIcp .field-example-copy {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    #quickIcp .field-example-copy:hover,
+    #quickIcp .field-example-copy:focus {
+      color: var(--accent-dark);
+      text-decoration: underline;
+    }
+
+    #quickIcp .card-subsection > summary {
+      align-items: center;
+      background: var(--surface-muted);
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      margin: -4px 0 0;
+      padding: 10px 12px;
+    }
+
+    #quickIcp .card-subsection > summary::after {
+      color: var(--muted);
+      content: "Expand";
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    #quickIcp .card-subsection[open] > summary::after {
+      content: "Collapse";
+    }
+
     .table-wrap {
       margin-top: 18px;
       overflow-x: auto;
@@ -1527,6 +1623,19 @@
       .card-grid,
       .checkbox-grid {
         grid-template-columns: 1fr;
+      }
+
+      #quickIcp .repeatable-item {
+        grid-template-columns: minmax(0, 1fr) 34px;
+      }
+
+      #quickIcp .repeatable-item > .other-field {
+        grid-column: 1;
+      }
+
+      #quickIcp .repeatable-item > .repeatable-remove-button {
+        grid-column: 2;
+        grid-row: 1 / span 2;
       }
 
       .company-manager {

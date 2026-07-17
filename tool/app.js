@@ -969,8 +969,10 @@ function addRepeatableItem(list, field, value = "") {
   input.placeholder = field.itemPlaceholder || "Enter one item";
   input.value = value;
   remove.type = "button";
-  remove.className = "secondary";
-  remove.textContent = "Remove";
+  remove.className = "secondary repeatable-remove-button";
+  remove.textContent = "×";
+  remove.title = "Remove this item";
+  remove.setAttribute("aria-label", "Remove this item");
   remove.addEventListener("click", () => {
     item.remove();
   });
@@ -1605,8 +1607,8 @@ function createField(field) {
     Array.from({ length: field.minItems || 1 }).forEach(() => addRepeatableItem(list, field));
 
     button.type = "button";
-    button.className = "secondary";
-    button.textContent = field.addLabel || "Add another";
+    button.className = "secondary repeatable-add-button";
+    button.textContent = `+ ${field.addLabel || "Add another"}`.replace(/^\+\s*\+\s*/, "+ ");
     button.addEventListener("click", () => addRepeatableItem(list, field));
 
     wrapper.appendChild(list);
@@ -1955,7 +1957,7 @@ function createCardTable(table) {
   list.className = "repeatable-card-list";
   list.dataset.repeatableCardListFor = table.id;
   button.type = "button";
-  button.className = "secondary";
+  button.className = "secondary card-add-button";
   button.dataset.addCard = table.id;
   button.textContent = table.addLabel || `Add ${table.rowLabel}`;
 
@@ -2014,7 +2016,7 @@ function createCardTable(table) {
     card.dataset.cardLabel = rowLabel;
     header.className = "repeatable-card-header";
     remove.type = "button";
-    remove.className = "secondary";
+    remove.className = "secondary card-remove-button";
     remove.dataset.removeCard = "true";
     remove.textContent = "Remove";
     remove.addEventListener("click", () => {
@@ -2032,12 +2034,13 @@ function createCardTable(table) {
     card.appendChild(header);
 
     groups.forEach((group) => {
-      const section = table.advancedGroups?.includes(group) ? document.createElement("details") : document.createElement("div");
+      const isCollapsibleGroup = table.advancedGroups?.includes(group) || table.collapsibleGroups?.includes(group);
+      const section = isCollapsibleGroup ? document.createElement("details") : document.createElement("div");
       const sectionHeading = document.createElement("h5");
       const grid = document.createElement("div");
 
       section.className = "card-subsection";
-      if (table.advancedGroups?.includes(group)) {
+      if (isCollapsibleGroup) {
         const summary = document.createElement("summary");
         summary.textContent = group;
         section.appendChild(summary);

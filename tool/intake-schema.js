@@ -1290,6 +1290,7 @@ const GTM_INTAKE_SCHEMA = {
               maxRows: 999,
               addLabel: "Add another customer group",
               advancedGroups: ["Advanced segment scoring"],
+              collapsibleGroups: ["Customer group definition", "B2C / channel context", "Step 2: Customer Group Hypothesis Score", "Step 2: Evidence-Based Fit Check"],
               columns: [
                 { id: "groupName", label: "Customer group name", type: "text", group: "Customer group", placeholder: "Example: Multi-location service businesses" },
                 { id: "routeToMarketLens", label: "Which customer lens does this group represent?", type: "multiSelectDropdown", group: "Customer group", hint: "For B2C plus wholesale, select both the consumer side and the channel buyer side when both matter.", otherLabel: "Define other route-to-market lens", requireOther: true, options: CUSTOMER_ROUTE_TO_MARKET_OPTIONS },
