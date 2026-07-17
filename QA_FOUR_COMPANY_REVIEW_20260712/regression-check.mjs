@@ -121,6 +121,9 @@ check("Improvement flow: exact report return is preserved", /function reportImpr
 check("Improvement flow: save and return actions are explicit", /Save Changes and Return/.test(resultsSource + facilitationSource) && /Return Without Saving/.test(facilitationSource));
 check("Active Plan: action runner preserves its origin", /function setupActiveActionRoundTripLinks\(\)/.test(resultsSource) && /actionReturnTo/.test(resultsSource));
 check("Active Plan: action runner has explicit return actions", /Save Evidence and Return/.test(resultsSource) && /activeActionReturnWithoutSaving/.test(resultsSource));
+check("ICP Brief: missing customer context has guided improvement", /improveIcpCustomerContext/.test(resultsSource) && /task: "customer-context"/.test(resultsSource));
+check("Customer Priority Framework: customer context source is available", /title: "Start With the Customer Context"[\s\S]*id: "customerContextStarter"/.test(appSource + fs.readFileSync(path.join(root, "tool/intake-schema.js"), "utf8")));
+check("Validation Workbook: limited to validation surfaces", !/tracker\.textContent = "Download Validation Workbook"/.test(resultsSource));
 check("Pipeline: weekly review consumes opportunity data", /pipelineWorkspaceState\(data, profile\)/.test(resultsSource) && /openOpportunities/.test(resultsSource));
 check("Pipeline: CRM source-of-truth mode exists", resultsSource.includes("CRM is the source of truth"));
 check("Persistence: asset workspaces update the saved record", /api\/records\//.test(resultsSource) && /method: "PUT"/.test(resultsSource));

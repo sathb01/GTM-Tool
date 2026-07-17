@@ -1265,6 +1265,13 @@ const GTM_INTAKE_SCHEMA = {
       ],
       content: [
         {
+          title: "Start With the Customer Context",
+          hint: "Describe the customer in plain language before scoring customer-group hypotheses. The ICP Brief uses this as qualitative source context.",
+          fields: [
+            { id: "customerContextStarter", label: "Describe the customer, user, or buyer you most want to reach", type: "textarea", full: true, hint: "Include who they are, the situation they are in, what they are trying to accomplish, what is difficult today, and details that would help find more of them.", placeholder: "Add a detailed customer description.", example: "Operations leaders at specialty manufacturers with urgent throughput constraints, limited internal process-improvement capacity, and pressure to increase output without adding another facility or a large permanent team." }
+          ]
+        },
+        {
           title: "Step 1: Possible Customer Groups",
           hint: "List 1-3 customer-group hypotheses you could realistically sell to, then score each one across fit, pain / urgency, economic value, winability, and evidence confidence.",
           fields: [

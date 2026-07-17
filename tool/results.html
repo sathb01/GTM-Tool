@@ -5766,7 +5766,12 @@
         params.set("task", options.task);
       }
       if (options.returnToCurrentReport) {
-        params.set("returnTo", `results.html${window.location.search}${window.location.hash || ""}`);
+        const returnUrl = new URL(window.location.href);
+        returnUrl.searchParams.delete("improvement");
+        returnUrl.searchParams.delete("improved");
+        returnUrl.searchParams.set("resumeY", String(Math.max(0, Math.round(window.scrollY))));
+        if (options.returnSectionId) returnUrl.hash = options.returnSectionId;
+        params.set("returnTo", `${returnUrl.pathname.split("/").pop() || "results.html"}${returnUrl.search}${returnUrl.hash || ""}`);
       }
       return `index.html?${params.toString()}#${encodeURIComponent(sectionId)}`;
     }
@@ -12392,7 +12397,7 @@
       document.body.appendChild(link);
       link.click();
       link.remove();
-      URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     function buildValidationWorkbook(sheets) {
@@ -13705,13 +13710,6 @@
       resources.id = "action-runner-resources";
       resources.dataset.toc = "Use These Resources";
       resources.innerHTML = `<h2>Use These Resources</h2><p class="muted">Use the existing plan and tracker as the source of truth. Do not recreate the work in a separate document.</p><div class="action-runner-resource-row"><a href="${escapeHtml(plan.planLink)}">${escapeHtml(plan.planLinkLabel)}</a><a href="${escapeHtml(intakeReturnUrl())}" target="_blank" rel="noopener">Review Related Intake Answers</a></div>`;
-      if (details.tracker) {
-        const tracker = document.createElement("button");
-        tracker.type = "button";
-        tracker.textContent = "Download Validation Workbook";
-        tracker.addEventListener("click", () => downloadValidationTracker(data, preRevenueScore(data)));
-        resources.querySelector(".action-runner-resource-row").appendChild(tracker);
-      }
       main.appendChild(resources);
 
       const capture = document.createElement("section");
@@ -14163,7 +14161,7 @@
           ? "Promising ICP hypothesis"
           : "Draft ICP hypothesis";
       return [
-        ["Customer context starter", cleanText(data.customerContextStarter) || "No early customer description was captured. Add one in Company Information so the ICP has a clear qualitative source."],
+        ["Customer context starter", cleanText(data.customerContextStarter) || "No early customer description was captured. Add one in Customer Priority Framework so the ICP has a clear qualitative source."],
         ["ICP status", status],
         ["Priority customer group", values.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer || "Not selected yet"],
         ["Why this group", icpRationaleItems(model)],
@@ -14202,6 +14200,15 @@
       grid.className = "grid";
       section.append(heading, grid);
       renderBlueprintFields(grid, postRevenueIcpAssetRows(model));
+      if (!cleanText(data.customerContextStarter)) {
+        const contextImprovement = document.createElement("div");
+        contextImprovement.className = "remediation-inline no-print";
+        contextImprovement.innerHTML = `<h3>Strengthen the ICP source context</h3><p>Add a plain-language description of the customer, their situation, what they are trying to accomplish, and what makes them identifiable. The ICP Brief will use the saved answer as qualitative source context.</p><div class="card-actions"><button type="button" id="improveIcpCustomerContext">Improve This Section</button></div>`;
+        section.appendChild(contextImprovement);
+        contextImprovement.querySelector("#improveIcpCustomerContext").addEventListener("click", () => {
+          window.location.href = intakeReviewUrl("customer icp priority", { returnToCurrentReport: true, returnSectionId: "icp-brief", task: "customer-context" });
+        });
+      }
       main.appendChild(section);
 
       const actions = document.createElement("section");

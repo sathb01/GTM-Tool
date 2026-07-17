@@ -4598,6 +4598,18 @@ function improvementFocusFromUrl() {
       ],
       example: "Referral-led diagnostic for specialty manufacturers: promote the 90-Day Throughput Improvement Program through network referrals, use consultative selling to reach the COO, assign the Revenue Operations Manager, and target four closed programs in 90 days."
     };
+  } else if (task === "customer-context") {
+    focus = {
+      area: "ICP customer context",
+      why: "The ICP needs a plain-language description of the customer before the structured criteria can become a useful profile.",
+      missing: ["Who the customer is", "The situation they are in", "What they are trying to accomplish", "What is difficult today", "Details that would help identify or find more of them"],
+      questions: [
+        "Complete Describe the customer, user, or buyer you most want to reach at the top of this section.",
+        "Include concrete details that distinguish this customer from a broad market label.",
+        "Save the answer and return to the ICP Brief."
+      ],
+      example: "Operations leaders at specialty manufacturers with urgent throughput constraints, limited internal process-improvement capacity, and pressure to increase output without adding another facility or a large permanent team."
+    };
   }
 
   return {
@@ -4605,7 +4617,7 @@ function improvementFocusFromUrl() {
     sectionId,
     ...focus,
     returnTo,
-    returnLabel: task === "active-plan-action" ? "Return to Active Plan" : "Return to Report",
+    returnLabel: task === "active-plan-action" ? "Return to Active Plan" : task === "customer-context" ? "Return to ICP Brief" : "Return to Report",
     createdAt: new Date().toISOString()
   };
 }
@@ -4626,15 +4638,24 @@ function renderImprovementFocusCard(sectionId) {
   const questionsList = document.createElement("ol");
   const exampleHeading = document.createElement("h4");
   const example = document.createElement("p");
+  const returnOrigin = document.createElement("p");
   const actions = document.createElement("div");
   const saveAnswers = document.createElement("button");
   const updateModel = document.createElement("button");
   const regenerate = document.createElement("button");
   const dismiss = document.createElement("button");
   const returnLink = document.createElement("a");
+  const savedReturnUrl = () => {
+    const destination = new URL(focus.returnTo, window.location.href);
+    destination.searchParams.set("improvement", "saved");
+    destination.searchParams.set("improved", focus.area || "Intake section");
+    return `${destination.pathname.split("/").pop() || "results.html"}${destination.search}${destination.hash}`;
+  };
 
   card.className = "improvement-focus";
-  heading.textContent = `Workshop: ${focus.area || "Recommended follow-up"}`;
+  heading.textContent = `${focus.returnTo ? "Improving" : "Workshop"}: ${focus.area || "Recommended follow-up"}`;
+  returnOrigin.className = "muted";
+  returnOrigin.textContent = focus.returnTo ? `Return to: ${focus.returnLabel || "the report section where you started"}` : "";
   why.textContent = focus.why || "Answer the questions below to improve report confidence.";
   missingHeading.textContent = "What is missing or unclear";
   (focus.missing || []).forEach((item) => {
@@ -4696,7 +4717,7 @@ function renderImprovementFocusCard(sectionId) {
     updateModel.textContent = "Update Model";
   });
   regenerate.type = "button";
-  regenerate.textContent = "Regenerate Action Plan";
+  regenerate.textContent = focus.returnTo ? "Save Changes and Return" : "Regenerate Action Plan";
   regenerate.addEventListener("click", async () => {
     formStateData = {
       ...formStateData,
@@ -4706,7 +4727,11 @@ function renderImprovementFocusCard(sectionId) {
     regenerate.textContent = "Saving...";
     const saved = await saveDraft(false);
     if (saved) {
-      await submitIntake("detailed");
+      if (focus.returnTo) {
+        window.location.href = savedReturnUrl();
+      } else {
+        await submitIntake("detailed");
+      }
     } else {
       const status = document.getElementById("saveStatus");
       if (status) status.textContent = "The action plan was not regenerated because the latest answers could not be saved.";
@@ -4733,10 +4758,11 @@ function renderImprovementFocusCard(sectionId) {
   if (focus.returnTo && /^(?:results|facilitation)\.html(?:[?#]|$)/.test(focus.returnTo)) {
     returnLink.className = "secondary";
     returnLink.href = focus.returnTo;
-    returnLink.textContent = focus.returnLabel || "Return to Report";
+    returnLink.textContent = "Return Without Saving";
   }
 
   card.appendChild(heading);
+  if (returnOrigin.textContent) card.appendChild(returnOrigin);
   card.appendChild(why);
   if (missingList.children.length) {
     card.appendChild(missingHeading);
@@ -4750,13 +4776,15 @@ function renderImprovementFocusCard(sectionId) {
     card.appendChild(exampleHeading);
     card.appendChild(example);
   }
-  actions.appendChild(saveAnswers);
-  actions.appendChild(updateModel);
+  if (!focus.returnTo) {
+    actions.appendChild(saveAnswers);
+    actions.appendChild(updateModel);
+  }
   actions.appendChild(regenerate);
   if (returnLink.href) {
     actions.appendChild(returnLink);
   }
-  actions.appendChild(dismiss);
+  if (!focus.returnTo) actions.appendChild(dismiss);
   card.appendChild(actions);
   return card;
 }

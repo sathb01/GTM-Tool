@@ -15,6 +15,15 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Applied the same round-trip behavior to Active Plan action runners reached from Active Plan or Plan Status.
 - Active Plan actions now show the work item and origin, then offer `Save Evidence and Return` or `Return Without Saving` with exact position restoration.
 
+## 2026-07-16 ICP Context and Validation Workbook
+
+- Added the qualitative customer-context starter to the post-revenue Customer Priority Framework.
+- Added a guided `Improve This Section` round trip when the ICP Brief is missing that customer context.
+- Corrected the ICP guidance so it points to Customer Priority Framework instead of Company Information.
+- Verified real `.xlsx` downloads from both the 30-Day Validation Plan and Validation Workspace.
+- Limited the Validation Workbook to those two validation surfaces and removed it from ICP and Active Plan action runners.
+- Delayed workbook object-URL cleanup so browsers have time to begin the download reliably.
+
 ## 2026-07-16 GTM Plan Summary Navigation
 
 - Added the opening GTM plan view as the first item in every Assets navigation list.
