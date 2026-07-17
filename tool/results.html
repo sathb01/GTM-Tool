@@ -238,6 +238,84 @@
       margin-bottom: 8px;
     }
 
+    .metric-card {
+      border-width: 2px;
+    }
+
+    .metric-card.tone-readiness { border-color: var(--score-green); }
+    .metric-card.tone-opportunity { border-color: var(--signal); }
+    .metric-card.tone-action { border-color: var(--accent-coral); }
+    .metric-card.tone-risk { border-color: var(--score-orange); }
+
+    .metric-card-link {
+      display: inline-block;
+      margin-top: 12px;
+      color: var(--accent-dark);
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .decision-action-panel {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      border-left: 4px solid var(--accent-coral);
+    }
+
+    .decision-action-panel > div + div {
+      border-left: 1px solid var(--border);
+      padding-left: 18px;
+    }
+
+    .decision-action-panel h3 {
+      color: var(--text);
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    .summary-detail-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .summary-support-panel {
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .summary-support-panel.tone-readiness { border-color: var(--score-green); }
+    .summary-support-panel.tone-opportunity { border-color: var(--signal); }
+    .summary-support-panel.tone-action { border-color: var(--accent-coral); }
+    .summary-support-panel.tone-risk { border-color: var(--score-orange); }
+
+    .summary-support-panel > summary {
+      cursor: pointer;
+      padding: 14px 16px;
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    .summary-support-panel > summary small {
+      display: block;
+      margin: 4px 0 0 22px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 400;
+    }
+
+    .summary-support-content {
+      border-top: 1px solid var(--border);
+      padding: 16px;
+    }
+
+    .summary-support-content .score-list {
+      margin-bottom: 12px;
+    }
+
     .metric-value {
       color: var(--text);
       font-size: 24px;
@@ -2385,6 +2463,7 @@
       .workspace-summary-grid,
       .workspace-main-grid,
       .recommendation-detail-grid,
+      .decision-action-panel,
       .validation-test-grid,
       .active-plan-action,
       .active-plan-week-grid,
@@ -2394,6 +2473,13 @@
       .validation-evidence-columns,
       .validation-metric-grid {
         grid-template-columns: 1fr;
+      }
+
+      .decision-action-panel > div + div {
+        border-left: 0;
+        border-top: 1px solid var(--border);
+        padding-left: 0;
+        padding-top: 16px;
       }
 
       .persona-asset-layout,
@@ -2507,13 +2593,11 @@
       <button class="secondary" id="toggleSectionsButton" type="button">Expand all</button>
     </nav>
 
-    <section class="workspace-section" data-toc="Decision Summary">
+    <section class="workspace-section" id="decision-summary" data-toc="Decision Summary">
       <h2>Decision Summary</h2>
       <div class="workspace-summary-grid" id="workspaceSummaryCards"></div>
-      <div class="workspace-main-grid">
-        <div class="workspace-card recommendation-card" id="workspaceRecommendation"></div>
-        <aside class="workspace-card action-panel" id="workspaceActionPanel" aria-label="Next action panel"></aside>
-      </div>
+      <div class="workspace-card decision-action-panel" id="workspaceActionPanel" aria-label="Decision and immediate action"></div>
+      <div class="summary-detail-stack" id="workspaceRecommendation"></div>
     </section>
 
     <section class="removed-section" data-toc="Insights">
@@ -5524,15 +5608,27 @@
 
     function renderMetricCard(container, card) {
       const article = document.createElement("article");
-      article.className = "workspace-card metric-card";
+      article.className = `workspace-card metric-card ${card.tone ? `tone-${card.tone}` : ""}`;
       article.innerHTML = `
         <h3>${escapeHtml(card.label)}</h3>
         <div class="metric-value">${card.valueHtml || escapeHtml(card.value || missingText)}</div>
         ${card.progressHtml || ""}
         <p class="metric-copy">${escapeHtml(card.copy || missingText)}</p>
         ${card.badge ? `<span class="status-badge ${card.badge.className || ""}">${escapeHtml(card.badge.label)}</span>` : ""}
+        ${card.target ? `<a class="metric-card-link" href="#${escapeHtml(card.target)}">See supporting details</a>` : ""}
       `;
       container.appendChild(article);
+    }
+
+    function summarySupportPanel({ id, tone, title, subtitle, content }) {
+      const details = document.createElement("details");
+      details.id = id;
+      details.className = `summary-support-panel tone-${tone}`;
+      details.innerHTML = `
+        <summary>${escapeHtml(title)}<small>${escapeHtml(subtitle)}</small></summary>
+        <div class="summary-support-content">${content}</div>
+      `;
+      return details;
     }
 
     function actionPanelAssets(model) {
@@ -5612,6 +5708,7 @@
       const decisionContent = executiveDecisionContent(model);
       const scoreParts = scoreStrengthsAndWeaknesses(model);
       const strategicEvidence = buildStrategicInsights(model).slice(0, 3);
+      const topPriority = buildRevenueImpactPriorities(model)[0];
       const scorePercent = Math.max(0, Math.min(100, Number(model.readinessScore) || 0));
       const owner = model.data.primaryRevenueOwner
         || model.data.pipelineReviewOwner
@@ -5623,7 +5720,7 @@
       if (!guide && section) {
         guide = document.createElement("div");
         guide.className = "overview-note decision-summary-guide";
-        guide.innerHTML = '<h3>How to use this plan</h3><p>Start with the decision and immediate action below. Use the ranked plan for execution, then use each strategy section only when you need the evidence, recommendation, or next action for that area.</p>';
+        guide.innerHTML = '<h3>How to use this plan</h3><p>Read the clearly labeled Decision and Immediate Action directly below the four summary cards. Expand any matching detail section when you want to understand the evidence, improve an input, or begin the work.</p>';
         section.insertBefore(guide, cards);
       }
 
@@ -5633,69 +5730,81 @@
         valueHtml: `${model.readinessScore} <span class="muted">/ 100</span>`,
         copy: dynamicSummary.feedback.hasEvidence ? `${status.label} | Evidence: ${dynamicSummary.feedback.state}` : status.label,
         badge: status,
-        progressHtml: `<div class="score-progress" aria-label="Readiness score progress"><div class="score-progress-bar" style="width:${scorePercent}%; background:${status.color};"></div></div>`
+        progressHtml: `<div class="score-progress" aria-label="Readiness score progress"><div class="score-progress-bar" style="width:${scorePercent}%; background:${status.color};"></div></div>`,
+        tone: "readiness",
+        target: "summary-readiness-details"
       });
       renderMetricCard(cards, {
         label: "Top Opportunity",
-        value: "Focus",
+        value: topPriority?.priority || model.lowestCategory?.name || "Best leverage point",
         copy: dynamicSummary.opportunity,
-        badge: { label: "Opportunity", className: "medium" }
+        badge: { label: "Opportunity", className: "medium" },
+        tone: "opportunity",
+        target: "summary-opportunity-details"
       });
       renderMetricCard(cards, {
         label: "Next Best Action",
         value: "This week",
         copy: nextAction,
-        badge: { label: "Priority", className: "strong" }
+        badge: { label: "Priority", className: "strong" },
+        tone: "action",
+        target: "summary-action-details"
       });
       renderMetricCard(cards, {
         label: "Biggest Risk",
         value: "Risk",
         copy: topRisk,
-        badge: { label: /risk|capacity|weak|missing|unclear/i.test(topRisk) ? "Watch" : "Review", className: "warning" }
+        badge: { label: /risk|capacity|weak|missing|unclear/i.test(topRisk) ? "Watch" : "Review", className: "warning" },
+        tone: "risk",
+        target: "summary-risk-details"
       });
 
-      recommendation.innerHTML = `
-        <h3>Recommended 90-Day Focus</h3>
-        <ul class="two-column-list">
-          <li>Focus on one reachable customer group.</li>
-          <li>Use one sellable offer.</li>
-          <li>Run one revenue motion.</li>
-          <li>Maintain one measurable weekly operating rhythm before scaling.</li>
-        </ul>
-        <div class="recommendation-detail-grid">
-          <div class="field"><h3>Recommended Focus</h3><ul>${decisionContent.recommendedFocusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>
-          <div class="field"><h3>Why This Matters</h3><p>${escapeHtml(executiveInsightMeaning(model))}</p></div>
-          <div class="field"><h3>Decision Required</h3>${summaryBulletList(decisionContent.decisionRequired, true)}</div>
-          <div class="field"><h3>Plan Completeness</h3>${summaryBulletList(planCompletenessCopy(model))}</div>
-        </div>
-      `;
-
-      const scoreDetails = document.createElement("details");
-      scoreDetails.className = "revenue-impact-details";
-      scoreDetails.innerHTML = `
-        <summary>Readiness evidence and score details</summary>
-        <div class="score-list">
-          <div><h3>Strong points</h3><ul>${(scoreParts.strengths.length ? scoreParts.strengths : ["No strong score areas yet."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>
-          <div><h3>Weak points</h3><ul>${(scoreParts.weaknesses.length ? scoreParts.weaknesses : ["No major score weaknesses detected."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>
-        </div>
-      `;
-      appendReviewLink(scoreDetails, "Review inputs that affect the score", "score revenue icp offer buyer signals");
-      recommendation.appendChild(scoreDetails);
-
-      if (strategicEvidence.length) {
-        const evidenceDetails = document.createElement("details");
-        evidenceDetails.className = "revenue-impact-details";
-        evidenceDetails.innerHTML = `<summary>Strategic evidence and conflicts</summary><div class="insight-list">${strategicEvidence.map((insight) => `<article class="insight-card"><span class="insight-badge">${escapeHtml(insight.type)}</span><h3>${escapeHtml(insight.title)}</h3><p><strong>What the evidence says:</strong> ${escapeHtml(insight.observation)}</p><p><strong>Action:</strong> ${escapeHtml(insight.recommendedAction)}</p></article>`).join("")}</div>`;
-        recommendation.appendChild(evidenceDetails);
-      }
-
       actionPanel.innerHTML = `
-        <h3>Execution Setup</h3>
-        <div class="action-panel-item"><div class="action-panel-label">Owner</div><p class="action-panel-value">${escapeHtml(owner)}</p></div>
-        <div class="action-panel-item"><div class="action-panel-label">Due Date</div><p class="action-panel-value">This week</p></div>
-        <div class="action-panel-item"><div class="action-panel-label">Assets Needed</div><ul>${assets.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>
-        <div class="action-panel-item"><div class="action-panel-label">Decision Needed</div><p class="action-panel-value">${escapeHtml(decisionContent.decisionRequired)}</p></div>
+        <div><h3>Decision</h3>${summaryBulletList(decisionContent.decisionRequired, true)}</div>
+        <div><h3>Immediate Action</h3><p>${escapeHtml(nextAction)}</p><p class="muted"><strong>Owner:</strong> ${escapeHtml(owner)} &nbsp; <strong>Due:</strong> This week</p><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Work on this action</a></div></div>
       `;
+
+      recommendation.innerHTML = "";
+      const improvements = (model.readinessDiagnostic?.improvements || []).slice(0, 3);
+      const readinessPanel = summarySupportPanel({
+        id: "summary-readiness-details",
+        tone: "readiness",
+        title: "GTM Readiness: Evidence and Score Details",
+        subtitle: "See what supports the score and what would improve it.",
+        content: `<p><strong>Current status:</strong> ${escapeHtml(status.label)} at ${escapeHtml(model.readinessScore)}/100.</p><div class="score-list"><div><h3>Strong points</h3><ul>${(scoreParts.strengths.length ? scoreParts.strengths : ["No strong score areas yet."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div><div><h3>Weak points</h3><ul>${(scoreParts.weaknesses.length ? scoreParts.weaknesses : ["No major score weaknesses detected."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div></div><h3>Best ways to improve the score</h3><ul>${(improvements.length ? improvements.map((item) => `${item.area}: ${item.action}`) : ["Continue collecting execution evidence against the current plan."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+      });
+      appendReviewLink(readinessPanel.querySelector(".summary-support-content"), "Improve This Section", "score revenue icp offer buyer signals", { sameTab: true, returnSectionId: "summary-readiness-details" });
+      recommendation.appendChild(readinessPanel);
+
+      const opportunityEvidence = strategicEvidence[0];
+      const opportunityPanel = summarySupportPanel({
+        id: "summary-opportunity-details",
+        tone: "opportunity",
+        title: "Top Opportunity",
+        subtitle: "Understand what it is, why it was selected, and which inputs affect it.",
+        content: `<h3>Recommended opportunity</h3><p>${escapeHtml(dynamicSummary.opportunity)}</p><h3>Why this is prioritized</h3><ul><li>${escapeHtml(opportunityEvidence?.observation || topPriority?.drivers || executiveInsightMeaning(model))}</li><li>${escapeHtml(topPriority?.recommendedAction || "It is the clearest available leverage point for improving focused execution.")}</li></ul><h3>Recommended 90-Day Focus</h3><ul>${decisionContent.recommendedFocusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+      });
+      appendReviewLink(opportunityPanel.querySelector(".summary-support-content"), "Improve This Section", immediateActionTopic(dynamicSummary.opportunity), { sameTab: true, returnSectionId: "summary-opportunity-details" });
+      recommendation.appendChild(opportunityPanel);
+
+      const actionDetails = summarySupportPanel({
+        id: "summary-action-details",
+        tone: "action",
+        title: "Next Best Action",
+        subtitle: "See the owner, timing, and assets needed to complete this work.",
+        content: `<h3>Immediate Action</h3><p>${escapeHtml(nextAction)}</p><ul><li><strong>Owner:</strong> ${escapeHtml(owner)}</li><li><strong>Due:</strong> This week</li><li><strong>Assets needed:</strong> ${escapeHtml(assets.join(", "))}</li></ul><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Work on this action</a></div>`
+      });
+      recommendation.appendChild(actionDetails);
+
+      const riskPanel = summarySupportPanel({
+        id: "summary-risk-details",
+        tone: "risk",
+        title: "Biggest Risk",
+        subtitle: "See why the risk matters and which inputs can reduce it.",
+        content: `<h3>Current risk</h3><p>${escapeHtml(topRisk)}</p><h3>What to do about it</h3><p>${escapeHtml(model.readinessDiagnostic?.improvements?.[0]?.action || "Confirm the source inputs, assign an owner, and resolve the risk before expanding activity.")}</p>${strategicEvidence.length ? `<h3>Related evidence</h3><ul>${strategicEvidence.slice(0, 2).map((insight) => `<li>${escapeHtml(insight.observation)}</li>`).join("")}</ul>` : ""}`
+      });
+      appendReviewLink(riskPanel.querySelector(".summary-support-content"), "Improve This Section", `risk ${topRisk}`, { sameTab: true, returnSectionId: "summary-risk-details" });
+      recommendation.appendChild(riskPanel);
     }
 
     function executiveInsightOpportunity(model) {
@@ -5844,15 +5953,17 @@
       };
     }
 
-    function appendReviewLink(container, label, topic) {
+    function appendReviewLink(container, label, topic, options = {}) {
       const actions = document.createElement("div");
       const link = document.createElement("a");
       const sectionId = intakeSectionForTopic(topic);
       const focus = reviewFocusForTopic(topic);
       actions.className = "card-actions no-print";
-      link.href = intakeReviewUrl(topic);
-      link.target = "_blank";
-      link.rel = "noopener";
+      link.href = intakeReviewUrl(topic, options.sameTab ? { returnToCurrentReport: true, returnSectionId: options.returnSectionId || "decision-summary" } : {});
+      if (!options.sameTab) {
+        link.target = "_blank";
+        link.rel = "noopener";
+      }
       link.textContent = label;
       link.addEventListener("click", () => {
         localStorage.setItem(IMPROVEMENT_FOCUS_KEY, JSON.stringify({

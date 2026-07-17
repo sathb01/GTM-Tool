@@ -4,6 +4,15 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-17 GTM Plan Summary Decision and Evidence Layout
+
+- Replaced the vague `Focus` value in Top Opportunity with the actual highest-ranked action area.
+- Added clearly labeled, always-visible Decision and Immediate Action content directly below the four summary cards.
+- Linked each summary card to its own matching collapsible evidence and action section.
+- Added color-coordinated outlines for Readiness, Opportunity, Action, and Risk cards and supporting sections.
+- Moved readiness strengths, weaknesses, score-improvement actions, and the guided intake improvement route into the first supporting section.
+- Added guided improvement routes for the opportunity and risk sections and a direct Active Plan route for the immediate action.
+
 ## 2026-07-17 Report Generation Guardrails
 
 - Routed every intake `View Report` action through the same completeness and data-quality checks used by plan generation.
