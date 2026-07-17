@@ -4,6 +4,17 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-17 GTM Summary Output Mapping
+
+- Removed the standalone Decision and Immediate Action box from the summary.
+- Moved the recommended direction into the collapsible Top Opportunity section.
+- Kept the immediate action, owner, timing, assets, and work link inside the collapsible Next Best Action section.
+- Updated the How to Use This Plan guidance to match the simplified structure.
+- Corrected the summary-card action text to use accessible white lettering on coral buttons.
+- Standardized the four summary-card actions as coral buttons with white text and bottom alignment across cards of different content lengths.
+- Added explicit output mappings to ICP, Offer, Persona, Targeting Signal, Revenue Motion, CRM, and Activity sections.
+- Confirmed each mapped output opens as a dedicated asset with print and PDF controls.
+
 ## 2026-07-17 GTM Plan Summary Decision and Evidence Layout
 
 - Replaced the vague `Focus` value in Top Opportunity with the actual highest-ranked action area.

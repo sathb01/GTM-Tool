@@ -239,6 +239,8 @@
     }
 
     .metric-card {
+      display: flex;
+      flex-direction: column;
       border-width: 2px;
     }
 
@@ -248,13 +250,25 @@
     .metric-card.tone-risk { border-color: var(--score-orange); }
 
     .metric-card-link {
-      display: inline-block;
-      margin-top: 12px;
-      color: var(--accent-dark);
+      align-self: flex-start;
+      display: inline-flex;
+      margin-top: auto;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #ffffff;
       font-size: 13px;
       font-weight: 700;
-      text-decoration: underline;
-      text-underline-offset: 3px;
+      text-decoration: none;
+    }
+
+    .metric-card-link:hover,
+    .metric-card-link:focus {
+      background: #6b7280;
+      color: #ffffff;
+    }
+
+    .metric-card .status-badge {
+      margin-bottom: 14px;
     }
 
     .decision-action-panel {
@@ -314,6 +328,28 @@
 
     .summary-support-content .score-list {
       margin-bottom: 12px;
+    }
+
+    .plan-output-map {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .plan-output-map h3 {
+      margin-bottom: 4px;
+    }
+
+    .plan-output-map p {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .plan-output-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .metric-value {
@@ -2596,7 +2632,6 @@
     <section class="workspace-section" id="decision-summary" data-toc="Decision Summary">
       <h2>Decision Summary</h2>
       <div class="workspace-summary-grid" id="workspaceSummaryCards"></div>
-      <div class="workspace-card decision-action-panel" id="workspaceActionPanel" aria-label="Decision and immediate action"></div>
       <div class="summary-detail-stack" id="workspaceRecommendation"></div>
     </section>
 
@@ -5698,8 +5733,7 @@
     function renderWorkspaceDashboard(model) {
       const cards = document.getElementById("workspaceSummaryCards");
       const recommendation = document.getElementById("workspaceRecommendation");
-      const actionPanel = document.getElementById("workspaceActionPanel");
-      if (!cards || !recommendation || !actionPanel) return;
+      if (!cards || !recommendation) return;
 
       const status = scoreStatusInfo(model.readinessScore);
       const dynamicSummary = dynamicPlanSummary(model);
@@ -5720,7 +5754,7 @@
       if (!guide && section) {
         guide = document.createElement("div");
         guide.className = "overview-note decision-summary-guide";
-        guide.innerHTML = '<h3>How to use this plan</h3><p>Read the clearly labeled Decision and Immediate Action directly below the four summary cards. Expand any matching detail section when you want to understand the evidence, improve an input, or begin the work.</p>';
+        guide.innerHTML = '<h3>How to use this plan</h3><p>Start with Top Opportunity to confirm the recommended direction, then use Next Best Action to begin the work. Expand the matching section beneath any card to understand its evidence, improve its inputs, or open the related execution asset.</p>';
         section.insertBefore(guide, cards);
       }
 
@@ -5759,11 +5793,6 @@
         target: "summary-risk-details"
       });
 
-      actionPanel.innerHTML = `
-        <div><h3>Decision</h3>${summaryBulletList(decisionContent.decisionRequired, true)}</div>
-        <div><h3>Immediate Action</h3><p>${escapeHtml(nextAction)}</p><p class="muted"><strong>Owner:</strong> ${escapeHtml(owner)} &nbsp; <strong>Due:</strong> This week</p><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Work on this action</a></div></div>
-      `;
-
       recommendation.innerHTML = "";
       const improvements = (model.readinessDiagnostic?.improvements || []).slice(0, 3);
       const readinessPanel = summarySupportPanel({
@@ -5782,7 +5811,7 @@
         tone: "opportunity",
         title: "Top Opportunity",
         subtitle: "Understand what it is, why it was selected, and which inputs affect it.",
-        content: `<h3>Recommended opportunity</h3><p>${escapeHtml(dynamicSummary.opportunity)}</p><h3>Why this is prioritized</h3><ul><li>${escapeHtml(opportunityEvidence?.observation || topPriority?.drivers || executiveInsightMeaning(model))}</li><li>${escapeHtml(topPriority?.recommendedAction || "It is the clearest available leverage point for improving focused execution.")}</li></ul><h3>Recommended 90-Day Focus</h3><ul>${decisionContent.recommendedFocusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+        content: `<h3>Recommended opportunity</h3><p>${escapeHtml(dynamicSummary.opportunity)}</p><h3>Recommended direction</h3>${summaryBulletList(decisionContent.decisionRequired, true)}<h3>Why this is prioritized</h3><ul><li>${escapeHtml(opportunityEvidence?.observation || topPriority?.drivers || executiveInsightMeaning(model))}</li><li>${escapeHtml(topPriority?.recommendedAction || "It is the clearest available leverage point for improving focused execution.")}</li></ul><h3>Recommended 90-Day Focus</h3><ul>${decisionContent.recommendedFocusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
       });
       appendReviewLink(opportunityPanel.querySelector(".summary-support-content"), "Improve This Section", immediateActionTopic(dynamicSummary.opportunity), { sameTab: true, returnSectionId: "summary-opportunity-details" });
       recommendation.appendChild(opportunityPanel);
@@ -5805,6 +5834,27 @@
       });
       appendReviewLink(riskPanel.querySelector(".summary-support-content"), "Improve This Section", `risk ${topRisk}`, { sameTab: true, returnSectionId: "summary-risk-details" });
       recommendation.appendChild(riskPanel);
+    }
+
+    function appendPlanOutputLinks() {
+      const mappings = [
+        ["icpPlaybook", [["ICP Brief", "icp"], ["Target List", "targets"]]],
+        ["offerStrategy", [["Messaging Kit", "messaging"], ["Proof Asset Builder", "proof-assets"]]],
+        ["buyerPersonaBlueprint", [["Persona Brief", "personas"], ["Messaging Kit", "messaging"]]],
+        ["triggerSignalStrategy", [["Target List", "targets"], ["Outreach Sequence", "outreach"]]],
+        ["salesMotionBlueprint", [["Outreach Sequence", "outreach"], ["Pipeline and Opportunities", "pipeline-workspace"], ["Weekly GTM Review", "weekly-review"]]],
+        ["crmBlueprint", [["Pipeline and Opportunities", "pipeline-workspace"], ["Weekly GTM Review", "weekly-review"]]],
+        ["activityModel", [["Active Plan", "active"], ["Weekly GTM Review", "weekly-review"]]]
+      ];
+
+      mappings.forEach(([containerId, outputs]) => {
+        const container = document.getElementById(containerId);
+        if (!container || container.querySelector(".plan-output-map")) return;
+        const map = document.createElement("div");
+        map.className = "plan-output-map no-print";
+        map.innerHTML = `<h3>Use this plan in</h3><p>Each output opens as its own usable, printable, and downloadable asset.</p><div class="plan-output-links">${outputs.map(([label, asset]) => `<a href="${escapeHtml(reportAssetUrl(asset))}">${escapeHtml(label)}</a>`).join("")}</div>`;
+        container.appendChild(map);
+      });
     }
 
     function executiveInsightOpportunity(model) {
@@ -10734,6 +10784,7 @@
       safeRenderSection("Activity Planning Readiness", () => renderActivityModel(model));
       safeRenderSection("Top Risks and Gaps", () => renderRisksGapsAssumptions(model));
       safeRenderSection("Open Questions", () => renderOpenQuestions(model));
+      appendPlanOutputLinks();
       setupReportNavigation();
     }
 
@@ -13233,7 +13284,7 @@
       const trackerTop = document.getElementById("downloadTrackerTop");
       if (!exportButton || !exportMenu || !pdfButton) return;
       const printCompleteAsset = () => {
-        const details = Array.from(document.querySelectorAll("details.section-details"));
+        const details = Array.from(document.querySelectorAll("details.section-details, details.summary-support-panel"));
         const openState = details.map((item) => item.open);
         details.forEach((item) => { item.open = true; });
         try {
