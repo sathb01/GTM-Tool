@@ -13605,6 +13605,15 @@
       return saved;
     }
 
+    function syncActivePlanWeeklyPriorityFields(data, weeklyWorkspace) {
+      weeklyWorkspace.currentPriorities.forEach((priority) => {
+        if (!Number.isInteger(priority.sourceIndex)) return;
+        data[activePlanField(priority.sourceIndex, "status")] = cleanText(priority.status) || "Not started";
+        data[activePlanField(priority.sourceIndex, "owner")] = cleanText(priority.owner);
+        data[activePlanField(priority.sourceIndex, "evidence")] = cleanText(priority.evidence);
+      });
+    }
+
     function nextWeekPriority(title, plan, weekNumber, index) {
       return {
         id: `week-${weekNumber}-planned-${index + 1}-${Date.now()}`,
@@ -14125,13 +14134,11 @@
           });
           if (weeklyWorkspace.currentPriorities[index].status === "Complete" && !weeklyWorkspace.currentPriorities[index].evidence) missingEvidence = true;
         });
-        if (missingEvidence) {
-          status.textContent = "Add a result or evidence note before marking a priority Complete.";
-          return;
-        }
+        syncActivePlanWeeklyPriorityFields(data, weeklyWorkspace);
         event.currentTarget.disabled = true;
-        await persistActivePlanData(data, status);
+        const saved = await persistActivePlanData(data, status);
         event.currentTarget.disabled = false;
+        if (saved && missingEvidence) status.textContent = "Progress saved. Add a result note to each completed priority before closing the week.";
       });
       main.appendChild(actions);
 
@@ -14513,6 +14520,15 @@
       grid.className = "grid";
       section.append(heading, grid);
       renderBlueprintFields(grid, postRevenueIcpAssetRows(model));
+      grid.querySelectorAll(".field").forEach((field) => {
+        const label = field.querySelector("h3")?.textContent.trim();
+        if (label === "First activation step") {
+          field.insertAdjacentHTML("beforeend", `<div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("targets"))}">Build Target List</a></div>`);
+        }
+        if (label === "What still needs to be proven") {
+          field.insertAdjacentHTML("beforeend", `<div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("weekly-review"))}">Review ICP Evidence</a></div>`);
+        }
+      });
       if (!cleanText(data.customerContextStarter)) {
         const contextImprovement = document.createElement("div");
         contextImprovement.className = "remediation-inline no-print";
@@ -14993,6 +15009,7 @@
       const problemText = cleanText(problem).toLowerCase();
       const outcomeText = cleanText(outcome).replace(/[.!?]+$/, "");
       if (/forecast/.test(`${problemText} ${outcomeText}`)) return "Can you trust your forecast?";
+      if (/throughput|bottleneck|backlog/.test(`${problemText} ${outcomeText}`)) return "A quick throughput question";
       if (/margin/.test(`${problemText} ${outcomeText}`)) return "Protect more of your margin";
       if (/within easy reach/i.test(outcomeText)) {
         const item = outcomeText.match(/keep\s+(.+?)\s+within easy reach/i)?.[1] || "what you need";
@@ -15018,31 +15035,32 @@
       const audience = messagingLowerFirst(profile.messagingAudience || profile.customerGroup || "the priority customer group");
       const problemPhrase = messagingLowerFirst(problem || "the current problem");
       const outcomePhrase = messagingLowerFirst(outcome || "a better result");
-      const capturedLead = cleanText(profile.message);
-      const safeLead = /lead with|support it with|ask the buyer to/i.test(capturedLead)
-        ? `We are exploring a better way to help ${audience} ${outcomePhrase}.`
-        : capturedLead;
-      const roleLead = persona.primary
-        ? safeLead
-        : `For ${persona.role}, focus on this requirement: ${messagingLowerFirst(need || "confirm what this role needs to believe")}.`;
-      const proofLine = proof ? `The most relevant proof angle is ${messagingLowerFirst(messagingShortPhrase(proof, proof, 16))}.` : "Use the conversation to learn which proof would make the next step feel credible.";
+      const offer = cleanText(profile.offerName);
+      const roleRequirement = !persona.primary && need
+        ? `For ${persona.role}, the message should also address ${messagingLowerFirst(need)}.`
+        : "";
+      const proofLine = proof
+        ? `For context, ${messagingLowerFirst(messagingShortPhrase(proof, proof, 18))}.`
+        : "I would also value your perspective on what evidence would make a solution credible.";
       const triggerLine = trigger ? `This is most timely when ${messagingLowerFirst(messagingShortPhrase(trigger, trigger, 16))}.` : "Confirm what would make this worth acting on now.";
       const ask = messagingObjectiveAsk(profile, objective);
       let subject = messagingSuggestedSubject(problem, outcome);
       let opening = "Hi [First name],";
-      let body = `I am reaching out to ${audience} about this issue: ${problemPhrase}. ${roleLead} ${proofLine}`;
+      let body = profile.isPreRevenue
+        ? `I am speaking with ${audience} because ${problemPhrase}. We are evaluating ${offer || "a possible solution"} as a way to ${outcomePhrase}, and I want to learn whether this reflects a real priority before making assumptions. ${roleRequirement}`
+        : `${problem.charAt(0).toUpperCase()}${problem.slice(1).replace(/[.!?]+$/, "")} can make it harder for ${audience} to ${outcomePhrase}. ${offer || "Our approach"} is designed to address that problem and help create that outcome. ${proofLine} ${roleRequirement}`;
 
       if (/email/i.test(channel)) {
         subject = messagingSuggestedSubject(problem, outcome);
       } else if (/direct message|linkedin/i.test(channel)) {
         opening = "Hi [First name] -";
-        body = `${roleLead} I am speaking with ${audience} about this issue: ${problemPhrase}. I would value your perspective.`;
+        body = `${problem.charAt(0).toUpperCase()}${problem.slice(1).replace(/[.!?]+$/, "")} can make it harder for ${audience} to ${outcomePhrase}. ${offer || "This approach"} is intended to help. I would value your perspective.`;
       } else if (/phone|voicemail|call opening|in-person/i.test(channel)) {
         opening = "Conversation opener";
-        body = `I am speaking with ${audience} about this issue: ${problemPhrase}. ${roleLead} ${triggerLine}`;
+        body = `I am speaking with ${audience} who are dealing with ${problemPhrase}. ${offer || "Our approach"} is designed to help them ${outcomePhrase}. ${triggerLine}`;
       } else if (/referral/i.test(channel)) {
         subject = "Possible introduction";
-        body = `I am trying to speak with ${audience} who recognize this issue: ${problemPhrase}. ${roleLead}`;
+        body = `I am trying to meet ${audience} who are dealing with ${problemPhrase} and want to ${outcomePhrase}. ${offer || "Our approach"} may be relevant.`;
       } else if (/social post/i.test(channel)) {
         opening = "Post opening";
         body = `Does this sound familiar: ${problemPhrase}? I am exploring a better way to help ${audience} ${outcomePhrase} and want to learn from real experiences before making assumptions.`;
@@ -15061,6 +15079,12 @@
         cta: ask,
         rationale: `Lead with the problem and outcome that matter to ${persona.role}; use ${channel.toLowerCase()} to pursue the objective: ${objective.toLowerCase()}.`
       };
+    }
+
+    function messagingDraftUsesLegacyRecommendation(draft) {
+      return /^A question about\b/i.test(cleanText(draft.subject))
+        || /\bWe are testing whether\b/i.test(cleanText(draft.body))
+        || /^I am reaching out to .+ about this issue:/i.test(cleanText(draft.body));
     }
 
     function messagingNewDraft(profile, persona, channel, objective, version = 1) {
@@ -15106,6 +15130,20 @@
       if (!drafts.length) {
         drafts.push(messagingNewDraft(profile, personas.find((persona) => persona.id === selectedPersonaId), selectedChannel, selectedObjective));
       }
+      drafts.forEach((draft) => {
+        if (!messagingDraftUsesLegacyRecommendation(draft) || draft.interactions.length) return;
+        const persona = personas.find((item) => item.id === draft.personaId) || personas[0];
+        const recommendation = messagingRecommendation(
+          profile,
+          persona,
+          channels.includes(draft.channel) ? draft.channel : selectedChannel,
+          objectives.includes(draft.objective) ? draft.objective : selectedObjective
+        );
+        if (/^A question about\b/i.test(cleanText(draft.subject))) draft.subject = recommendation.subject;
+        if (/\bWe are testing whether\b/i.test(cleanText(draft.body)) || /^I am reaching out to .+ about this issue:/i.test(cleanText(draft.body))) draft.body = recommendation.body;
+        if (!cleanText(draft.opening)) draft.opening = recommendation.opening;
+        if (!cleanText(draft.cta)) draft.cta = recommendation.cta;
+      });
       return {
         version: 1,
         drafts,

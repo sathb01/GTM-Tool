@@ -4,6 +4,14 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-17 Active Plan Persistence, ICP Actions, and Messaging
+
+- Preserved weekly priority statuses when weekly progress is saved and synchronized those statuses with the underlying Active Plan actions.
+- Allowed completed statuses to save even when a result note is still missing, while keeping the missing evidence visible as a follow-up before the week can be closed.
+- Added direct work links beside the ICP Brief's first activation step and evidence-validation section.
+- Rewrote system-generated outreach recommendations as coherent buyer messages that connect the problem, audience, offer, outcome, proof, and next-step ask.
+- Added shorter topic-led subject lines and migrated recognizable legacy system drafts without replacing user-edited messages or drafts with response history.
+
 ## 2026-07-17 Offer and Value Proof Plan
 
 - Rebuilt the vague Offer Plan task list as an Offer and Value Proof Plan.
