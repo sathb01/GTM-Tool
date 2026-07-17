@@ -12892,7 +12892,7 @@
       resources.className = "no-print";
       resources.id = "validation-workspace-resources";
       resources.dataset.toc = "Resources";
-      resources.innerHTML = `<h2>Resources</h2><div class="report-bottom-actions"><button type="button" id="downloadValidationWorkbookBottom">Download Workbook</button><a href="${escapeHtml(reportAssetUrl("validation"))}">Validation Plan</a><a href="${escapeHtml(intakeReturnUrl())}" target="_blank" rel="noopener">Back to Intake Form</a></div>`;
+      resources.innerHTML = `<h2>Resources</h2><div class="report-bottom-actions"><button type="button" id="downloadValidationWorkbookBottom">Download Workbook</button><a href="${escapeHtml(reportAssetUrl("validation"))}">Validation Plan</a></div>`;
       main.appendChild(resources);
 
       const refreshEvidenceSummary = () => {
@@ -14100,33 +14100,6 @@
         workspaceAction.querySelector("#downloadValidationWorkbookFromPlan").addEventListener("click", () => downloadValidationTracker(data, scoreModel));
       }
 
-      const bottomActions = document.createElement("section");
-      const bottomHeading = document.createElement("h2");
-      const actionRow = document.createElement("div");
-      const reviewLink = document.createElement("a");
-      const intakeLink = document.createElement("a");
-      bottomActions.className = "no-print";
-      bottomHeading.textContent = "Review or Update Intake";
-      actionRow.className = "report-bottom-actions";
-      const reviewSettings = assetMode === "validation"
-        ? { label: "Review Validation Plan Inputs", focus: "30 day validation motion" }
-        : assetMode === "icp"
-          ? { label: "Review ICP Brief Inputs", focus: "think big start small" }
-          : { label: "Review GTM Plan Inputs", focus: "think big start small" };
-      reviewLink.href = intakeReviewUrl(reviewSettings.focus);
-      reviewLink.target = "_blank";
-      reviewLink.rel = "noopener";
-      reviewLink.textContent = reviewSettings.label;
-      intakeLink.href = intakeReturnUrl();
-      intakeLink.target = "_blank";
-      intakeLink.rel = "noopener";
-      intakeLink.textContent = "Back to Intake Form";
-      actionRow.appendChild(reviewLink);
-      actionRow.appendChild(intakeLink);
-      bottomActions.appendChild(bottomHeading);
-      bottomActions.appendChild(actionRow);
-      main.appendChild(bottomActions);
-
       setupReportNavigation();
       configureAssetPdfExport(assetMode, data, scoreModel);
     }
@@ -14211,10 +14184,6 @@
       }
       main.appendChild(section);
 
-      const actions = document.createElement("section");
-      actions.className = "no-print";
-      actions.innerHTML = `<h2>Review or Update Intake</h2><div class="report-bottom-actions"><a href="${escapeHtml(intakeReviewUrl("customer icp priority"))}" target="_blank" rel="noopener">Review ICP Brief Inputs</a><a href="${escapeHtml(intakeReturnUrl())}" target="_blank" rel="noopener">Back to Intake Form</a></div>`;
-      main.appendChild(actions);
       setupReportNavigation();
       configureAssetPdfExport();
     }
@@ -15932,7 +15901,7 @@
       actions.id = "messaging-kit-actions";
       actions.dataset.toc = "Related Assets";
       actions.className = "no-print";
-      actions.innerHTML = `<h2>Related Assets</h2><div class="report-bottom-actions"><a href="${escapeHtml(reportAssetUrl("personas"))}">Persona Brief</a><a href="${escapeHtml(reportAssetUrl("targets"))}">Target List</a><a href="${escapeHtml(reportAssetUrl("proof-assets"))}">Proof Asset Builder</a><a href="${escapeHtml(reportAssetUrl("outreach"))}">Outreach Sequence</a><a href="${escapeHtml(reportAssetUrl("active"))}">Active Plan</a><a href="${escapeHtml(intakeReturnUrl())}" target="_blank" rel="noopener">Back to Intake Form</a></div>`;
+      actions.innerHTML = `<h2>Related Assets</h2><div class="report-bottom-actions"><a href="${escapeHtml(reportAssetUrl("personas"))}">Persona Brief</a><a href="${escapeHtml(reportAssetUrl("targets"))}">Target List</a><a href="${escapeHtml(reportAssetUrl("proof-assets"))}">Proof Asset Builder</a><a href="${escapeHtml(reportAssetUrl("outreach"))}">Outreach Sequence</a><a href="${escapeHtml(reportAssetUrl("active"))}">Active Plan</a></div>`;
       main.appendChild(actions);
 
       const recommendationContainer = context.querySelector("#messagingRecommendation");
@@ -16085,13 +16054,6 @@
       evidence.dataset.toc = "Evidence and Confidence";
       evidence.innerHTML = `<h2>Evidence and Confidence</h2><p class="muted">Keep facts, assumptions, and missing evidence separate. This prevents a polished persona from looking more certain than the underlying inputs.</p><div class="persona-evidence-grid"><div class="persona-evidence-column"><h3>Evidence captured</h3>${personaAssetListMarkup(profile.evidence)}</div><div class="persona-evidence-column"><h3>Assumptions to test</h3>${personaAssetListMarkup(profile.assumptions)}</div><div class="persona-evidence-column"><h3>What still needs confirmation</h3>${personaAssetListMarkup(profile.gaps, "No critical persona gap is currently flagged. Continue validating through real buyer behavior.")}</div></div>`;
       main.appendChild(evidence);
-
-      const actions = document.createElement("section");
-      actions.className = "no-print";
-      actions.id = "persona-review-actions";
-      actions.dataset.toc = "Review or Update";
-      actions.innerHTML = `<h2>Review or Update This Persona</h2><p>Update the intake when new interviews, customer evidence, or buying behavior changes this profile. The Persona Brief will reflect the saved answers.</p><div class="report-bottom-actions"><a href="${escapeHtml(intakeReviewUrl(profile.reviewFocus))}" target="_blank" rel="noopener">Review Persona Inputs</a><a href="${escapeHtml(intakeReturnUrl())}" target="_blank" rel="noopener">Back to Intake Form</a></div>`;
-      main.appendChild(actions);
 
       setupReportNavigation();
       configureAssetPdfExport("personas", data, profile.model);
