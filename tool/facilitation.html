@@ -162,7 +162,7 @@
       icp: "20260701-icp-offer-anchor-v1",
       proof: "20260701-remediation-anchor-cleanup-v1",
       buyer: "20260701-remediation-anchor-cleanup-v1",
-      revenueMotion: "20260701-icp-offer-anchor-v1",
+      revenueMotion: "20260717-revise-trigger-multiselect-v1",
       crm: "20260701-icp-offer-anchor-v1",
       offerMessage: "20260701-remediation-anchor-cleanup-v1"
     };
@@ -200,7 +200,7 @@
         title: "Revenue Motion Facilitation",
         why: "A specific 30-day motion turns the GTM OS into a test the team can run and review, but first the available channels and motion options need to be made explicit.",
         current: [["Revenue motion labels found", "$revenueMotions"], ["Channels already mentioned", "$channels"], ["Customer groups already mentioned", "$customerGroups"], ["Offers on the table", "$offers"], ["Sales motions already mentioned", "$salesMotions"], ["Weekly activity target", "weeklyRevenueHours"], ["Revenue owner", "primaryRevenueOwner"], ["CRM data quality", "revenueDataQuality"], ["90-day goal", ["goal90", "quick90DayGoal"]]],
-        questions: ["Which channels or sources currently create, or could create, opportunities? A channel/source is where opportunities come from, not the full revenue motion.", "For each selected channel/source, is it active and working, active but inconsistent, planned, or just an idea?", "For each selected channel/source, how do buyers usually evaluate the offer?", "Build candidate revenue motions by combining one customer group, one offer, one channel/source, one primary sales motion, and the evidence behind it.", "Which candidate motion has the strongest evidence or lowest uncertainty?", "Which candidate motion should be tested or improved first for the next 30 days?", "Who owns that motion?", "What weekly activity should happen?", "What qualifies as a real opportunity?", "What review cadence will be used for this motion?", "What will be reviewed at that cadence?", "What outcome would tell you to keep using this motion?", "What result would tell you this motion needs to be revised?", "What would you revise first?", "What result means stop or pause this motion?"],
+        questions: ["Which channels or sources currently create, or could create, opportunities? A channel/source is where opportunities come from, not the full revenue motion.", "For each selected channel/source, is it active and working, active but inconsistent, planned, or just an idea?", "For each selected channel/source, how do buyers usually evaluate the offer?", "Build candidate revenue motions by combining one customer group, one offer, one channel/source, one primary sales motion, and the evidence behind it.", "Which candidate motion has the strongest evidence or lowest uncertainty?", "Which candidate motion should be tested or improved first for the next 30 days?", "Who owns that motion?", "What weekly activity should happen?", "What qualifies as a real opportunity?", "What review cadence will be used for this motion?", "What will be reviewed at that cadence?", "What outcome would tell you to keep using this motion?", "Which results would tell you this motion needs to be revised? Select all that apply.", "What would you revise first?", "What result means stop or pause this motion?"],
         example: "Possible motions include founder-led referrals, LinkedIn outbound to the priority segment, and customer expansion. The first 30-day test is founder-led referrals because it has the strongest evidence, clearest owner, and fastest path to qualified conversations.",
         draftLabels: ["Available channels", "Channel status", "Evaluation path by source", "Candidate revenue motions", "Best-evidence motion", "30-day motion", "Owner", "Weekly activity target", "Opportunity definition", "Review cadence", "Review inputs", "Continue rule", "Revise trigger", "Revise first", "Stop / pause rule"]
       },
@@ -319,7 +319,7 @@
         9: { type: "select", options: optionSets.cadence },
         10: { type: "checkbox", options: optionSets.reviewInputs },
         11: { type: "select", options: ["Qualified conversations created", "Opportunities created", "Pipeline created", "Revenue created", "Clear learning created", "Other"] },
-        12: { type: "select", options: ["No qualified conversations", "Low response rate", "Wrong-fit prospects respond", "Prospects show interest but no urgency", "Prospects like the idea but reject the offer", "Channel creates activity but no opportunities", "Message creates confusion", "Proof is not strong enough", "Activity target is unrealistic", "Other"] },
+        12: { type: "checkbox", options: ["No qualified conversations", "Low response rate", "Wrong-fit prospects respond", "Prospects show interest but no urgency", "Prospects like the idea but reject the offer", "Channel creates activity but no opportunities", "Message creates confusion", "Proof is not strong enough", "Activity target is unrealistic", "Other"] },
         13: { type: "select", options: ["ICP", "Offer", "Message", "Channel", "Activity target", "Proof", "Buyer", "Other"] },
         14: { type: "select", options: ["No qualified signal", "No useful learning", "No owner capacity", "Bad-fit accounts", "Channel unavailable", "Other"] }
       },

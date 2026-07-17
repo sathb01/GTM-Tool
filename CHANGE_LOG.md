@@ -4,6 +4,12 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-17 Revenue Motion Revision Signals
+
+- Changed `Which results would tell you this motion needs to be revised?` from single-select to multi-select.
+- Clarified that users may select every applicable revision signal.
+- Preserved existing saved answers and the required definition when `Other` is selected.
+
 ## 2026-07-17 Revenue Motion Name Resolution
 
 - Fixed a false `Named Revenue Motion` gap when the primary-motion selector stored a relationship ID such as `motion-1`.
