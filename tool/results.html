@@ -5905,7 +5905,7 @@
         tone: "opportunity",
         title: "Top Opportunity",
         subtitle: "Understand what it is, why it was selected, and which inputs affect it.",
-        content: `<h3>Recommended opportunity</h3><p>${escapeHtml(dynamicSummary.opportunity)}</p><h3>Recommended direction</h3>${summaryBulletList(decisionContent.decisionRequired, true)}<h3>Why this is prioritized</h3><ul><li>${escapeHtml(opportunityEvidence?.observation || topPriority?.drivers || executiveInsightMeaning(model))}</li><li>${escapeHtml(topPriority?.recommendedAction || "It is the clearest available leverage point for improving focused execution.")}</li></ul><h3>Recommended 90-Day Focus</h3><ul>${decisionContent.recommendedFocusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+        content: `<h3>Recommended opportunity</h3><p>${escapeHtml(dynamicSummary.opportunity)}</p>${dynamicSummary.feedback.state === "Supported" ? `<h3>Conversion point to improve</h3><p>${dynamicSummary.feedback.weakestConversionPoint ? `<strong>${escapeHtml(dynamicSummary.feedback.weakestConversionPoint)}</strong> is the saved answer for Biggest funnel drop-off in Revenue Motion.` : "No biggest funnel drop-off has been defined yet. Compare the conversion between each sales stage before choosing where to improve."}</p>` : ""}<h3>Recommended direction</h3>${summaryBulletList(decisionContent.decisionRequired, true)}<h3>Why this is prioritized</h3><ul><li>${escapeHtml(opportunityEvidence?.observation || topPriority?.drivers || executiveInsightMeaning(model))}</li><li>${escapeHtml(topPriority?.recommendedAction || "It is the clearest available leverage point for improving focused execution.")}</li></ul><h3>Recommended 90-Day Focus</h3><ul>${decisionContent.recommendedFocusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
       });
       appendReviewLink(opportunityPanel.querySelector(".summary-support-content"), "Improve This Section", immediateActionTopic(dynamicSummary.opportunity), { sameTab: true, returnSectionId: "summary-opportunity-details" });
       recommendation.appendChild(opportunityPanel);
@@ -11511,6 +11511,16 @@
       return Math.max(3, Math.min(cap, Math.round(((100 - boundedScore(score)) / 100) * weight * 100)));
     }
 
+    function savedConversionBottleneck(data) {
+      const motionRowId = primaryRevenueMotionRowId(data);
+      const fieldId = revenueScopedField(motionRowId, "pipelineMetrics", "biggestDropoff");
+      const selected = cleanText(data[fieldId]);
+      const selectedOther = cleanText(data[`${fieldId}__other`]);
+      if (selected === "Other" && selectedOther) return selectedOther;
+      if (selected && selected !== "Not sure" && !isPlaceholderValue(selected)) return selected;
+      return "";
+    }
+
     function executionEvidenceFeedback(data) {
       const validation = data.validationWorkspace && typeof data.validationWorkspace === "object" ? data.validationWorkspace : {};
       const completedInterviews = (Array.isArray(validation.interviews) ? validation.interviews : []).filter((item) => item?.status === "Complete");
@@ -11557,6 +11567,7 @@
       const sufficientTest = completedInterviews.length >= 8 || observedAttempts >= 10 || reviews.length >= 2;
       const positiveSignal = meaningfulNextSteps > 0 || openOpportunities > 0 || (completedInterviews.length >= 5 && confirmedProblems >= Math.ceil(completedInterviews.length * 0.6));
       const explicitChallenge = /revise|stop|pause/i.test(latestDecision);
+      const weakestConversionPoint = savedConversionBottleneck(data);
 
       let state = "Untested";
       let recommendedDecision = "Collect evidence";
@@ -11585,7 +11596,9 @@
       const nextAction = state === "Challenged"
         ? "Choose the single variable the evidence challenges most, revise it, and run the next small test without changing the other variables."
         : state === "Supported"
-          ? "Keep the current focus and improve only the weakest conversion point before adding volume."
+          ? weakestConversionPoint
+            ? `Keep the current focus and improve ${weakestConversionPoint}, the saved biggest funnel drop-off, before adding volume.`
+            : "Keep the current focus. Before adding volume, compare conversion between each sales stage and identify the single biggest funnel drop-off."
           : "Complete the next evidence-producing activity and record the result before changing the plan.";
 
       return {
@@ -11597,6 +11610,7 @@
         sufficientTest,
         operatingReadiness,
         scoreEffect,
+        weakestConversionPoint,
         latestDecision: latestDecision || "No saved decision",
         metrics: {
           completedInterviews: completedInterviews.length,

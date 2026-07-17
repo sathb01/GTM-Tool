@@ -7,6 +7,7 @@ This file records the major actions and changes made during the GTM Tool refinem
 ## 2026-07-17 Plan Summary Score Guidance
 
 - Renamed the four plan-summary detail links from `See supporting details` to `Learn more` and made each link expand its matching support panel before scrolling to it.
+- Replaced the generic `weakest conversion point` recommendation with the saved Biggest funnel drop-off by name; when none is saved, the plan now asks the user to identify it instead of implying that it is known.
 - Replaced the old self-rating-based Revenue Motion summary with the evidence-based Revenue Motion readiness score used by the overall scoring model.
 - Added the eight Revenue Motion scoring dimensions, their current scores, and the exact next move for every weak dimension to the readiness details.
 - Added separate improvement routes for the score areas that currently need work instead of sending every score issue to one generic intake review.
