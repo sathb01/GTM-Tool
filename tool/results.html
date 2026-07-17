@@ -5579,6 +5579,26 @@
       return { feedback, opportunity, nextAction, risk };
     }
 
+    function summaryBulletList(text, splitAlternatives = false) {
+      let items = String(text || "")
+        .split(/(?<=[.!?])\s+/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+      if (splitAlternatives && items.length === 1) {
+        const alternativeIndex = items[0].search(/\s+or\s+/i);
+        if (alternativeIndex >= 0) {
+          const separator = items[0].slice(alternativeIndex).match(/^\s+or\s+/i)?.[0] || "";
+          items = [items[0].slice(0, alternativeIndex), items[0].slice(alternativeIndex + separator.length)]
+            .map((item) => item.trim())
+            .filter(Boolean);
+        }
+      }
+      return `<ul>${items.map((item) => {
+        const normalized = item.charAt(0).toUpperCase() + item.slice(1);
+        return `<li>${escapeHtml(normalized)}</li>`;
+      }).join("")}</ul>`;
+    }
+
     function renderWorkspaceDashboard(model) {
       const cards = document.getElementById("workspaceSummaryCards");
       const recommendation = document.getElementById("workspaceRecommendation");
@@ -5645,8 +5665,8 @@
         <div class="recommendation-detail-grid">
           <div class="field"><h3>Recommended Focus</h3><ul>${decisionContent.recommendedFocusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>
           <div class="field"><h3>Why This Matters</h3><p>${escapeHtml(executiveInsightMeaning(model))}</p></div>
-          <div class="field"><h3>Decision Required</h3><p>${escapeHtml(decisionContent.decisionRequired)}</p></div>
-          <div class="field"><h3>Plan Completeness</h3><p>${escapeHtml(planCompletenessCopy(model))}</p></div>
+          <div class="field"><h3>Decision Required</h3>${summaryBulletList(decisionContent.decisionRequired, true)}</div>
+          <div class="field"><h3>Plan Completeness</h3>${summaryBulletList(planCompletenessCopy(model))}</div>
         </div>
       `;
 

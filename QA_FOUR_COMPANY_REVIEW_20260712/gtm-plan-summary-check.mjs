@@ -13,13 +13,17 @@ const response = await page.goto(`${baseUrl}/results.html?asset=gtm&recordId=${r
 const result = await page.evaluate(() => {
   const assetLinks = [...document.querySelectorAll("#reportToc a")];
   const cards = [...document.querySelectorAll("#workspaceSummaryCards .metric-card")];
+  const detailFields = [...document.querySelectorAll("#workspaceRecommendation .recommendation-detail-grid .field")];
+  const detailFor = (heading) => detailFields.find((field) => field.querySelector("h3")?.textContent.trim() === heading);
   return {
     status: document.title,
     heading: document.querySelector("#companyName")?.textContent.trim() || "",
     firstAsset: assetLinks[0]?.textContent.trim() || "",
     firstAssetActive: assetLinks[0]?.classList.contains("active") || false,
     cardLabels: cards.map((card) => card.querySelector("h3")?.textContent.trim() || ""),
-    cardCopy: cards.map((card) => card.querySelector(".metric-copy")?.textContent.trim() || "")
+    cardCopy: cards.map((card) => card.querySelector(".metric-copy")?.textContent.trim() || ""),
+    decisionBullets: detailFor("Decision Required")?.querySelectorAll("li").length || 0,
+    completenessBullets: detailFor("Plan Completeness")?.querySelectorAll("li").length || 0
   };
 });
 
@@ -33,5 +37,7 @@ if (
   || !result.heading.includes("GTM Plan Summary")
   || result.cardLabels.length !== 4
   || result.cardCopy.some((copy) => !copy)
+  || result.decisionBullets !== 2
+  || result.completenessBullets !== 2
   || errors.length
 ) process.exitCode = 1;
