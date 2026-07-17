@@ -4,6 +4,12 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-17 Ranked Action Remediation Links
+
+- Turned each missing Revenue Motion Discipline operating element into a direct guided intake link.
+- Added the specific missing task, such as `Complete Named Revenue Motion`, to the destination review.
+- Preserved the return path to the same Ranked Action Plan item after the intake answer is updated.
+
 ## 2026-07-17 Evidence-Aware Revenue Motion Priorities
 
 - Corrected the Ranked Action Plan so an isolated CRM hygiene note cannot imply that the entire revenue motion is undefined.

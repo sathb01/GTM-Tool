@@ -6003,11 +6003,24 @@
 
     function appendReviewLink(container, label, topic, options = {}) {
       const actions = document.createElement("div");
+      const link = createReviewLink(label, topic, options);
+      actions.className = "card-actions no-print";
+      actions.appendChild(link);
+      container.appendChild(actions);
+    }
+
+    function createReviewLink(label, topic, options = {}) {
       const link = document.createElement("a");
       const sectionId = intakeSectionForTopic(topic);
       const focus = reviewFocusForTopic(topic);
-      actions.className = "card-actions no-print";
-      link.href = intakeReviewUrl(topic, options.sameTab ? { returnToCurrentReport: true, returnSectionId: options.returnSectionId || "decision-summary" } : {});
+      const reviewOptions = options.sameTab
+        ? {
+            returnToCurrentReport: true,
+            returnSectionId: options.returnSectionId || "decision-summary",
+            task: options.task || label
+          }
+        : { task: options.task || label };
+      link.href = intakeReviewUrl(topic, reviewOptions);
       if (!options.sameTab) {
         link.target = "_blank";
         link.rel = "noopener";
@@ -6025,8 +6038,7 @@
           createdAt: new Date().toISOString()
         }));
       });
-      actions.appendChild(link);
-      container.appendChild(actions);
+      return link;
     }
 
     function immediateActionTopic(area) {
@@ -6991,6 +7003,7 @@
         whyItMatters: item.whyItMatters,
         drivers: item.drivers,
         recommendedAction: item.recommendedAction,
+        missingOperatingElements: item.missingOperatingElements || [],
         confidence: item.confidence || "Medium",
         missingInputs: item.missingInputs || [],
         blocksOthers: Boolean(item.blocksOthers),
@@ -7055,16 +7068,18 @@
         reviewCadence: Boolean(experimentCadence || data.revenueReportingCadence),
         tracking: Boolean(data.revenueTrackingSystem && !/none/i.test(data.revenueTrackingSystem))
       };
-      const missingMotionParts = Object.entries(operatingCoverage)
+      const operatingElementDetails = {
+        motion: { label: "Named Revenue Motion", topic: "revenue motion" },
+        target: { label: "Priority Target or Target List", topic: "customer priority" },
+        activityTarget: { label: "30-Day Activity or Result Target", topic: "revenue activity target" },
+        stageCriteria: { label: "Pipeline Stage Criteria", topic: "pipeline stage criteria" },
+        reviewCadence: { label: "Review Cadence", topic: "revenue review cadence" },
+        tracking: { label: "CRM or Pipeline Tracking System", topic: "CRM tracking system" }
+      };
+      const missingOperatingElements = Object.entries(operatingCoverage)
         .filter(([, complete]) => !complete)
-        .map(([part]) => ({
-          motion: "named revenue motion",
-          target: "priority target or target list",
-          activityTarget: "30-day activity or result target",
-          stageCriteria: "pipeline stage criteria",
-          reviewCadence: "review cadence",
-          tracking: "CRM or pipeline tracking system"
-        })[part]);
+        .map(([part]) => operatingElementDetails[part]);
+      const missingMotionParts = missingOperatingElements.map((item) => item.label.toLowerCase());
       if (executionFeedback.state === "Challenged") {
         addRevenueImpactPriority(priorities, model, {
           category: "Execution Evidence",
@@ -7094,6 +7109,7 @@
           recommendedAction: missingMotionParts.length
             ? `Complete only the missing operating elements: ${toSentence(missingMotionParts)}.`
             : (model.revenueSnapshot.nextMoves[0] || `Improve the weakest measured part of ${motionName || "the current revenue motion"}.`),
+          missingOperatingElements,
           confidence: "High",
           blocksOthers: true,
           connectedTo90DayGoal: true
@@ -7242,6 +7258,7 @@
           whyItMatters: "A disciplined motion keeps revenue activity measurable and easier to improve.",
           drivers: `The motion still needs ${toSentence(missingMotionParts)}.`,
           recommendedAction: `Complete only the missing operating elements: ${toSentence(missingMotionParts)}.`,
+          missingOperatingElements,
           confidence: "Medium",
           blocksOthers: true,
           connectedTo90DayGoal: true
@@ -7471,7 +7488,22 @@
 
         heading.textContent = `${index + 1}. ${priority.priority}`;
         action.className = "revenue-impact-action";
-        action.innerHTML = `<strong>Recommended action:</strong> ${escapeHtml(priority.recommendedAction)}`;
+        if (priority.missingOperatingElements.length) {
+          action.innerHTML = "<strong>Recommended action:</strong> Complete only the missing operating elements:";
+          const missingList = document.createElement("ul");
+          priority.missingOperatingElements.forEach((element) => {
+            const missingItem = document.createElement("li");
+            missingItem.appendChild(createReviewLink(element.label, element.topic, {
+              sameTab: true,
+              returnSectionId: item.id,
+              task: `Complete ${element.label}`
+            }));
+            missingList.appendChild(missingItem);
+          });
+          action.appendChild(missingList);
+        } else {
+          action.innerHTML = `<strong>Recommended action:</strong> ${escapeHtml(priority.recommendedAction)}`;
+        }
         summary.textContent = "See more";
         details.className = "revenue-impact-details";
         details.open = index === 0;
