@@ -5912,12 +5912,12 @@
 
     function appendPlanOutputLinks() {
       const mappings = [
-        ["icpPlaybook", [["ICP Brief", "icp"], ["Target List", "targets"]]],
+        ["icpPlaybook", [["ICP Brief", "icp"], ["Target List Setup", "targets"]]],
         ["offerStrategy", [["Proof Asset Builder", "proof-assets"], ["Messaging Kit", "messaging"]], "Complete the proof work first. Once the claim is supported, use it in the Messaging Kit."],
         ["buyerPersonaBlueprint", [["Persona Brief", "personas"], ["Messaging Kit", "messaging"]]],
-        ["triggerSignalStrategy", [["Target List", "targets"], ["Outreach Sequence", "outreach"]]],
-        ["salesMotionBlueprint", [["Outreach Sequence", "outreach"], ["Pipeline and Opportunities", "pipeline-workspace"], ["Weekly GTM Review", "weekly-review"]]],
-        ["crmBlueprint", [["Pipeline and Opportunities", "pipeline-workspace"], ["Weekly GTM Review", "weekly-review"]]],
+        ["triggerSignalStrategy", [["Target List Setup", "targets"], ["Outreach Sequence", "outreach"]]],
+        ["salesMotionBlueprint", [["Outreach Sequence", "outreach"], ["Weekly GTM Review", "weekly-review"]]],
+        ["crmBlueprint", [["Target List Setup", "targets"], ["Weekly GTM Review", "weekly-review"]]],
         ["activityModel", [["Active Plan", "active"], ["Weekly GTM Review", "weekly-review"]]]
       ];
 
@@ -8043,7 +8043,7 @@
       const version = params.get("v") || "20260712-pre-revenue-assets";
       const recordId = activeReportRecordId();
       const query = new URLSearchParams({ v: version, asset });
-      const hashes = { health: "plan-health-dashboard", active: "active-plan-objective", validation: "plan-decision", "validation-workspace": "", gtm: "draft-icp", icp: "icp-brief", personas: "persona-overview", messaging: "messaging-workspace", targets: "target-list-workspace", "proof-assets": "proof-asset-workspace", outreach: "outreach-sequence-workspace", "pipeline-workspace": "pipeline-opportunity-workspace", "weekly-review": "weekly-review-workspace", reconciliation: "evidence-reconciliation-workspace" };
+      const hashes = { health: "plan-health-dashboard", active: "active-plan-objective", validation: "plan-decision", "validation-workspace": "", gtm: "draft-icp", icp: "icp-brief", personas: "persona-overview", messaging: "messaging-workspace", targets: "target-list-workspace", "proof-assets": "proof-asset-workspace", outreach: "outreach-sequence-workspace", "weekly-review": "weekly-review-workspace", reconciliation: "evidence-reconciliation-workspace" };
       const hash = Object.prototype.hasOwnProperty.call(hashes, asset) ? hashes[asset] : "draft-icp";
       if (recordId) {
         query.set("recordId", recordId);
@@ -10591,7 +10591,6 @@
       const targets = data.targetListWorkspace && typeof data.targetListWorkspace === "object" ? data.targetListWorkspace : {};
       const proof = data.proofAssetWorkspace && typeof data.proofAssetWorkspace === "object" ? data.proofAssetWorkspace : {};
       const outreach = data.outreachSequenceWorkspace && typeof data.outreachSequenceWorkspace === "object" ? data.outreachSequenceWorkspace : {};
-      const pipeline = data.pipelineOpportunityWorkspace && typeof data.pipelineOpportunityWorkspace === "object" ? data.pipelineOpportunityWorkspace : {};
       const weekly = data.weeklyReviewWorkspace && typeof data.weeklyReviewWorkspace === "object" ? data.weeklyReviewWorkspace : {};
       const reconciliation = data.evidenceReconciliationWorkspace && typeof data.evidenceReconciliationWorkspace === "object" ? data.evidenceReconciliationWorkspace : {};
       const customer = cleanText(group?.values?.groupName || group?.values?.segmentName__other || group?.values?.segmentName || data.bestFitCustomerGroup || data.quickBestFitCustomer || data.preDiscoveryTargetSegment);
@@ -10628,7 +10627,6 @@
         targets,
         proof,
         outreach,
-        pipeline,
         weekly,
         reconciliation
       };
@@ -10651,12 +10649,10 @@
       const evidenceFix = context.preRevenue ? reportAssetUrl("validation-workspace") : intakeReviewUrl("proof evidence");
       const drafts = Array.isArray(context.messaging.drafts) ? context.messaging.drafts : [];
       const selectedMessage = drafts.find((item) => item.id === context.messaging.selectedDraftId) || drafts[0] || {};
-      const targetRows = Array.isArray(context.targets.targets) ? context.targets.targets.filter((item) => item?.name || item?.profile || item?.contact) : [];
       const proofDrafts = Array.isArray(context.proof.drafts) ? context.proof.drafts : [];
       const selectedProof = proofDrafts.find((item) => item.id === context.proof.selectedDraftId) || proofDrafts[0] || {};
       const sequences = Array.isArray(context.outreach.sequences) ? context.outreach.sequences : [];
       const selectedSequence = sequences.find((item) => item.id === context.outreach.selectedSequenceId) || sequences[0] || {};
-      const opportunities = Array.isArray(context.pipeline.opportunities) ? context.pipeline.opportunities : [];
       const reviews = Array.isArray(context.weekly.reviews) ? context.weekly.reviews : [];
       const latestReview = reviews.at(-1) || {};
       const interviews = Array.isArray(context.validation.interviews) ? context.validation.interviews : [];
@@ -10689,25 +10685,19 @@
           assetQualityCheck("One target segment", context.customer, "Every target is evaluated against the same priority segment.", "Review ICP", customerFix),
           assetQualityCheck("Observable fit criteria", context.observableCriteria, "Defines signals that can be researched before outreach.", "Add fit criteria", customerFix),
           assetQualityCheck("Reach or source defined", context.channel || assetQualityDataMatch(data, /(?:reachability|listBuildingClues|existingAccess|targetSource)/i), "Names where the first targets can be found.", "Define target sources", motionFix),
-          assetQualityCheck("Working target records", targetRows.length > 0, "Contains at least one target record ready to research or assign.", "Add targets", reportAssetUrl("targets"))
+          assetQualityCheck("External system is ready", context.preRevenue || assetQualityDataMatch(data, /(?:crmName|crmSystem|currentCrm|revenueTrackingSystem)/i), "Names the CRM or spreadsheet where the working list will be maintained.", "Review list setup", reportAssetUrl("targets"))
         ],
         "proof-assets": [
           assetQualityCheck("Buyer and claim are clear", context.buyer && assetQualityValue(selectedProof.claim || selectedProof.title || selectedProof.outcome), "Ties the proof to a buyer-relevant claim or outcome.", "Review offer and buyer", offerFix),
-          assetQualityCheck("Evidence source identified", assetQualityValue(selectedProof.evidence || selectedProof.source || selectedProof.story), "Names the customer, result, source, or evidence behind the asset.", "Add proof evidence", offerFix),
+          assetQualityCheck("Evidence source identified", assetQualityValue(selectedProof.evidenceSource || selectedProof.evidence || selectedProof.source || selectedProof.story), "Names the customer, result, source, or evidence behind the asset.", "Add proof evidence", offerFix),
           assetQualityCheck("Permission or verification status", assetQualityValue(selectedProof.status || selectedProof.strength), "Shows whether the proof is draft, verified, approved, or ready.", "Review proof status", reportAssetUrl("proof-assets")),
-          assetQualityCheck("Planned use", assetQualityValue(selectedProof.owner || selectedProof.nextUse || selectedProof.useCase) || (Array.isArray(selectedProof.uses) && selectedProof.uses.length > 0), "Connects the proof to a message, conversation, or next action.", "Plan proof use", reportAssetUrl("proof-assets"))
+          assetQualityCheck("Planned use", assetQualityValue(selectedProof.messageId || selectedProof.cta || selectedProof.owner || selectedProof.nextUse || selectedProof.useCase) || (Array.isArray(selectedProof.uses) && selectedProof.uses.length > 0), "Connects the proof to a message, conversation, or next action.", "Plan proof use", reportAssetUrl("proof-assets"))
         ],
         outreach: [
           assetQualityCheck("Audience and message selected", context.customer && assetQualityValue(selectedSequence.messageId || selectedSequence.personaId), "Connects the sequence to a target audience and saved message.", "Choose message", reportAssetUrl("outreach")),
           assetQualityCheck("Sequence is complete", Array.isArray(selectedSequence.steps) && selectedSequence.steps.length >= 2 && selectedSequence.steps.every((step) => assetQualityValue(step.action)), "Includes at least two clear outreach steps.", "Complete sequence", reportAssetUrl("outreach")),
-          assetQualityCheck("Targets and owner assigned", Array.isArray(selectedSequence.assignments) && selectedSequence.assignments.some((item) => assetQualityValue(item.targetId) && assetQualityValue(item.owner)), "Assigns real targets and an accountable owner.", "Assign targets", reportAssetUrl("outreach")),
-          assetQualityCheck("Next actions are trackable", Array.isArray(selectedSequence.assignments) && selectedSequence.assignments.some((item) => assetQualityValue(item.nextAction) || assetQualityValue(item.status)), "Provides status and next-action fields for execution.", "Review assignments", reportAssetUrl("outreach"))
-        ],
-        "pipeline-workspace": [
-          assetQualityCheck("System of record is clear", assetQualityValue(context.pipeline.sourceOfTruth), "States whether GTM OS or the CRM controls opportunity updates.", "Choose source of truth", reportAssetUrl("pipeline-workspace")),
-          assetQualityCheck("Qualified opportunities exist", opportunities.some((item) => assetQualityValue(item.name || item.targetId) && assetQualityValue(item.stage)), "Contains at least one named opportunity with a stage.", "Add opportunity", reportAssetUrl("pipeline-workspace")),
-          assetQualityCheck("Owner and next action", opportunities.some((item) => assetQualityValue(item.owner) && assetQualityValue(item.nextAction)), "Every active opportunity needs ownership and a concrete next action.", "Complete opportunity", reportAssetUrl("pipeline-workspace")),
-          assetQualityCheck("Learning can update the plan", opportunities.some((item) => assetQualityValue(item.learning)) || context.capturedEvidence, "Captures what opportunity behavior teaches the GTM team.", "Capture learning", reportAssetUrl("pipeline-workspace"))
+          assetQualityCheck("System handoff is clear", context.preRevenue || assetQualityDataMatch(data, /(?:crmName|crmSystem|currentCrm|revenueTrackingSystem)/i), "Keeps contact assignments, activity, and next actions in the team's operating system.", "Review list setup", reportAssetUrl("targets")),
+          assetQualityCheck("Learning has a review path", Array.isArray(context.weekly.reviews) || context.capturedEvidence, "Routes results and decision-changing learning into the Weekly GTM Review.", "Weekly GTM Review", reportAssetUrl("weekly-review"))
         ],
         "weekly-review": [
           assetQualityCheck("Current metrics recorded", assetQualityValue(latestReview.metrics), "Records the activity and outcomes from the current review period.", "Add review metrics", reportAssetUrl("weekly-review")),
@@ -10834,10 +10824,9 @@
         addNavItem("Assets", "Persona Brief", reportAssetUrl("personas"));
       }
       addNavItem("Assets", "Messaging Kit", reportAssetUrl("messaging"));
-      addNavItem("Assets", "Target List", reportAssetUrl("targets"));
+      addNavItem("Assets", "Target List Setup", reportAssetUrl("targets"));
       addNavItem("Assets", "Proof Asset Builder", reportAssetUrl("proof-assets"));
       addNavItem("Assets", "Outreach Sequence", reportAssetUrl("outreach"));
-      addNavItem("Assets", "Pipeline and Opportunities", reportAssetUrl("pipeline-workspace"));
       addNavItem("Assets", "Weekly GTM Review", reportAssetUrl("weekly-review"));
       if (currentAsset === "validation-workspace" || document.getElementById("plan-decision") || document.getElementById("draft-icp")) {
         addNavItem("Assets", "Validation Workspace", reportAssetUrl("validation-workspace"));
@@ -11508,11 +11497,6 @@
       const activeAssignments = assignments.filter((item) => !["", "Not started", "Stopped"].includes(item.status)).length;
       const assignmentNextSteps = assignments.filter((item) => item.status === "Meaningful next step").length;
 
-      const pipeline = data.pipelineOpportunityWorkspace && typeof data.pipelineOpportunityWorkspace === "object" ? data.pipelineOpportunityWorkspace : {};
-      const opportunities = Array.isArray(pipeline.opportunities) ? pipeline.opportunities : [];
-      const openOpportunities = opportunities.filter((item) => !["Closed lost", "Disqualified"].includes(item.stage)).length;
-      const opportunitiesWithNextAction = opportunities.filter((item) => cleanText(item.nextAction)).length;
-
       const weekly = data.weeklyReviewWorkspace && typeof data.weeklyReviewWorkspace === "object" ? data.weeklyReviewWorkspace : {};
       const reviews = Array.isArray(weekly.reviews) ? weekly.reviews : [];
       const latestLearningChange = reviews.at(-1)?.learningChange || null;
@@ -11522,7 +11506,9 @@
       const observedAttempts = Math.max(attempts, Number(latestReview.metrics?.attempts) || 0);
       const observedReplies = Math.max(replies, Number(latestReview.metrics?.replies) || 0);
       const observedConversations = Math.max(conversations, Number(latestReview.metrics?.conversations) || 0);
-      const hasEvidence = completedInterviews.length > 0 || observedAttempts > 0 || proofUses > 0 || activeAssignments > 0 || opportunities.length > 0 || reviews.length > 0;
+      const openOpportunities = Number(latestReview.metrics?.openOpportunities) || 0;
+      const opportunitiesWithNextAction = Math.max(0, openOpportunities - (Number(latestReview.metrics?.noNextAction) || 0));
+      const hasEvidence = completedInterviews.length > 0 || observedAttempts > 0 || proofUses > 0 || activeAssignments > 0 || openOpportunities > 0 || reviews.length > 0;
       const sufficientTest = completedInterviews.length >= 8 || observedAttempts >= 10 || reviews.length >= 2;
       const positiveSignal = meaningfulNextSteps > 0 || openOpportunities > 0 || (completedInterviews.length >= 5 && confirmedProblems >= Math.ceil(completedInterviews.length * 0.6));
       const explicitChallenge = /revise|stop|pause/i.test(latestDecision);
@@ -11545,10 +11531,10 @@
         explanation = "The current test has enough evidence to question the segment, message, offer, channel, or timing. Do not add volume until one core variable is revised.";
       }
 
-      const sourceCount = [completedInterviews.length, interactions.length || observedAttempts, proofUses, activeAssignments, opportunities.length, reviews.length].filter((value) => value > 0).length;
+      const sourceCount = [completedInterviews.length, interactions.length || observedAttempts, proofUses, activeAssignments, openOpportunities, reviews.length].filter((value) => value > 0).length;
       const decisionDiscipline = latestDecision && !/need more evidence/i.test(latestDecision) ? 1 : 0;
       const operatingReadiness = hasEvidence
-        ? boundedScore((Math.min(1, sourceCount / 4) * 45) + (sufficientTest ? 25 : 10) + (decisionDiscipline * 15) + (opportunitiesWithNextAction === opportunities.length && opportunities.length ? 15 : 0))
+        ? boundedScore((Math.min(1, sourceCount / 4) * 45) + (sufficientTest ? 25 : 10) + (decisionDiscipline * 15) + (openOpportunities > 0 && opportunitiesWithNextAction === openOpportunities ? 15 : 0))
         : 0;
       const scoreEffect = hasEvidence ? Math.max(-3, Math.min(6, Math.round((operatingReadiness - 50) * 0.12))) : 0;
       const nextAction = state === "Challenged"
@@ -13818,20 +13804,11 @@
       const plan = activePlanDefinition(data);
       const activeWeek = activePlanWeeklyWorkspace(data, plan);
       const feedback = plan.feedback || executionEvidenceFeedback(data);
-      const today = new Date().toISOString().slice(0, 10);
-      const targetWorkspace = data.targetListWorkspace && typeof data.targetListWorkspace === "object" ? data.targetListWorkspace : {};
-      const targets = Array.isArray(targetWorkspace.targets) ? targetWorkspace.targets : [];
-      const pipeline = data.pipelineOpportunityWorkspace && typeof data.pipelineOpportunityWorkspace === "object" ? data.pipelineOpportunityWorkspace : {};
-      const opportunities = Array.isArray(pipeline.opportunities) ? pipeline.opportunities : [];
-      const outreach = data.outreachSequenceWorkspace && typeof data.outreachSequenceWorkspace === "object" ? data.outreachSequenceWorkspace : {};
-      const assignments = (Array.isArray(outreach.sequences) ? outreach.sequences : []).flatMap((sequence) => Array.isArray(sequence.assignments) ? sequence.assignments : []);
       const weekly = data.weeklyReviewWorkspace && typeof data.weeklyReviewWorkspace === "object" ? data.weeklyReviewWorkspace : {};
-      const latestLearningChange = (Array.isArray(weekly.reviews) ? weekly.reviews : []).at(-1)?.learningChange || null;
-      const overdue = [
-        ...targets.filter((item) => item.dueDate && item.dueDate < today && !["Meaningful next step", "Not a fit", "Do not pursue", "Complete"].includes(item.status)).map((item) => ({ label: item.name || item.profile || "Target follow-up", dueDate: item.dueDate, source: "Target List", url: reportAssetUrl("targets") })),
-        ...opportunities.filter((item) => item.dueDate && item.dueDate < today && !["Closed won", "Closed lost", "Disqualified"].includes(item.stage)).map((item) => ({ label: item.nextAction || item.name || "Opportunity action", dueDate: item.dueDate, source: "Pipeline", url: reportAssetUrl("pipeline-workspace") })),
-        ...assignments.filter((item) => item.dueDate && item.dueDate < today && !["Complete", "Stopped", "Meaningful next step"].includes(item.status)).map((item) => ({ label: item.nextAction || "Outreach follow-up", dueDate: item.dueDate, source: "Outreach", url: reportAssetUrl("outreach") }))
-      ].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+      const latestReview = (Array.isArray(weekly.reviews) ? weekly.reviews : []).at(-1) || {};
+      const latestLearningChange = latestReview.learningChange || null;
+      const overdueCount = Number(latestReview.metrics?.overdue) || 0;
+      const overdue = overdueCount ? [{ label: `${overdueCount} overdue CRM follow-up${overdueCount === 1 ? "" : "s"}`, dueDate: "", source: "Weekly GTM Review", url: reportAssetUrl("weekly-review") }] : [];
 
       const actionStates = activeWeek.currentPriorities.map((action, index) => ({
         ...action,
@@ -13876,7 +13853,7 @@
         pendingDecisions,
         latestLearningChange,
         nextSteps: nextSteps.slice(0, 3),
-        openOpportunities: opportunities.filter((item) => !["Closed won", "Closed lost", "Disqualified"].includes(item.stage)).length
+        openOpportunities: Number(latestReview.metrics?.openOpportunities) || 0
       };
     }
 
@@ -14523,7 +14500,7 @@
       grid.querySelectorAll(".field").forEach((field) => {
         const label = field.querySelector("h3")?.textContent.trim();
         if (label === "First activation step") {
-          field.insertAdjacentHTML("beforeend", `<div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("targets"))}">Build Target List</a></div>`);
+          field.insertAdjacentHTML("beforeend", `<div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("targets"))}">Set Up Target List</a></div>`);
         }
         if (label === "What still needs to be proven") {
           field.insertAdjacentHTML("beforeend", `<div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("weekly-review"))}">Review ICP Evidence</a></div>`);
@@ -15174,11 +15151,9 @@
       return draft;
     }
 
-    function messagingInteractionRowMarkup(interaction = {}, channel = "Email", targets = []) {
+    function messagingInteractionRowMarkup(interaction = {}, channel = "Email") {
       const outcome = interaction.outcome || "No response";
-      targets = targets.length ? targets : (window.__messagingTrackedTargets || []);
-      const targetOptions = [`<option value="">Choose from Target List</option>`, ...targets.map((target) => `<option value="${escapeHtml(target.id)}"${target.id === interaction.targetId ? " selected" : ""}>${escapeHtml([target.name, target.profile].filter(Boolean).join(" - ") || target.id)}</option>`)].join("");
-      return `<article class="messaging-interaction-row" data-message-interaction-id="${escapeHtml(interaction.id || `interaction-${Date.now()}-${Math.random().toString(16).slice(2)}`)}"><label>Target from list<select data-interaction-field="targetId">${targetOptions}</select></label><label>Contact or target<input data-interaction-field="contact" value="${escapeHtml(interaction.contact || "")}" placeholder="Name, company, or target identifier"></label><label>Date contacted<input type="date" data-interaction-field="date" value="${escapeHtml(interaction.date || new Date().toISOString().slice(0, 10))}"></label><label>Channel<input data-interaction-field="channel" value="${escapeHtml(interaction.channel || channel)}"></label><label>Response outcome<select data-interaction-field="outcome">${messagingOptions(["No response", "Replied with feedback", "Declined", "Conversation held", "Meaningful next step", "Not a fit"], outcome)}</select></label><label class="wide">Response, objection, or buyer language<textarea data-interaction-field="response" rows="3" placeholder="Capture what this person actually said or did.">${escapeHtml(interaction.response || "")}</textarea></label><label>Next step<input data-interaction-field="nextStep" value="${escapeHtml(interaction.nextStep || "")}" placeholder="Follow-up, meeting, sample, or none"></label><label>What did this interaction teach us?<textarea data-interaction-field="learning" rows="3" placeholder="Record the learning that could change the message or decision.">${escapeHtml(interaction.learning || "")}</textarea></label><div class="messaging-interaction-actions no-print"><button type="button" class="secondary" data-remove-message-interaction>Remove</button></div></article>`;
+      return `<article class="messaging-interaction-row" data-message-interaction-id="${escapeHtml(interaction.id || `interaction-${Date.now()}-${Math.random().toString(16).slice(2)}`)}"><label>Contact, account, or CRM record<input data-interaction-field="contact" value="${escapeHtml(interaction.contact || interaction.targetId || "")}" placeholder="Name, company, or CRM link"></label><label>Date contacted<input type="date" data-interaction-field="date" value="${escapeHtml(interaction.date || new Date().toISOString().slice(0, 10))}"></label><label>Channel<input data-interaction-field="channel" value="${escapeHtml(interaction.channel || channel)}"></label><label>Response outcome<select data-interaction-field="outcome">${messagingOptions(["No response", "Replied with feedback", "Declined", "Conversation held", "Meaningful next step", "Not a fit"], outcome)}</select></label><label class="wide">Response, objection, or buyer language<textarea data-interaction-field="response" rows="3" placeholder="Capture what this person actually said or did.">${escapeHtml(interaction.response || "")}</textarea></label><label>Next step<input data-interaction-field="nextStep" value="${escapeHtml(interaction.nextStep || "")}" placeholder="Follow-up, meeting, sample, or none"></label><label>What did this interaction teach us?<textarea data-interaction-field="learning" rows="3" placeholder="Record the learning that could change the message or decision.">${escapeHtml(interaction.learning || "")}</textarea></label><div class="messaging-interaction-actions no-print"><button type="button" class="secondary" data-remove-message-interaction>Remove</button></div></article>`;
     }
 
     function collectMessagingInteractions(container, draft) {
@@ -15364,61 +15339,57 @@
 
     function renderTargetListWorkspace(data) {
       const profile = isPreRevenueReport(data) ? preRevenuePersonaAssetModel(data) : postRevenuePersonaAssetModel(data);
-      const workspace = targetListWorkspaceState(data, profile);
-      const personas = messagingPersonas(profile);
-      const messageWorkspace = messagingWorkspaceState(data, profile);
-      const messages = messageWorkspace.drafts;
+      const crmName = cleanText(data.crmName || data.crmSystem || data.currentCrm || data.revenueTrackingSystem);
+      const systemLabel = crmName || "your CRM or spreadsheet";
+      const criteriaItems = workspaceTargetListCriteria(profile);
+      const requiredFields = [
+        "Company or account name",
+        "Website or profile URL",
+        "Primary contact and role",
+        "Observable ICP fit signals",
+        "Fit tier and reason",
+        "Source or channel",
+        "Owner",
+        "Outreach status or CRM stage",
+        "Last activity date",
+        "Next action and due date",
+        "Message or sequence used",
+        "Buyer response, objection, or learning"
+      ];
       const main = document.querySelector("main");
       document.body.dataset.hasIcpAsset = "true";
       document.body.dataset.hasPersonaAsset = "true";
-      document.title = `${data.companyName || "Company"} Target List and Outreach Workspace`;
-      document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} Target List and Outreach Workspace` : "Target List and Outreach Workspace";
-      document.getElementById("generatedMeta").textContent = "Turn the ICP, personas, and message versions into a focused list of people or accounts to pursue next.";
+      document.title = `${data.companyName || "Company"} Target List Setup Guide`;
+      document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} Target List Setup Guide` : "Target List Setup Guide";
+      document.getElementById("generatedMeta").textContent = `Set up one focused working list in ${systemLabel}; do not maintain a duplicate target database in GTM OS.`;
       const companyMeta = document.getElementById("companyMeta");
       companyMeta.hidden = false;
-      companyMeta.textContent = [profile.customerGroup, profile.offerName, profile.path].filter(Boolean).join(" | ");
-      document.getElementById("metadataPills").innerHTML = [profile.isPreRevenue ? "25-target validation pool" : "Focused account list", `${personas.length} personas`, `${messages.length} message versions`].map((item) => `<span class="metadata-pill">${escapeHtml(item)}</span>`).join("");
+      companyMeta.textContent = [profile.customerGroup, profile.offerName, systemLabel].filter(Boolean).join(" | ");
+      document.getElementById("metadataPills").innerHTML = [profile.isPreRevenue ? "Start with 25 targets" : "Start with 25 focused accounts", `System of record: ${systemLabel}`].map((item) => `<span class="metadata-pill">${escapeHtml(item)}</span>`).join("");
       main.querySelectorAll("section").forEach((section) => section.remove());
 
       const criteria = document.createElement("section");
       criteria.id = "target-list-workspace";
-      criteria.dataset.toc = "Recommended Criteria";
+      criteria.dataset.toc = "Who Belongs";
       criteria.className = "workspace-section";
-      criteria.innerHTML = `<h2>Recommended Target Criteria</h2><p class="muted">Use these as inclusion criteria. Add a target only when there is a reasonable basis for learning, outreach, or a next-step decision.</p>${personaAssetListMarkup(workspaceTargetListCriteria(profile))}<div class="report-bottom-actions no-print"><a href="${escapeHtml(reportAssetUrl("icp"))}">Review ICP Brief</a><a href="${escapeHtml(reportAssetUrl("personas"))}">Review Persona Brief</a><a href="${escapeHtml(reportAssetUrl("messaging"))}">Messaging Kit</a><a href="${escapeHtml(reportAssetUrl("proof-assets"))}">Proof Asset Builder</a></div>`;
+      criteria.innerHTML = `<h2>Who Belongs on the First List</h2><p class="muted">Use the current ICP as the filter. Add an account or person only when you can point to an observable reason they may fit.</p>${personaAssetListMarkup(criteriaItems)}<div class="report-bottom-actions no-print"><a href="${escapeHtml(reportAssetUrl("icp"))}">ICP Brief</a><a href="${escapeHtml(reportAssetUrl("personas"))}">Persona Brief</a></div>`;
       main.appendChild(criteria);
 
-      const list = document.createElement("section");
-      list.id = "target-list-table";
-      list.dataset.toc = "Targets and Outreach";
-      list.className = "workspace-section";
-      const personaOptions = [`<option value="">Choose persona</option>`, ...personas.map((persona) => `<option value="${escapeHtml(persona.id)}">${escapeHtml(persona.role)}</option>`)].join("");
-      const messageOptions = [`<option value="">Choose message</option>`, ...messages.map((message) => `<option value="${escapeHtml(message.id)}">${escapeHtml(message.name)}</option>`)].join("");
-      const rows = workspace.targets.map((target, index) => `<tr data-target-list-row="${escapeHtml(target.id)}"><td>${index + 1}</td><td><input data-target-list-field="name" value="${escapeHtml(target.name)}" placeholder="Contact or buyer"></td><td><input data-target-list-field="profile" value="${escapeHtml(target.profile)}" placeholder="Company or profile"></td><td><input data-target-list-field="source" value="${escapeHtml(target.source)}" placeholder="List, referral, event, community"></td><td><input data-target-list-field="contact" value="${escapeHtml(target.contact)}" placeholder="Email, URL, or details"></td><td><select data-target-list-field="fitTier">${messagingOptions(["Not reviewed", "Tier A", "Tier B", "Tier C", "Exclude"], target.fitTier)}</select></td><td><textarea data-target-list-field="fitReason" placeholder="Why this target belongs">${escapeHtml(target.fitReason)}</textarea></td><td><select data-target-list-field="personaId">${personaOptions.replace(`value="${escapeHtml(target.personaId)}"`, `value="${escapeHtml(target.personaId)}" selected`)}</select></td><td><select data-target-list-field="messageId">${messageOptions.replace(`value="${escapeHtml(target.messageId)}"`, `value="${escapeHtml(target.messageId)}" selected`)}</select></td><td><select data-target-list-field="status">${messagingOptions(["Not contacted", "Ready for outreach", "Contacted", "Replied", "Conversation scheduled", "Conversation complete", "Meaningful next step", "Not a fit", "Do not pursue"], target.status)}</select></td><td><input data-target-list-field="owner" value="${escapeHtml(target.owner)}" placeholder="Owner"></td><td><input type="date" data-target-list-field="lastTouch" value="${escapeHtml(target.lastTouch)}"></td><td><input data-target-list-field="nextAction" value="${escapeHtml(target.nextAction)}" placeholder="Specific next action"></td><td><input type="date" data-target-list-field="dueDate" value="${escapeHtml(target.dueDate)}"></td><td><textarea data-target-list-field="notes" placeholder="Evidence or context">${escapeHtml(target.notes)}</textarea></td></tr>`).join("");
-      list.innerHTML = `<h2>Targets and Outreach</h2><p class="muted">Assign each target to a persona and saved message version before outreach. Keep the next action and due date current.</p><div class="validation-workspace-table-wrap"><table class="validation-workspace-table target-outreach-table"><thead><tr><th>#</th><th>Contact</th><th>Company / profile</th><th>Source</th><th>Contact details</th><th>Fit tier</th><th>Why it fits</th><th>Persona</th><th>Message version</th><th>Status</th><th>Owner</th><th>Last touch</th><th>Next action</th><th>Due date</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table></div><div class="messaging-editor-actions no-print"><button type="button" id="saveTargetList">Save Target List</button>${profile.isPreRevenue ? "" : '<button type="button" class="secondary" id="addTargetListRow">Add Target</button>'}<a class="secondary" href="${escapeHtml(reportAssetUrl("messaging"))}">Log Responses in Messaging Kit</a><span class="messaging-save-status" id="targetListSaveStatus"></span></div>`;
-      main.appendChild(list);
-
-      const review = document.createElement("section");
-      review.id = "target-list-review";
-      review.dataset.toc = "Review Focus";
-      const sourced = workspace.targets.filter((target) => target.name || target.profile || target.contact).length;
-      const ready = workspace.targets.filter((target) => target.status === "Ready for outreach").length;
-      const active = workspace.targets.filter((target) => ["Contacted", "Replied", "Conversation scheduled", "Conversation complete"].includes(target.status)).length;
-      const nextSteps = workspace.targets.filter((target) => target.status === "Meaningful next step").length;
-      review.innerHTML = `<h2>Execution Review</h2><div class="messaging-result-summary"><div class="messaging-result-card"><span>Targets sourced</span><strong>${sourced}</strong></div><div class="messaging-result-card"><span>Ready for outreach</span><strong>${ready}</strong></div><div class="messaging-result-card"><span>In motion</span><strong>${active}</strong></div><div class="messaging-result-card"><span>Meaningful next steps</span><strong>${nextSteps}</strong></div></div><p class="muted">Review list quality before adding volume. Remove weak-fit targets, keep every active target assigned, and make sure each open conversation has one dated next action.</p>`;
-      main.appendChild(review);
-
-      const save = async () => {
-        collectTargetListWorkspace(list, workspace);
-        await saveTargetListWorkspace(data, workspace, profile, list.querySelector("#targetListSaveStatus"));
-      };
-      list.querySelector("#saveTargetList").addEventListener("click", save);
-      const addButton = list.querySelector("#addTargetListRow");
-      if (addButton) addButton.addEventListener("click", async () => {
-        collectTargetListWorkspace(list, workspace);
-        workspace.targets.push({ id: `outreach-target-${Date.now()}`, name: "", profile: "", source: "", contact: "", fitTier: "Not reviewed", fitReason: "", personaId: "", messageId: "", status: "Not contacted", owner: "", lastTouch: "", nextAction: "", dueDate: "", notes: "" });
-        data.targetListWorkspace = workspace;
-        updateActivePlanLocalCache(data);
-        renderTargetListWorkspace(data);
+      const setup = document.createElement("section");
+      setup.id = "target-list-system-setup";
+      setup.dataset.toc = "Set Up the List";
+      setup.className = "workspace-section";
+      setup.innerHTML = `<h2>Set Up the List in ${escapeHtml(systemLabel)}</h2><div class="persona-guide-grid"><div class="persona-guide-block"><h3>Recommended starting size</h3>${personaAssetListMarkup([profile.isPreRevenue ? "Build a pool of 25 qualified people or accounts, then recruit until the planned interviews or tests are complete." : "Begin with 25 high-quality accounts. Add volume only after the list produces useful conversations or qualified opportunities.", "Keep one row or CRM record per account or person.", "Do not copy the same working list into GTM OS."])}</div><div class="persona-guide-block"><h3>Required fields</h3>${personaAssetListMarkup(requiredFields)}</div></div><div class="messaging-editor-actions no-print"><button type="button" id="copyTargetListSetup">Copy Setup Guide</button><a class="secondary" href="${escapeHtml(reportAssetUrl("outreach"))}">Outreach Sequence</a><a class="secondary" href="${escapeHtml(reportAssetUrl("weekly-review"))}">Weekly GTM Review</a><span class="messaging-save-status" id="targetListSetupStatus"></span></div>`;
+      main.appendChild(setup);
+      setup.querySelector("#copyTargetListSetup").addEventListener("click", async () => {
+        const text = [`TARGET LIST SETUP - ${data.companyName || "Company"}`, "", "WHO BELONGS", ...criteriaItems.map((item) => `- ${item}`), "", "REQUIRED FIELDS", ...requiredFields.map((item) => `- ${item}`)].join("\n");
+        const status = setup.querySelector("#targetListSetupStatus");
+        try {
+          await copyTextToClipboard(text);
+          status.textContent = "Setup guide copied.";
+        } catch (error) {
+          status.textContent = "Copy failed. Select and copy the guidance above.";
+        }
       });
       setupReportNavigation();
       configureAssetPdfExport("targets", data, profile.model);
@@ -15512,10 +15483,9 @@
       return { version: 1, drafts, selectedDraftId: drafts.some((draft) => draft.id === stored.selectedDraftId) ? stored.selectedDraftId : drafts[0].id, updatedAt: stored.updatedAt || "" };
     }
 
-    function proofUsageRowMarkup(item = {}, targets = [], messages = []) {
-      const targetOptions = [`<option value="">Choose target</option>`, ...targets.map((target) => `<option value="${escapeHtml(target.id)}"${target.id === item.targetId ? " selected" : ""}>${escapeHtml([target.name, target.profile].filter(Boolean).join(" - ") || target.id)}</option>`)].join("");
+    function proofUsageRowMarkup(item = {}, messages = []) {
       const messageOptions = [`<option value="">Choose message</option>`, ...messages.map((message) => `<option value="${escapeHtml(message.id)}"${message.id === item.messageId ? " selected" : ""}>${escapeHtml(message.name)}</option>`)].join("");
-      return `<article class="messaging-interaction-row" data-proof-use-id="${escapeHtml(item.id || `proof-use-${Date.now()}-${Math.random().toString(16).slice(2)}`)}"><label>Target<select data-proof-use-field="targetId">${targetOptions}</select></label><label>Message version<select data-proof-use-field="messageId">${messageOptions}</select></label><label>Date used<input type="date" data-proof-use-field="date" value="${escapeHtml(item.date || new Date().toISOString().slice(0, 10))}"></label><label>Result<select data-proof-use-field="result">${messagingOptions(["No response yet", "Buyer reviewed it", "Reduced an objection", "Created a conversation", "Created a meaningful next step", "Did not help"], item.result || "No response yet")}</select></label><label class="wide">What did using this asset teach us?<textarea data-proof-use-field="learning" rows="3">${escapeHtml(item.learning || "")}</textarea></label><div class="messaging-interaction-actions no-print"><button type="button" class="secondary" data-remove-proof-use>Remove</button></div></article>`;
+      return `<article class="messaging-interaction-row" data-proof-use-id="${escapeHtml(item.id || `proof-use-${Date.now()}-${Math.random().toString(16).slice(2)}`)}"><label>Buyer, account, or CRM record<input data-proof-use-field="targetName" value="${escapeHtml(item.targetName || item.targetId || "")}" placeholder="Name or CRM link"></label><label>Message version<select data-proof-use-field="messageId">${messageOptions}</select></label><label>Date used<input type="date" data-proof-use-field="date" value="${escapeHtml(item.date || new Date().toISOString().slice(0, 10))}"></label><label>Result<select data-proof-use-field="result">${messagingOptions(["No response yet", "Buyer reviewed it", "Reduced an objection", "Created a conversation", "Created a meaningful next step", "Did not help"], item.result || "No response yet")}</select></label><label class="wide">What did using this asset teach us?<textarea data-proof-use-field="learning" rows="3">${escapeHtml(item.learning || "")}</textarea></label><div class="messaging-interaction-actions no-print"><button type="button" class="secondary" data-remove-proof-use>Remove</button></div></article>`;
     }
 
     async function saveProofBuilderWorkspace(data, workspace, statusElement) {
@@ -15550,7 +15520,6 @@
       let draft = workspace.drafts.find((item) => item.id === workspace.selectedDraftId) || workspace.drafts[0];
       const personas = messagingPersonas(profile);
       const messages = messagingWorkspaceState(data, profile).drafts;
-      const targets = targetListWorkspaceState(data, profile).targets.filter((target) => target.name || target.profile || target.contact);
       const main = document.querySelector("main");
       document.body.dataset.hasIcpAsset = "true";
       document.body.dataset.hasPersonaAsset = "true";
@@ -15567,7 +15536,7 @@
       recommendation.id = "proof-asset-workspace";
       recommendation.dataset.toc = "Recommendation";
       recommendation.className = "workspace-section";
-      recommendation.innerHTML = `<h2>Recommended Proof Asset</h2><p class="muted">Start with the asset most likely to reduce risk for the current persona and message. Evidence strength and permission determine what can safely be said.</p><div class="messaging-kit-context"><div class="messaging-context-item"><span>Recommended type</span><strong>${escapeHtml(types[0])}</strong></div><div class="messaging-context-item"><span>Best evidence source</span><strong>${escapeHtml(evidence[0]?.source || "No verified source yet")}</strong></div><div class="messaging-context-item"><span>Evidence strength</span><strong>${escapeHtml(evidence[0]?.strength || "Missing")}</strong></div><div class="messaging-context-item"><span>Permission</span><strong>${escapeHtml(evidence[0]?.permission || "Not confirmed")}</strong></div></div>${evidence.length ? `<div class="persona-guide-grid">${evidence.slice(0, 4).map((item) => `<div class="persona-guide-block"><h3>${escapeHtml(item.source)}</h3>${personaAssetListMarkup([item.result, `Type: ${item.type}`, `Permission: ${item.permission}`, `Next action: ${item.nextAction}`])}</div>`).join("")}</div>` : '<div class="messaging-recommendation"><h3>Evidence must be collected first</h3><p>Create a product demonstration, founder credibility brief, interview evidence summary, or proof-collection brief. Do not imply customer results that have not been verified.</p></div>'}`;
+      recommendation.innerHTML = `<h2>Recommended Proof Asset</h2><p class="muted">Build the one asset most likely to help the buyer trust the claim or move past a concern.</p><div class="messaging-kit-context"><div class="messaging-context-item"><span>Create this</span><strong>${escapeHtml(types[0])}</strong></div><div class="messaging-context-item"><span>Use this evidence</span><strong>${escapeHtml(evidence[0]?.source || "Evidence still needs to be collected")}</strong></div><div class="messaging-context-item"><span>What it supports</span><strong>${escapeHtml(evidence[0]?.result || "A buyer-relevant claim still needs support")}</strong></div><div class="messaging-context-item"><span>Before sharing publicly</span><strong>${escapeHtml(evidence[0]?.permission || "Confirm the evidence and permission")}</strong></div></div>${evidence.length ? `<div class="persona-guide-grid">${evidence.slice(0, 4).map((item) => `<div class="persona-guide-block"><h3>${escapeHtml(item.source)}</h3>${personaAssetListMarkup([item.result, `Available evidence: ${item.type}`, `Can it be shared: ${item.permission}`, `Next action: ${item.nextAction}`])}</div>`).join("")}</div>` : '<div class="messaging-recommendation"><h3>Collect evidence before making a customer-result claim</h3><p>You can still create a product demonstration, founder credibility brief, interview summary, or proof-collection brief without implying an unverified result.</p></div>'}`;
       main.appendChild(recommendation);
 
       const editor = document.createElement("section");
@@ -15576,25 +15545,38 @@
       editor.className = "workspace-section";
       const personaOptions = [`<option value="">Choose persona</option>`, ...personas.map((persona) => `<option value="${escapeHtml(persona.id)}"${persona.id === draft.personaId ? " selected" : ""}>${escapeHtml(persona.role)}</option>`)].join("");
       const messageOptions = [`<option value="">Choose message</option>`, ...messages.map((message) => `<option value="${escapeHtml(message.id)}"${message.id === draft.messageId ? " selected" : ""}>${escapeHtml(message.name)}</option>`)].join("");
-      editor.innerHTML = `<h2>Build the Asset</h2><div class="messaging-kit-controls no-print"><label>Asset type<select data-proof-field="type">${messagingOptions(types, draft.type)}</select></label><label>Persona<select data-proof-field="personaId">${personaOptions}</select></label><label>Message version<select data-proof-field="messageId">${messageOptions}</select></label><button type="button" id="applyProofRecommendation">Use GTM OS Recommendation</button></div><div class="messaging-editor"><label>Asset title<input data-proof-field="title" value="${escapeHtml(draft.title)}"></label><label>Claim this asset supports<textarea rows="3" data-proof-field="claim">${escapeHtml(draft.claim)}</textarea></label><div class="grid"><label>Evidence source<input data-proof-field="evidenceSource" value="${escapeHtml(draft.evidenceSource)}"></label><label>Evidence strength<select data-proof-field="strength">${messagingOptions(["Missing", "Assumption only", "Qualitative", "Verified or measured", "Repeatable across sources"], draft.strength)}</select></label><label>Permission status<select data-proof-field="permission">${messagingOptions(["Not confirmed", "Confirm before public use", "Internal use only", "Confirmed for public use", "Cannot use publicly"], draft.permission)}</select></label><label>Asset status<select data-proof-field="status">${messagingOptions(["Draft", "Needs evidence", "Needs permission", "Ready for review", "Approved for use", "Retired"], draft.status)}</select></label></div><label>Asset content<textarea rows="14" data-proof-field="body">${escapeHtml(draft.body)}</textarea></label><label>Recommended next step<input data-proof-field="cta" value="${escapeHtml(draft.cta)}"></label><div class="messaging-recommendation"><h3>Evidence safety rule</h3><p>Use only claims supported by the named evidence source. Do not add numbers, customer outcomes, logos, or quotes unless they are verified and permitted for the intended use.</p></div><div class="messaging-editor-actions no-print"><button type="button" id="saveProofAsset">Save Asset</button><button type="button" class="secondary" id="createProofAsset">Create Another Asset</button><span class="messaging-save-status" id="proofAssetSaveStatus"></span></div></div>`;
+      editor.innerHTML = `<h2>Build the Asset</h2><p class="muted">Choose the buyer and claim, identify the real evidence behind it, then revise the recommended draft into something the buyer can use.</p><div class="messaging-kit-controls no-print"><label>What are you creating?<select data-proof-field="type">${messagingOptions(types, draft.type)}</select></label><label>Who needs this proof?<select data-proof-field="personaId">${personaOptions}</select></label><label>Which saved message could use it?<select data-proof-field="messageId">${messageOptions}</select></label><button type="button" id="applyProofRecommendation">Use GTM OS Recommendation</button></div><div class="messaging-editor"><label>Asset title<input data-proof-field="title" value="${escapeHtml(draft.title)}"></label><label>What claim or buyer concern must this support?<textarea rows="3" data-proof-field="claim">${escapeHtml(draft.claim)}</textarea></label><label>What real evidence is behind this asset?<span class="muted">Name the customer, test, product demonstration, measured result, interview finding, or other source a reviewer could verify.</span><textarea rows="4" data-proof-field="evidenceSource">${escapeHtml(draft.evidenceSource)}</textarea></label><label>Can this evidence be shared publicly?<select data-proof-field="permission">${messagingOptions(["Not confirmed", "Confirm before public use", "Internal use only", "Confirmed for public use", "Cannot use publicly"], draft.permission)}</select></label><label>Draft the buyer-facing asset<span class="muted">Turn the evidence into a clear story, comparison, proof sheet, or guide. Remove anything the evidence cannot support.</span><textarea rows="14" data-proof-field="body">${escapeHtml(draft.body)}</textarea></label><label>What should the buyer do after reviewing it?<input data-proof-field="cta" value="${escapeHtml(draft.cta)}"></label><div class="messaging-recommendation"><h3>Before using the asset</h3><p>Verify every number, outcome, logo, and quote. Confirm permission before external use. GTM OS will keep evidence strength and draft status behind the scenes.</p></div><div class="messaging-editor-actions no-print"><button type="button" id="saveProofAsset">Save Asset</button><button type="button" class="secondary" id="createProofAsset">Create Another Asset</button><span class="messaging-save-status" id="proofAssetSaveStatus"></span></div></div>`;
       main.appendChild(editor);
 
       const usage = document.createElement("section");
       usage.id = "proof-asset-usage";
       usage.dataset.toc = "Usage and Results";
       usage.className = "workspace-section";
-      usage.innerHTML = `<h2>Usage and Results</h2><p class="muted">Record where this asset was used and whether it changed the buyer's response or next step.</p><div class="messaging-result-summary"><div class="messaging-result-card"><span>Times used</span><strong>${draft.uses.length}</strong></div><div class="messaging-result-card"><span>Buyer reviews</span><strong>${draft.uses.filter((item) => /reviewed|objection|conversation|next step/i.test(item.result)).length}</strong></div><div class="messaging-result-card"><span>Conversations</span><strong>${draft.uses.filter((item) => /conversation|next step/i.test(item.result)).length}</strong></div><div class="messaging-result-card"><span>Meaningful next steps</span><strong>${draft.uses.filter((item) => /meaningful next step/i.test(item.result)).length}</strong></div></div><div class="messaging-interaction-list" id="proofUsageList">${draft.uses.map((item) => proofUsageRowMarkup(item, targets, messages)).join("")}</div><div class="messaging-editor-actions no-print"><button type="button" class="secondary" id="addProofUse">Add Usage Result</button></div><label class="messaging-editor">Patterns across uses<textarea rows="4" data-proof-field="learning">${escapeHtml(draft.learning || "")}</textarea></label>`;
+      usage.innerHTML = `<h2>Usage and Results</h2><p class="muted">The CRM remains the activity source of truth. Record only the result and learning needed to improve this asset.</p><div class="messaging-result-summary"><div class="messaging-result-card"><span>Times used</span><strong>${draft.uses.length}</strong></div><div class="messaging-result-card"><span>Buyer reviews</span><strong>${draft.uses.filter((item) => /reviewed|objection|conversation|next step/i.test(item.result)).length}</strong></div><div class="messaging-result-card"><span>Conversations</span><strong>${draft.uses.filter((item) => /conversation|next step/i.test(item.result)).length}</strong></div><div class="messaging-result-card"><span>Meaningful next steps</span><strong>${draft.uses.filter((item) => /meaningful next step/i.test(item.result)).length}</strong></div></div><div class="messaging-interaction-list" id="proofUsageList">${draft.uses.map((item) => proofUsageRowMarkup(item, messages)).join("")}</div><div class="messaging-editor-actions no-print"><button type="button" class="secondary" id="addProofUse">Add Usage Result</button></div><label class="messaging-editor">Patterns across uses<textarea rows="4" data-proof-field="learning">${escapeHtml(draft.learning || "")}</textarea></label>`;
       main.appendChild(usage);
 
       const versions = document.createElement("section");
       versions.id = "saved-proof-assets";
       versions.dataset.toc = "Saved Assets";
-      versions.innerHTML = `<h2>Saved Proof Assets</h2><div class="messaging-version-list">${workspace.drafts.map((item) => `<div class="messaging-version-row"><div><strong>${escapeHtml(item.name || item.title)}</strong><span>${escapeHtml(item.type)}</span></div><div><strong>${escapeHtml(item.status)}</strong><span>${escapeHtml(item.strength)}</span></div><div><strong>${item.uses.length} uses</strong><span>${item.uses.filter((use) => /meaningful next step/i.test(use.result)).length} next steps</span></div><div class="messaging-version-actions no-print"><button type="button" class="secondary" data-open-proof-asset="${escapeHtml(item.id)}"${item.id === draft.id ? " disabled" : ""}>View</button></div></div>`).join("")}</div>`;
+      versions.innerHTML = `<h2>Saved Proof Assets</h2><div class="messaging-version-list">${workspace.drafts.map((item) => `<div class="messaging-version-row"><div><strong>${escapeHtml(item.name || item.title)}</strong><span>${escapeHtml(item.type)}</span></div><div><strong>${escapeHtml(item.permission || "Sharing permission not confirmed")}</strong><span>${escapeHtml(messagingShortPhrase(item.claim, "Claim still needs to be defined", 10))}</span></div><div><strong>${item.uses.length} uses</strong><span>${item.uses.filter((use) => /meaningful next step/i.test(use.result)).length} next steps</span></div><div class="messaging-version-actions no-print"><button type="button" class="secondary" data-open-proof-asset="${escapeHtml(item.id)}"${item.id === draft.id ? " disabled" : ""}>View</button></div></div>`).join("")}</div>`;
       main.appendChild(versions);
 
       const collect = () => {
         editor.querySelectorAll("[data-proof-field]").forEach((control) => { draft[control.dataset.proofField] = control.value; });
         usage.querySelectorAll("[data-proof-field]").forEach((control) => { draft[control.dataset.proofField] = control.value; });
+        const evidenceText = cleanText(draft.evidenceSource);
+        draft.strength = !evidenceText || /still needs|not confirmed|no verified/i.test(evidenceText)
+          ? "Missing"
+          : /\b(?:measured|verified|percent|%|revenue|cost|time|customer|test result)\b/i.test(evidenceText)
+            ? "Verified or measured"
+            : "Qualitative";
+        draft.status = draft.strength === "Missing"
+          ? "Needs evidence"
+          : draft.permission === "Not confirmed" || draft.permission === "Confirm before public use"
+            ? "Needs permission"
+            : cleanText(draft.body)
+              ? "Ready for review"
+              : "Draft";
         draft.uses = Array.from(usage.querySelectorAll("[data-proof-use-id]")).map((row) => {
           const item = { id: row.dataset.proofUseId };
           row.querySelectorAll("[data-proof-use-field]").forEach((control) => { item[control.dataset.proofUseField] = control.value; });
@@ -15620,7 +15602,7 @@
         await saveProofBuilderWorkspace(data, workspace, editor.querySelector("#proofAssetSaveStatus"));
         renderProofAssetWorkspace(data);
       });
-      usage.querySelector("#addProofUse").addEventListener("click", () => usage.querySelector("#proofUsageList").insertAdjacentHTML("beforeend", proofUsageRowMarkup({}, targets, messages)));
+      usage.querySelector("#addProofUse").addEventListener("click", () => usage.querySelector("#proofUsageList").insertAdjacentHTML("beforeend", proofUsageRowMarkup({}, messages)));
       usage.querySelector("#proofUsageList").addEventListener("click", (event) => { const button = event.target.closest("[data-remove-proof-use]"); if (button) button.closest("[data-proof-use-id]")?.remove(); });
       versions.querySelectorAll("[data-open-proof-asset]").forEach((button) => button.addEventListener("click", () => { workspace.selectedDraftId = button.dataset.openProofAsset; data.proofAssetWorkspace = workspace; updateActivePlanLocalCache(data); renderProofAssetWorkspace(data); }));
       setupReportNavigation();
@@ -15693,7 +15675,6 @@
       const proofEvidence = proofBuilderEvidence(data, profile);
       const proofTypes = proofBuilderTypes(profile, proofEvidence);
       const proofAssets = proofBuilderState(data, profile, proofEvidence, proofTypes).drafts;
-      const targets = targetListWorkspaceState(data, profile).targets.filter((target) => target.name || target.profile || target.contact);
       const personas = messagingPersonas(profile);
       const workspace = outreachWorkspaceState(data, profile, messages, proofAssets);
       let sequence = workspace.sequences.find((item) => item.id === workspace.selectedSequenceId) || workspace.sequences[0];
@@ -15702,11 +15683,11 @@
       document.body.dataset.hasPersonaAsset = "true";
       document.title = `${data.companyName || "Company"} Outreach Sequence and Follow-Up Workspace`;
       document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} Outreach Sequence and Follow-Up Workspace` : "Outreach Sequence and Follow-Up Workspace";
-      document.getElementById("generatedMeta").textContent = "Run a focused, respectful outreach sequence using the current targets, personas, messages, proof, and next-action rules.";
+      document.getElementById("generatedMeta").textContent = "Build the sequence here, then run and track it in the CRM or outreach system where the target list already lives.";
       const companyMeta = document.getElementById("companyMeta");
       companyMeta.hidden = false;
       companyMeta.textContent = [profile.customerGroup, profile.offerName, sequence.channel].filter(Boolean).join(" | ");
-      document.getElementById("metadataPills").innerHTML = [`${sequence.steps.length} steps`, `${sequence.assignments.length} assigned targets`, sequence.status].map((item) => `<span class="metadata-pill">${escapeHtml(item)}</span>`).join("");
+      document.getElementById("metadataPills").innerHTML = [`${sequence.steps.length} steps`, "CRM or spreadsheet execution", sequence.status].map((item) => `<span class="metadata-pill">${escapeHtml(item)}</span>`).join("");
       main.querySelectorAll("section").forEach((section) => section.remove());
 
       const setup = document.createElement("section");
@@ -15727,33 +15708,32 @@
 
       const assignments = document.createElement("section");
       assignments.id = "outreach-target-assignments";
-      assignments.dataset.toc = "Assigned Targets";
+      assignments.dataset.toc = "Use in Your System";
       assignments.className = "workspace-section";
-      const targetOptions = (selected) => [`<option value="">Choose target</option>`, ...targets.map((item) => `<option value="${escapeHtml(item.id)}"${item.id === selected ? " selected" : ""}>${escapeHtml([item.name, item.profile].filter(Boolean).join(" - ") || item.id)}</option>`)].join("");
-      assignments.innerHTML = `<h2>Assigned Targets and Next Actions</h2><p class="muted">Assign real targets from the Target List. Once someone responds, pause the sequence and replace the generic cadence with a specific next action.</p>${targets.length ? "" : `<div class="messaging-recommendation"><h3>No targets are ready to assign</h3><p>Add qualified targets before running the sequence.</p><a href="${escapeHtml(reportAssetUrl("targets"))}">Target List</a></div>`}<div class="validation-workspace-table-wrap"><table class="validation-workspace-table"><thead><tr><th>Target</th><th>Owner</th><th>Start date</th><th>Current step</th><th>Status</th><th>Next action</th><th>Due date</th><th></th></tr></thead><tbody id="outreachAssignmentRows">${sequence.assignments.map((item) => `<tr data-outreach-assignment-id="${escapeHtml(item.id)}"><td><select data-outreach-assignment-field="targetId">${targetOptions(item.targetId)}</select></td><td><input data-outreach-assignment-field="owner" value="${escapeHtml(item.owner || "")}"></td><td><input type="date" data-outreach-assignment-field="startDate" value="${escapeHtml(item.startDate || "")}"></td><td><select data-outreach-assignment-field="currentStep">${messagingOptions(sequence.steps.map((step, index) => `Step ${index + 1}`), item.currentStep || "Step 1")}</select></td><td><select data-outreach-assignment-field="status">${messagingOptions(["Not started", "Active", "Replied", "Conversation started", "Meaningful next step", "Paused", "Complete", "Stopped"], item.status || "Not started")}</select></td><td><input data-outreach-assignment-field="nextAction" value="${escapeHtml(item.nextAction || "")}"></td><td><input type="date" data-outreach-assignment-field="dueDate" value="${escapeHtml(item.dueDate || "")}"></td><td><button type="button" class="secondary" data-remove-outreach-assignment>Remove</button></td></tr>`).join("")}</tbody></table></div><div class="messaging-editor-actions no-print"><button type="button" class="secondary" id="addOutreachAssignment"${targets.length ? "" : " disabled"}>Assign Target</button></div>`;
+      assignments.innerHTML = `<h2>Use This Sequence in Your CRM or Outreach System</h2><p class="muted">GTM OS defines the sequence. Your CRM, spreadsheet, or outreach platform should hold the contacts, assignments, activity history, and next actions.</p>${personaAssetListMarkup(["Create the sequence steps and timing in the system your team already uses.", "Enroll or assign only targets that meet the current ICP criteria.", "Pause automation as soon as a real conversation starts.", "Keep one owner and one dated next action on every active conversation.", "Bring weekly totals, objections, and learning back to the Weekly GTM Review."])}<div class="report-bottom-actions no-print"><a href="${escapeHtml(reportAssetUrl("targets"))}">Target List Setup</a><a href="${escapeHtml(reportAssetUrl("weekly-review"))}">Weekly GTM Review</a></div>`;
       main.appendChild(assignments);
 
       const review = document.createElement("section");
       review.id = "outreach-sequence-review";
       review.dataset.toc = "Results";
-      const replied = sequence.assignments.filter((item) => ["Replied", "Conversation started", "Meaningful next step"].includes(item.status)).length;
-      const conversations = sequence.assignments.filter((item) => ["Conversation started", "Meaningful next step"].includes(item.status)).length;
-      const nextSteps = sequence.assignments.filter((item) => item.status === "Meaningful next step").length;
-      review.innerHTML = `<h2>Sequence Results</h2><div class="messaging-result-summary"><div class="messaging-result-card"><span>Targets assigned</span><strong>${sequence.assignments.length}</strong></div><div class="messaging-result-card"><span>Replies</span><strong>${replied}</strong></div><div class="messaging-result-card"><span>Conversations</span><strong>${conversations}</strong></div><div class="messaging-result-card"><span>Meaningful next steps</span><strong>${nextSteps}</strong></div></div><div class="messaging-editor-actions no-print"><button type="button" id="saveOutreachSequence">Save Sequence</button><button type="button" class="secondary" id="createOutreachSequence">Create Another Sequence</button><a class="secondary" href="${escapeHtml(reportAssetUrl("messaging"))}">Messaging Kit</a><span class="messaging-save-status" id="outreachSaveStatus"></span></div>`;
+      review.innerHTML = `<h2>Save the Sequence</h2><p class="muted">Save the sequence design here. Track delivery and contact-level results in the CRM, then summarize decision-changing evidence in the Weekly GTM Review.</p><div class="messaging-editor-actions no-print"><button type="button" id="saveOutreachSequence">Save Sequence</button><button type="button" class="secondary" id="createOutreachSequence">Create Another Sequence</button><a class="secondary" href="${escapeHtml(reportAssetUrl("messaging"))}">Messaging Kit</a><span class="messaging-save-status" id="outreachSaveStatus"></span></div>`;
       main.appendChild(review);
 
       const collect = () => {
         setup.querySelectorAll("[data-outreach-field]").forEach((control) => { sequence[control.dataset.outreachField] = control.value; });
         sequence.steps = Array.from(steps.querySelectorAll("[data-outreach-step-id]")).map((row) => { const item = { id: row.dataset.outreachStepId }; row.querySelectorAll("[data-outreach-step-field]").forEach((control) => { item[control.dataset.outreachStepField] = control.dataset.outreachStepField === "day" ? Number(control.value) || 0 : control.value; }); return item; });
-        sequence.assignments = Array.from(assignments.querySelectorAll("[data-outreach-assignment-id]")).map((row) => { const item = { id: row.dataset.outreachAssignmentId }; row.querySelectorAll("[data-outreach-assignment-field]").forEach((control) => { item[control.dataset.outreachAssignmentField] = control.value; }); return item; });
         sequence.name = `${sequence.channel} sequence - v${sequence.version || 1}`;
         sequence.updatedAt = new Date().toISOString();
       };
       review.querySelector("#saveOutreachSequence").addEventListener("click", async () => { collect(); await saveOutreachWorkspace(data, workspace, review.querySelector("#outreachSaveStatus")); });
       setup.querySelector("#refreshOutreachRecommendation").addEventListener("click", () => { collect(); sequence.steps = outreachRecommendedSteps(sequence.channel, profile, messages, proofAssets); data.outreachSequenceWorkspace = workspace; updateActivePlanLocalCache(data); renderOutreachWorkspace(data); });
-      steps.querySelector("#addOutreachStep").addEventListener("click", () => { collect(); sequence.steps.push({ id: `step-${Date.now()}`, day: 0, action: "", messageId: "", proofId: "", status: "Not started" }); data.outreachSequenceWorkspace = workspace; renderOutreachWorkspace(data); });
-      assignments.querySelector("#addOutreachAssignment")?.addEventListener("click", () => { collect(); sequence.assignments.push({ id: `assignment-${Date.now()}`, targetId: "", owner: "", startDate: "", currentStep: "Step 1", status: "Not started", nextAction: "", dueDate: "" }); data.outreachSequenceWorkspace = workspace; renderOutreachWorkspace(data); });
-      assignments.querySelector("#outreachAssignmentRows").addEventListener("click", (event) => { const button = event.target.closest("[data-remove-outreach-assignment]"); if (!button) return; button.closest("[data-outreach-assignment-id]")?.remove(); });
+      steps.querySelector("#addOutreachStep").addEventListener("click", async () => {
+        collect();
+        sequence.steps.push({ id: `step-${Date.now()}`, day: 0, action: "", messageId: "", proofId: "", status: "Not started" });
+        data.outreachSequenceWorkspace = workspace;
+        await saveOutreachWorkspace(data, workspace, review.querySelector("#outreachSaveStatus"));
+        renderOutreachWorkspace(data);
+      });
       review.querySelector("#createOutreachSequence").addEventListener("click", async () => { collect(); const version = Math.max(0, ...workspace.sequences.map((item) => Number(item.version) || 0)) + 1; const next = outreachNewSequence(profile, messagingChannels(profile)[0], messages, proofAssets, version); workspace.sequences.push(next); workspace.selectedSequenceId = next.id; await saveOutreachWorkspace(data, workspace, review.querySelector("#outreachSaveStatus")); renderOutreachWorkspace(data); });
       setupReportNavigation();
       configureAssetPdfExport("outreach", data, profile.model);
@@ -15873,25 +15853,25 @@
     }
 
     function weeklyReviewEvidence(data, profile) {
-      const pipeline = pipelineWorkspaceState(data, profile);
-      const targetWorkspace = targetListWorkspaceState(data, profile);
       const messageWorkspace = messagingWorkspaceState(data, profile);
       const proofEvidence = proofBuilderEvidence(data, profile);
       const proofWorkspace = proofBuilderState(data, profile, proofEvidence, proofBuilderTypes(profile, proofEvidence));
       const outreachWorkspace = outreachWorkspaceState(data, profile, messageWorkspace.drafts, proofWorkspace.drafts);
-      const targets = targetWorkspace.targets.filter((target) => target.name || target.profile || target.contact);
+      const weeklyWorkspace = data.weeklyReviewWorkspace && typeof data.weeklyReviewWorkspace === "object" ? data.weeklyReviewWorkspace : {};
+      const latestReview = (Array.isArray(weeklyWorkspace.reviews) ? weeklyWorkspace.reviews : []).at(-1) || {};
+      const latestMetrics = latestReview.metrics || {};
       const messageTotals = messagingResultTotals(messageWorkspace.drafts);
       const interactions = messageWorkspace.drafts.flatMap((draft) => draft.interactions || []);
       const proofUses = proofWorkspace.drafts.flatMap((draft) => draft.uses || []);
       const assignments = outreachWorkspace.sequences.flatMap((sequence) => sequence.assignments || []);
-      const contactedTargets = targets.filter((target) => !["", "Not contacted", "Ready for outreach"].includes(target.status)).length;
-      const attempts = messageTotals.attempts || contactedTargets;
-      const replies = messageTotals.replies || targets.filter((target) => ["Replied", "Conversation scheduled", "Conversation complete", "Meaningful next step"].includes(target.status)).length;
-      const conversations = messageTotals.conversations || targets.filter((target) => ["Conversation scheduled", "Conversation complete", "Meaningful next step"].includes(target.status)).length;
-      const nextSteps = messageTotals.nextSteps || targets.filter((target) => target.status === "Meaningful next step").length;
-      const today = new Date().toISOString().slice(0, 10);
-      const overdueTargets = targets.filter((target) => target.dueDate && target.dueDate < today && !["Meaningful next step", "Not a fit", "Do not pursue"].includes(target.status));
-      const noNextAction = targets.filter((target) => ["Contacted", "Replied", "Conversation scheduled", "Conversation complete"].includes(target.status) && !cleanText(target.nextAction));
+      const hasSavedMetrics = Object.keys(latestMetrics).length > 0;
+      const targets = hasSavedMetrics ? Number(latestMetrics.targets) || 0 : new Set(interactions.map((item) => cleanText(item.targetId || item.contact)).filter(Boolean)).size;
+      const attempts = hasSavedMetrics ? Number(latestMetrics.attempts) || 0 : messageTotals.attempts;
+      const replies = hasSavedMetrics ? Number(latestMetrics.replies) || 0 : messageTotals.replies;
+      const conversations = hasSavedMetrics ? Number(latestMetrics.conversations) || 0 : messageTotals.conversations;
+      const nextSteps = hasSavedMetrics ? Number(latestMetrics.nextSteps) || 0 : messageTotals.nextSteps;
+      const overdue = Number(latestMetrics.overdue) || 0;
+      const noNextAction = Number(latestMetrics.noNextAction) || 0;
       const proofNextSteps = proofUses.filter((item) => /meaningful next step/i.test(item.result)).length;
       const objections = personaAssetItems(interactions.map((item) => item.response)).slice(0, 6);
       const learnings = personaAssetItems(interactions.map((item) => item.learning), messageWorkspace.drafts.map((draft) => draft.learning), proofUses.map((item) => item.learning)).slice(0, 8);
@@ -15912,18 +15892,18 @@
         reason = "The current sequence has enough non-response evidence to stop running unchanged. Preserve the learning and test a materially different hypothesis.";
       }
       const actions = [];
-      if (targets.length < (profile.isPreRevenue ? 10 : 15)) actions.push("Add and qualify the next small batch of targets using the current ICP criteria.");
+      if (targets < (profile.isPreRevenue ? 10 : 15)) actions.push("Add and qualify the next small batch of targets in the CRM or spreadsheet using the current ICP criteria.");
       if (attempts < 5) actions.push("Complete at least five focused outreach attempts using one saved message version.");
       if (attempts >= 5 && replies === 0) actions.push("Revise one variable: target quality, subject or opening, channel, or timing.");
       if (replies > conversations) actions.push("Review replies and strengthen the discovery ask that converts interest into a conversation.");
       if (conversations > nextSteps) actions.push("Clarify the concrete next-step ask and the proof needed to support it.");
       if (!proofUses.length) actions.push("Use the most relevant approved proof asset in a real buyer interaction and record the result.");
-      if (overdueTargets.length) actions.push(`Resolve ${overdueTargets.length} overdue follow-up${overdueTargets.length === 1 ? "" : "s"}.`);
-      if (noNextAction.length) actions.push(`Add a dated next action for ${noNextAction.length} active target${noNextAction.length === 1 ? "" : "s"}.`);
+      if (overdue) actions.push(`Resolve ${overdue} overdue follow-up${overdue === 1 ? "" : "s"} in the CRM.`);
+      if (noNextAction) actions.push(`Add a dated next action for ${noNextAction} active target${noNextAction === 1 ? "" : "s"} in the CRM.`);
       while (actions.length < 3) actions.push(["Review repeated buyer language and update the message only when the evidence supports it.", "Confirm that every active target has an owner and one specific next action.", "Keep the current test focused until the next weekly review."][actions.length]);
-      const openOpportunities = pipeline.opportunities.filter((item) => !["Closed won", "Closed lost", "Disqualified"].includes(item.stage));
-      const pipelineValue = openOpportunities.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
-      return { targets: targets.length, attempts, replies, conversations, nextSteps, proofUses: proofUses.length, proofNextSteps, overdue: overdueTargets.length, noNextAction: noNextAction.length, objections, learnings, decision, reason, actions: actions.slice(0, 3), assignments: assignments.length, openOpportunities: openOpportunities.length, pipelineValue };
+      const openOpportunities = Number(latestMetrics.openOpportunities) || 0;
+      const pipelineValue = Number(latestMetrics.pipelineValue) || 0;
+      return { targets, attempts, replies, conversations, nextSteps, proofUses: hasSavedMetrics ? Number(latestMetrics.proofUses) || 0 : proofUses.length, proofNextSteps, overdue, noNextAction, objections, learnings, decision, reason, actions: actions.slice(0, 3), assignments: assignments.length, openOpportunities, pipelineValue };
     }
 
     function weeklyLearningRecommendation(evidence) {
@@ -16003,7 +15983,7 @@
       overview.id = "weekly-review-workspace";
       overview.dataset.toc = "Evidence Summary";
       overview.className = "workspace-section";
-      overview.innerHTML = `<h2>Evidence This Week</h2><div class="messaging-result-summary"><div class="messaging-result-card"><span>Targets</span><strong>${evidence.targets}</strong></div><div class="messaging-result-card"><span>Attempts</span><strong>${evidence.attempts}</strong></div><div class="messaging-result-card"><span>Replies</span><strong>${evidence.replies}</strong></div><div class="messaging-result-card"><span>Conversations</span><strong>${evidence.conversations}</strong></div></div><div class="messaging-result-summary"><div class="messaging-result-card"><span>Meaningful next steps</span><strong>${evidence.nextSteps}</strong></div><div class="messaging-result-card"><span>Open opportunities</span><strong>${evidence.openOpportunities}</strong></div><div class="messaging-result-card"><span>Open pipeline value</span><strong>${evidence.pipelineValue ? `$${Math.round(evidence.pipelineValue).toLocaleString()}` : "-"}</strong></div><div class="messaging-result-card"><span>Proof uses</span><strong>${evidence.proofUses}</strong></div></div><div class="messaging-result-summary"><div class="messaging-result-card"><span>Overdue follow-ups</span><strong>${evidence.overdue}</strong></div><div class="messaging-result-card"><span>Missing next actions</span><strong>${evidence.noNextAction}</strong></div></div>`;
+      overview.innerHTML = `<h2>Evidence This Week</h2><p class="muted">Bring these totals from the CRM, spreadsheet, or outreach system. GTM OS uses the summary to recommend the next decision; it does not duplicate the underlying contact or opportunity records.</p><div class="messaging-results-grid"><label>Targets worked<input type="number" min="0" data-weekly-metric="targets" value="${evidence.targets}"></label><label>Outreach attempts<input type="number" min="0" data-weekly-metric="attempts" value="${evidence.attempts}"></label><label>Replies<input type="number" min="0" data-weekly-metric="replies" value="${evidence.replies}"></label><label>Conversations<input type="number" min="0" data-weekly-metric="conversations" value="${evidence.conversations}"></label><label>Meaningful next steps<input type="number" min="0" data-weekly-metric="nextSteps" value="${evidence.nextSteps}"></label><label>Open opportunities<input type="number" min="0" data-weekly-metric="openOpportunities" value="${evidence.openOpportunities}"></label><label>Open pipeline value<input type="number" min="0" data-weekly-metric="pipelineValue" value="${evidence.pipelineValue}"></label><label>Proof uses<input type="number" min="0" data-weekly-metric="proofUses" value="${evidence.proofUses}"></label><label>Overdue follow-ups<input type="number" min="0" data-weekly-metric="overdue" value="${evidence.overdue}"></label><label>Active records missing a next action<input type="number" min="0" data-weekly-metric="noNextAction" value="${evidence.noNextAction}"></label></div>`;
       main.appendChild(overview);
 
       const insights = document.createElement("section");
@@ -16036,9 +16016,11 @@
 
       decision.querySelector("#saveWeeklyReview").addEventListener("click", async () => {
         const actions = Array.from(decision.querySelectorAll("[data-weekly-action]")).map((row) => { const item = {}; row.querySelectorAll("[data-weekly-action-field]").forEach((control) => { item[control.dataset.weeklyActionField] = control.value; }); return item; });
+        const metrics = {};
+        overview.querySelectorAll("[data-weekly-metric]").forEach((control) => { metrics[control.dataset.weeklyMetric] = Math.max(0, Number(control.value) || 0); });
         const selectedVariable = decision.querySelector("#weeklyLearningVariable").value;
         const learningChange = { variable: selectedVariable, change: decision.querySelector("#weeklyLearningChangeText").value, constants: learning.variables.filter((item) => item !== "No strategic change" && item !== selectedVariable).slice(0, 5) };
-        workspace.reviews.push({ id: `weekly-review-${Date.now()}`, date: new Date().toISOString().slice(0, 10), decision: decision.querySelector("#weeklyReviewDecision").value, rationale: decision.querySelector("#weeklyReviewRationale").value, learningChange, actions, metrics: { targets: evidence.targets, attempts: evidence.attempts, replies: evidence.replies, conversations: evidence.conversations, nextSteps: evidence.nextSteps, proofUses: evidence.proofUses, openOpportunities: evidence.openOpportunities, pipelineValue: evidence.pipelineValue } });
+        workspace.reviews.push({ id: `weekly-review-${Date.now()}`, date: new Date().toISOString().slice(0, 10), decision: decision.querySelector("#weeklyReviewDecision").value, rationale: decision.querySelector("#weeklyReviewRationale").value, learningChange, actions, metrics });
         await saveWeeklyReviewWorkspace(data, workspace, decision.querySelector("#weeklyReviewSaveStatus"));
         renderWeeklyReviewWorkspace(data);
       });
@@ -16257,8 +16239,6 @@
       const channels = messagingChannels(profile);
       const objectives = messagingObjectives(profile);
       const workspace = messagingWorkspaceState(data, profile);
-      const trackedTargets = targetListWorkspaceState(data, profile).targets.filter((target) => target.name || target.profile || target.contact);
-      window.__messagingTrackedTargets = trackedTargets;
       const main = document.querySelector("main");
       let draft = workspace.drafts.find((item) => item.id === workspace.selectedDraftId) || workspace.drafts[0];
       const personaFor = (id) => personas.find((persona) => persona.id === id) || personas[0];
@@ -16318,7 +16298,7 @@
       actions.id = "messaging-kit-actions";
       actions.dataset.toc = "Related Assets";
       actions.className = "no-print";
-      actions.innerHTML = `<h2>Related Assets</h2><div class="report-bottom-actions"><a href="${escapeHtml(reportAssetUrl("personas"))}">Persona Brief</a><a href="${escapeHtml(reportAssetUrl("targets"))}">Target List</a><a href="${escapeHtml(reportAssetUrl("proof-assets"))}">Proof Asset Builder</a><a href="${escapeHtml(reportAssetUrl("outreach"))}">Outreach Sequence</a><a href="${escapeHtml(reportAssetUrl("active"))}">Active Plan</a></div>`;
+      actions.innerHTML = `<h2>Related Assets</h2><div class="report-bottom-actions"><a href="${escapeHtml(reportAssetUrl("personas"))}">Persona Brief</a><a href="${escapeHtml(reportAssetUrl("targets"))}">Target List Setup</a><a href="${escapeHtml(reportAssetUrl("proof-assets"))}">Proof Asset Builder</a><a href="${escapeHtml(reportAssetUrl("outreach"))}">Outreach Sequence</a><a href="${escapeHtml(reportAssetUrl("active"))}">Active Plan</a></div>`;
       main.appendChild(actions);
 
       const recommendationContainer = context.querySelector("#messagingRecommendation");
@@ -16530,8 +16510,8 @@
         return;
       }
       if (requestedAsset === "pipeline-workspace") {
-        renderPipelineWorkspace(data);
-        finishAsset("pipeline-workspace");
+        renderWeeklyReviewWorkspace(data);
+        finishAsset("weekly-review");
         return;
       }
       if (requestedAsset === "weekly-review") {

@@ -5009,10 +5009,9 @@ function renderSectionNavigation(sectionsToShow, nav) {
         ["ICP Brief", "icp"],
         ["Persona Brief", "personas"],
         ["Messaging Kit", "messaging"],
-        ["Target List", "targets"],
+        ["Target List Setup", "targets"],
         ["Proof Asset Builder", "proof-assets"],
         ["Outreach Sequence", "outreach"],
-        ["Pipeline and Opportunities", "pipeline-workspace"],
         ["Weekly GTM Review", "weekly-review"],
         ["30-Day Validation Plan", "validation"]
       ]
@@ -5022,10 +5021,9 @@ function renderSectionNavigation(sectionsToShow, nav) {
         ...(hasIcpAsset ? [["ICP Brief", "icp"]] : []),
         ["Persona Brief", "personas"],
         ["Messaging Kit", "messaging"],
-        ["Target List", "targets"],
+        ["Target List Setup", "targets"],
         ["Proof Asset Builder", "proof-assets"],
         ["Outreach Sequence", "outreach"],
-        ["Pipeline and Opportunities", "pipeline-workspace"],
         ["Weekly GTM Review", "weekly-review"]
       ];
 
@@ -5360,7 +5358,6 @@ function resultsUrl(version = "20260712-pre-revenue-assets", asset = "") {
     targets: "target-list-workspace",
     "proof-assets": "proof-asset-workspace",
     outreach: "outreach-sequence-workspace",
-    "pipeline-workspace": "pipeline-opportunity-workspace",
     "weekly-review": "weekly-review-workspace"
   };
 

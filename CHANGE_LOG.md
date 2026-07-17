@@ -4,6 +4,17 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-17 CRM-Centered Execution Assets
+
+- Replaced the duplicate in-tool Target List tracker with a Target List Setup Guide for the user's CRM or spreadsheet.
+- Added recommended ICP criteria, starting-list size, required CRM/spreadsheet fields, and a copyable setup guide.
+- Removed Pipeline and Opportunities from intake and report navigation; legacy links now route to the Weekly GTM Review.
+- Moved weekly target, outreach, opportunity, pipeline, proof-use, overdue, and next-action totals into an editable CRM summary in the Weekly GTM Review.
+- Removed target and opportunity record requirements from asset-quality checks, Plan Status, messaging responses, proof usage, and outreach execution.
+- Reworked the Proof Asset Builder around five plain-language decisions: what to create, who needs it, what claim it supports, what evidence exists, and whether that evidence can be shared.
+- Moved proof strength and draft status behind the scenes so the user no longer has to interpret internal production labels.
+- Made Add Step in Outreach Sequence save immediately before the page refreshes.
+
 ## 2026-07-17 Active Plan Persistence, ICP Actions, and Messaging
 
 - Preserved weekly priority statuses when weekly progress is saved and synchronized those statuses with the underlying Active Plan actions.
