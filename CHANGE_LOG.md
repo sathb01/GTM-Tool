@@ -6,6 +6,9 @@ This file records the major actions and changes made during the GTM Tool refinem
 
 ## 2026-07-17 Plan Summary Score Guidance
 
+- Replaced the static Offer and Proof missing-data checklist with the actual weak dimensions and current scores for the selected primary offer.
+- Added guided `Save Changes and Return` and `Return Without Saving` controls at the bottom of improvement sections, replacing ordinary intake progression controls during a report round trip.
+- Made legacy primary-offer selections stored by offer name resolve to the correct offer row so newly completed assessments update the offer score.
 - Renamed the four plan-summary detail links from `See supporting details` to `Learn more` and made each link expand its matching support panel before scrolling to it.
 - Replaced the generic `weakest conversion point` recommendation with the saved Biggest funnel drop-off by name; when none is saved, the plan now asks the user to identify it instead of implying that it is known.
 - Replaced the old self-rating-based Revenue Motion summary with the evidence-based Revenue Motion readiness score used by the overall scoring model.

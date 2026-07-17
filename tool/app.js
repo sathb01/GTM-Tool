@@ -3394,6 +3394,7 @@ function collectSharedCustomerGroupOptions(data = getFormData()) {
 function primaryOfferRow(data = getFormData()) {
   const offers = offerPortfolioRows(data);
   return offers.find((row) => row.rowId === data.primaryGtmOffer)
+    || offers.find((row) => String(row.values.offerName || "").trim().toLowerCase() === String(data.primaryGtmOffer || "").trim().toLowerCase())
     || offers.find((row) => row.values.offerPriority === "Primary GTM focus")
     || offers[0]
     || null;
@@ -4752,6 +4753,7 @@ function renderImprovementFocusCard(sectionId) {
     updateModel.textContent = "Update Model";
   });
   regenerate.type = "button";
+  regenerate.dataset.improvementSaveReturn = "true";
   regenerate.textContent = focus.returnTo ? "Save Changes and Return" : "Regenerate Action Plan";
   regenerate.addEventListener("click", async () => {
     formStateData = {
@@ -4850,6 +4852,25 @@ function mountImprovementAnswerFields(card, sectionEl) {
       heading?.remove();
     }
   });
+}
+
+function createBottomImprovementActions(focus) {
+  const actions = document.createElement("div");
+  const saveAndReturn = document.createElement("button");
+  const returnWithoutSaving = document.createElement("a");
+  actions.className = "action-bar improvement-bottom-actions";
+  saveAndReturn.type = "button";
+  saveAndReturn.textContent = "Save Changes and Return";
+  saveAndReturn.addEventListener("click", () => {
+    const primaryAction = document.querySelector('[data-improvement-save-return="true"]');
+    if (primaryAction) primaryAction.click();
+  });
+  returnWithoutSaving.className = "secondary";
+  returnWithoutSaving.href = focus.returnTo;
+  returnWithoutSaving.textContent = "Return Without Saving";
+  actions.appendChild(saveAndReturn);
+  actions.appendChild(returnWithoutSaving);
+  return actions;
 }
 
 function syncFormStateFromDom() {
@@ -5150,7 +5171,12 @@ function renderSections() {
     sectionEl.appendChild(createRevenueMotionSummaryCard());
   }
 
-  sectionEl.appendChild(createSectionProgressActions(sectionsToShow, activeSection));
+  const activeImprovementFocus = currentImprovementFocus();
+  if (activeImprovementFocus?.sectionId === activeSection.id && activeImprovementFocus.returnTo) {
+    sectionEl.appendChild(createBottomImprovementActions(activeImprovementFocus));
+  } else {
+    sectionEl.appendChild(createSectionProgressActions(sectionsToShow, activeSection));
+  }
 
   sections.appendChild(sectionEl);
 }

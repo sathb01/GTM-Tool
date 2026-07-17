@@ -4618,6 +4618,7 @@
     function primaryOfferRow(data) {
       const offers = offerPortfolioRows(data);
       return offers.find((row) => row.rowId === data.primaryGtmOffer)
+        || offers.find((row) => String(row.values.offerName || "").trim().toLowerCase() === String(data.primaryGtmOffer || "").trim().toLowerCase())
         || offers.find((row) => row.values.offerPriority === "Primary GTM focus")
         || offers[0]
         || null;
@@ -5876,12 +5877,13 @@
 
       recommendation.innerHTML = "";
       const improvements = (model.readinessDiagnostic?.improvements || []).slice(0, 3);
+      const offerScoreSnapshot = offerReadinessSnapshot(model.data, model.primaryOffer?.rowId);
       const readinessPanel = summarySupportPanel({
         id: "summary-readiness-details",
         tone: "readiness",
         title: "GTM Readiness: Evidence and Score Details",
         subtitle: "See what supports the score and what would improve it.",
-        content: `<p><strong>Current status:</strong> ${escapeHtml(status.label)} at ${escapeHtml(model.readinessScore)}/100.</p><div class="score-list"><div><h3>Strong points</h3><ul>${(scoreParts.strengths.length ? scoreParts.strengths : ["No strong score areas yet."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div><div><h3>Weak points</h3><ul>${(scoreParts.weaknesses.length ? scoreParts.weaknesses : ["No major score weaknesses detected."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div></div><h3>Revenue Motion score details</h3><p><strong>${escapeHtml(model.revenueSnapshot.score)}/100</strong> based on the saved motion context, channel evidence, pipeline visibility, sales process, conversion health, ownership, stalled-deal learning, and next experiment.</p><ul>${model.revenueSnapshot.dimensions.map((item) => `<li><strong>${escapeHtml(item.name)}:</strong> ${escapeHtml(item.score * 20)}/100${item.score < 4 ? ` - ${escapeHtml(item.nextMove)}` : " - sufficiently defined"}</li>`).join("")}</ul><h3>Best ways to improve the score</h3><ul>${(improvements.length ? improvements.map((item) => `${item.area}: ${item.action}`) : ["Continue collecting execution evidence against the current plan."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul><p class="muted">A saved improvement can raise a subscore without immediately changing the rounded overall score because the overall score combines several weighted areas.</p>`
+        content: `<p><strong>Current status:</strong> ${escapeHtml(status.label)} at ${escapeHtml(model.readinessScore)}/100.</p><div class="score-list"><div><h3>Strong points</h3><ul>${(scoreParts.strengths.length ? scoreParts.strengths : ["No strong score areas yet."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div><div><h3>Weak points</h3><ul>${(scoreParts.weaknesses.length ? scoreParts.weaknesses : ["No major score weaknesses detected."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div></div><h3>Offer and Proof score details</h3><p><strong>${escapeHtml(offerScoreSnapshot.score)}/100</strong> for ${escapeHtml(model.primaryOffer?.values.offerName || model.data.primaryGtmOffer || "the primary offer")}.</p><ul>${offerScoreSnapshot.dimensions.map((item) => `<li><strong>${escapeHtml(item.name)}:</strong> ${escapeHtml(item.score * 20)}/100${item.score < 4 ? ` - ${escapeHtml(item.nextMove)}` : " - sufficiently defined"}</li>`).join("")}</ul><h3>Revenue Motion score details</h3><p><strong>${escapeHtml(model.revenueSnapshot.score)}/100</strong> based on the saved motion context, channel evidence, pipeline visibility, sales process, conversion health, ownership, stalled-deal learning, and next experiment.</p><ul>${model.revenueSnapshot.dimensions.map((item) => `<li><strong>${escapeHtml(item.name)}:</strong> ${escapeHtml(item.score * 20)}/100${item.score < 4 ? ` - ${escapeHtml(item.nextMove)}` : " - sufficiently defined"}</li>`).join("")}</ul><h3>Best ways to improve the score</h3><ul>${(improvements.length ? improvements.map((item) => `${item.area}: ${item.action}`) : ["Continue collecting execution evidence against the current plan."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul><p class="muted">A saved improvement can raise a subscore without immediately changing the rounded overall score because the overall score combines several weighted areas.</p>`
       });
       const readinessActions = readinessPanel.querySelector(".summary-support-content");
       const linkedAreas = new Set();
@@ -5893,7 +5895,11 @@
           sameTab: true,
           returnSectionId: "summary-readiness-details",
           task: `Improve ${item.area}`,
-          focus: item.area === "Revenue Motion" ? revenueMotionScoreReviewFocus(model) : undefined
+          focus: item.area === "Revenue Motion"
+            ? revenueMotionScoreReviewFocus(model)
+            : item.area === "Offer and Proof"
+              ? offerScoreReviewFocus(model)
+              : undefined
         });
       });
       if (!improvements.length) appendReviewLink(readinessActions, "Review Score Inputs", "score", { sameTab: true, returnSectionId: "summary-readiness-details" });
@@ -6149,6 +6155,22 @@
         questions: weakDimensions.map((item) => `Complete this score input: ${item.nextMove}`),
         example: "Complete the highlighted revenue operating inputs first. Then use the detailed Revenue Motion assessment below for any remaining channel results, pipeline metrics, stage criteria, conversion bottleneck, stalled-deal learning, or experiment gaps.",
         fieldIds: ["primaryRevenueMotion", "revenueTrackingSystem", "revenueReportingCadence", "primaryRevenueOwner", "pipelineReviewOwner", "sellingCapacity"]
+      };
+    }
+
+    function offerScoreReviewFocus(model) {
+      const snapshot = offerReadinessSnapshot(model.data, model.primaryOffer?.rowId);
+      const offerName = model.primaryOffer?.values.offerName || model.data.primaryGtmOffer || "the primary offer";
+      const weakDimensions = snapshot.dimensions.filter((item) => item.score < 4);
+      return {
+        area: `Offer and Proof: ${snapshot.score}/100`,
+        why: `This review is for ${offerName}. The list below contains only the offer-readiness dimensions that are not yet strong in the saved primary-offer assessment.`,
+        missing: weakDimensions.length
+          ? weakDimensions.map((item) => `${item.name} (${item.score * 20}/100): ${item.nextMove}`)
+          : ["No offer-readiness dimension is currently below the strong threshold."],
+        questions: weakDimensions.map((item) => `Complete or strengthen: ${item.nextMove}`),
+        example: "Open the primary offer's Full readiness analysis below and complete only the dimensions listed here. The Offer Readiness summary at the bottom updates from those saved answers.",
+        fieldIds: ["primaryGtmOffer"]
       };
     }
 
