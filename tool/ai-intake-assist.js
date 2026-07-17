@@ -221,7 +221,10 @@
           });
           const payload = await response.json();
           if (!response.ok) throw new Error(payload.error || "AI help could not respond.");
-          suggestionText.textContent = payload.answer;
+          const proposedAnswer = String(payload.answer || "").trim();
+          if (!proposedAnswer) throw new Error("AI help did not return a usable answer. Try again.");
+          suggestion.dataset.proposedAnswer = proposedAnswer;
+          suggestionText.textContent = proposedAnswer;
           suggestion.hidden = false;
           fieldStatus.textContent = "Suggestion ready. Review it before using it.";
         } catch (error) {
@@ -229,8 +232,22 @@
         }
       });
       help.querySelector("[data-use-ai-field]").addEventListener("click", async () => {
-        const answer = suggestionText.textContent.trim();
-        if (!answer || !setFieldValue(fieldId, answer)) {
+        const answer = String(suggestion.dataset.proposedAnswer || suggestionText.textContent || "").trim();
+        if (!answer) {
+          fieldStatus.textContent = "The suggestion is no longer available. Select Help me answer this to create it again.";
+          return;
+        }
+        let applied = setFieldValue(fieldId, answer);
+        if (!applied) {
+          const latestControl = document.querySelector(`[name="${CSS.escape(fieldId)}"]`);
+          if (latestControl && ["INPUT", "TEXTAREA"].includes(latestControl.tagName)) {
+            latestControl.value = answer;
+            try { formStateData[fieldId] = answer; } catch { /* visible input is sufficient */ }
+            latestControl.dispatchEvent(new Event("input", { bubbles: true }));
+            applied = latestControl.value === answer;
+          }
+        }
+        if (!applied) {
           fieldStatus.textContent = "The suggestion could not be added. Try again.";
           return;
         }
