@@ -12,6 +12,8 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Returns users to the exact originating asset, section, and scroll position.
 - Shows a saved-and-updated confirmation and briefly highlights the originating report section after a successful save.
 - Added an isolated end-to-end test for both saved and unsaved return paths.
+- Applied the same round-trip behavior to Active Plan action runners reached from Active Plan or Plan Status.
+- Active Plan actions now show the work item and origin, then offer `Save Evidence and Return` or `Return Without Saving` with exact position restoration.
 
 ## 2026-07-16 GTM Plan Summary Navigation
 

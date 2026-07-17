@@ -911,6 +911,12 @@
     .action-runner-note p:last-child {
       margin-bottom: 0;
     }
+    .workspace-return-bar { position: sticky; top: 12px; z-index: 18; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 16px; border: 1px solid #f6b39f; border-left: 4px solid #ff7a59; background: #ffffff; box-shadow: 0 8px 20px rgba(22, 32, 51, 0.08); }
+    .workspace-return-bar-copy { min-width: 0; }
+    .workspace-return-bar-copy span, .workspace-return-bar-copy strong { display: block; overflow-wrap: anywhere; }
+    .workspace-return-bar-label { color: #9d3d28; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    .workspace-return-bar-origin { color: var(--muted); font-size: 13px; margin-top: 3px; }
+    @media (max-width: 760px) { .workspace-return-bar { align-items: flex-start; flex-direction: column; } }
 
     .validation-workspace-toolbar,
     .validation-interview-nav,
@@ -10581,6 +10587,7 @@
         sections.forEach((section) => observer.observe(section));
       }
       applyStandardActionIcons();
+      setupActiveActionRoundTripLinks();
       restoreImprovementReturnState();
     }
 
@@ -13175,6 +13182,55 @@
       return `results.html?${params.toString()}#action-runner`;
     }
 
+    function activeActionReturnTarget(trigger) {
+      const returnUrl = new URL(window.location.href);
+      returnUrl.searchParams.delete("action");
+      returnUrl.searchParams.delete("actionReturnTo");
+      returnUrl.searchParams.delete("actionReturnLabel");
+      returnUrl.searchParams.delete("workingOn");
+      returnUrl.searchParams.delete("improvement");
+      returnUrl.searchParams.delete("improved");
+      returnUrl.searchParams.set("resumeY", String(Math.max(0, Math.round(window.scrollY))));
+      const section = trigger?.closest("main > section");
+      if (section?.id) returnUrl.hash = section.id;
+      const pageLabel = document.getElementById("companyName")?.textContent.trim() || "Active Plan";
+      const sectionLabel = section?.dataset.toc || section?.querySelector("h2")?.textContent.trim() || "current work";
+      return {
+        url: `${returnUrl.pathname.split("/").pop() || "results.html"}${returnUrl.search}${returnUrl.hash}`,
+        label: `${pageLabel} / ${sectionLabel}`
+      };
+    }
+
+    function setupActiveActionRoundTripLinks() {
+      document.querySelectorAll('a[href*="asset=active"][href*="action="]').forEach((link) => {
+        if (link.dataset.roundTripReady === "true") return;
+        link.dataset.roundTripReady = "true";
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          const destination = new URL(link.href, window.location.href);
+          const origin = activeActionReturnTarget(link);
+          const workLabel = link.closest("article")?.querySelector("h3")?.textContent.trim()
+            || link.closest("section")?.querySelector("h2")?.textContent.trim()
+            || "Active Plan action";
+          destination.searchParams.set("actionReturnTo", origin.url);
+          destination.searchParams.set("actionReturnLabel", origin.label);
+          destination.searchParams.set("workingOn", workLabel);
+          window.location.href = `${destination.pathname.split("/").pop() || "results.html"}${destination.search}${destination.hash}`;
+        });
+      });
+    }
+
+    function activeActionReturnUrl(saved = false) {
+      const params = new URLSearchParams(window.location.search);
+      const fallback = reportAssetUrl("active");
+      const destination = new URL(safeRelativeUrl(params.get("actionReturnTo"), fallback), window.location.href);
+      if (saved) {
+        destination.searchParams.set("improvement", "saved");
+        destination.searchParams.set("improved", params.get("workingOn") || "Active Plan action");
+      }
+      return `${destination.pathname.split("/").pop() || "results.html"}${destination.search}${destination.hash}`;
+    }
+
     function activePlanField(index, name) {
       return `activePlan__action-${index + 1}__${name}`;
     }
@@ -13618,6 +13674,15 @@
       document.getElementById("generatedMeta").textContent = "Complete the focused work, capture the evidence, then decide the next move.";
       document.getElementById("metadataPills").innerHTML = "";
 
+      const runnerParams = new URLSearchParams(window.location.search);
+      const workingOn = runnerParams.get("workingOn") || action.title;
+      const returnLabel = runnerParams.get("actionReturnLabel") || `${data.companyName || "Company"} Active Plan`;
+      const returnBar = document.createElement("section");
+      returnBar.id = "active-action-return-bar";
+      returnBar.className = "workspace-return-bar workspace-section no-print";
+      returnBar.innerHTML = `<div class="workspace-return-bar-copy"><span class="workspace-return-bar-label">Working on</span><strong>${escapeHtml(workingOn)}</strong><span class="workspace-return-bar-origin">Return to: ${escapeHtml(returnLabel)}</span></div><a class="secondary" id="activeActionReturnWithoutSaving" href="${escapeHtml(activeActionReturnUrl(false))}">Return Without Saving</a>`;
+      main.appendChild(returnBar);
+
       const context = document.createElement("section");
       context.id = "action-runner";
       context.dataset.toc = "Action";
@@ -13655,9 +13720,9 @@
       if (plan.type === "validation") {
         const workspace = validationWorkspaceState(data, preRevenueScore(data));
         const metrics = validationWorkspaceMetrics(workspace);
-        capture.innerHTML = `<h2>Evidence and Decision</h2><p class="muted">The structured interview evidence is stored in the Validation Workspace.</p><div class="validation-metric-grid"><div class="validation-metric"><strong>${metrics.sourced}</strong><span>Targets sourced</span></div><div class="validation-metric"><strong>${metrics.completed}</strong><span>Interviews complete</span></div><div class="validation-metric"><strong>${metrics.confirmed}</strong><span>Problem confirmations</span></div><div class="validation-metric"><strong>${metrics.nextSteps}</strong><span>Meaningful next steps</span></div></div><div class="validation-decision-recommendation"><h3>Recommended decision: ${escapeHtml(metrics.recommendation)}</h3><p>${escapeHtml(metrics.explanation)}</p></div><div class="active-plan-save-row"><a href="${escapeHtml(reportAssetUrl("validation-workspace"))}">Validation Workspace</a><a class="secondary" href="${escapeHtml(reportAssetUrl("active"))}">Back to Active Plan</a></div>`;
+        capture.innerHTML = `<h2>Evidence and Decision</h2><p class="muted">The structured interview evidence is stored in the Validation Workspace.</p><div class="validation-metric-grid"><div class="validation-metric"><strong>${metrics.sourced}</strong><span>Targets sourced</span></div><div class="validation-metric"><strong>${metrics.completed}</strong><span>Interviews complete</span></div><div class="validation-metric"><strong>${metrics.confirmed}</strong><span>Problem confirmations</span></div><div class="validation-metric"><strong>${metrics.nextSteps}</strong><span>Meaningful next steps</span></div></div><div class="validation-decision-recommendation"><h3>Recommended decision: ${escapeHtml(metrics.recommendation)}</h3><p>${escapeHtml(metrics.explanation)}</p></div><div class="active-plan-save-row"><a href="${escapeHtml(reportAssetUrl("validation-workspace"))}">Validation Workspace</a><a class="secondary" href="${escapeHtml(activeActionReturnUrl(false))}">Return Without Saving</a></div>`;
       } else {
-        capture.innerHTML = `<h2>Capture Evidence and Decide</h2><p class="muted">${escapeHtml(details.evidencePrompt)}</p><div class="active-plan-review"><label>Evidence and result<textarea data-active-plan-field="${escapeHtml(evidenceField)}" rows="6" placeholder="Record the real output, evidence, objections, and anything that changed your confidence."></textarea></label><div class="grid"><label>Status<select data-active-plan-field="${escapeHtml(statusField)}"><option${selectedStatus === "Not started" ? " selected" : ""}>Not started</option><option${selectedStatus === "In progress" ? " selected" : ""}>In progress</option><option${selectedStatus === "Waiting" ? " selected" : ""}>Waiting</option><option${selectedStatus === "Complete" ? " selected" : ""}>Complete</option><option${selectedStatus === "Blocked" ? " selected" : ""}>Blocked</option></select></label><label>Owner<input data-active-plan-field="${escapeHtml(ownerField)}" value="${escapeHtml(selectedOwner)}"></label><label>Recommended decision<select data-active-plan-field="${escapeHtml(decisionField)}"><option${selectedDecision === "Continue" ? " selected" : ""}>Continue</option><option${selectedDecision === "Revise" ? " selected" : ""}>Revise</option><option${selectedDecision === "Pause" ? " selected" : ""}>Pause</option><option${selectedDecision === "Need more evidence" ? " selected" : ""}>Need more evidence</option></select></label><label>One focused next step<input data-active-plan-field="${escapeHtml(nextStepField)}" placeholder="What changes next?"></label></div><div class="active-plan-save-row"><button type="button" id="saveActionRunnerButton">Save Evidence and Decision</button><a class="secondary" href="${escapeHtml(reportAssetUrl("active"))}">Back to Active Plan</a><span class="active-plan-save-status" id="actionRunnerSaveStatus"></span></div></div>`;
+        capture.innerHTML = `<h2>Capture Evidence and Decide</h2><p class="muted">${escapeHtml(details.evidencePrompt)}</p><div class="active-plan-review"><label>Evidence and result<textarea data-active-plan-field="${escapeHtml(evidenceField)}" rows="6" placeholder="Record the real output, evidence, objections, and anything that changed your confidence."></textarea></label><div class="grid"><label>Status<select data-active-plan-field="${escapeHtml(statusField)}"><option${selectedStatus === "Not started" ? " selected" : ""}>Not started</option><option${selectedStatus === "In progress" ? " selected" : ""}>In progress</option><option${selectedStatus === "Waiting" ? " selected" : ""}>Waiting</option><option${selectedStatus === "Complete" ? " selected" : ""}>Complete</option><option${selectedStatus === "Blocked" ? " selected" : ""}>Blocked</option></select></label><label>Owner<input data-active-plan-field="${escapeHtml(ownerField)}" value="${escapeHtml(selectedOwner)}"></label><label>Recommended decision<select data-active-plan-field="${escapeHtml(decisionField)}"><option${selectedDecision === "Continue" ? " selected" : ""}>Continue</option><option${selectedDecision === "Revise" ? " selected" : ""}>Revise</option><option${selectedDecision === "Pause" ? " selected" : ""}>Pause</option><option${selectedDecision === "Need more evidence" ? " selected" : ""}>Need more evidence</option></select></label><label>One focused next step<input data-active-plan-field="${escapeHtml(nextStepField)}" placeholder="What changes next?"></label></div><div class="active-plan-save-row"><button type="button" id="saveActionRunnerButton">Save Evidence and Return</button><a class="secondary" href="${escapeHtml(activeActionReturnUrl(false))}">Return Without Saving</a><span class="active-plan-save-status" id="actionRunnerSaveStatus"></span></div></div>`;
         capture.querySelector(`[data-active-plan-field="${evidenceField}"]`).value = data[evidenceField] || "";
         capture.querySelector(`[data-active-plan-field="${nextStepField}"]`).value = data[nextStepField] || "";
         capture.querySelector("#saveActionRunnerButton").addEventListener("click", async (event) => {
@@ -13665,9 +13730,10 @@
           const status = capture.querySelector("#actionRunnerSaveStatus");
           button.disabled = true;
           button.textContent = "Saving...";
-          await saveActivePlanProgress(data, status);
+          const saved = await saveActivePlanProgress(data, status);
           button.disabled = false;
-          button.textContent = "Save Evidence and Decision";
+          button.textContent = "Save Evidence and Return";
+          if (saved) window.location.href = activeActionReturnUrl(true);
         });
       }
       main.appendChild(capture);

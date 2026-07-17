@@ -119,6 +119,8 @@ check("GTM Plan Summary: 90-day focus is bulleted", /<h3>Recommended 90-Day Focu
 check("GTM Plan Summary: decision and completeness are bulleted", /<h3>Decision Required<\/h3>\$\{summaryBulletList\(decisionContent\.decisionRequired, true\)\}/.test(resultsSource) && /<h3>Plan Completeness<\/h3>\$\{summaryBulletList\(planCompletenessCopy\(model\)\)\}/.test(resultsSource));
 check("Improvement flow: exact report return is preserved", /function reportImprovementReturn\(trigger\)/.test(resultsSource) && /resumeY/.test(resultsSource));
 check("Improvement flow: save and return actions are explicit", /Save Changes and Return/.test(resultsSource + facilitationSource) && /Return Without Saving/.test(facilitationSource));
+check("Active Plan: action runner preserves its origin", /function setupActiveActionRoundTripLinks\(\)/.test(resultsSource) && /actionReturnTo/.test(resultsSource));
+check("Active Plan: action runner has explicit return actions", /Save Evidence and Return/.test(resultsSource) && /activeActionReturnWithoutSaving/.test(resultsSource));
 check("Pipeline: weekly review consumes opportunity data", /pipelineWorkspaceState\(data, profile\)/.test(resultsSource) && /openOpportunities/.test(resultsSource));
 check("Pipeline: CRM source-of-truth mode exists", resultsSource.includes("CRM is the source of truth"));
 check("Persistence: asset workspaces update the saved record", /api\/records\//.test(resultsSource) && /method: "PUT"/.test(resultsSource));
