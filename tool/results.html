@@ -3180,7 +3180,7 @@
       warning.className = "file-mode-warning no-print";
       warning.innerHTML = `
         <h2>Open the app version to load saved records</h2>
-        <p>This report is open as a local file, so it cannot see the saved Blacksmith International record from the running app.</p>
+        <p>This report is open as a local file, so it cannot see records saved in the running app.</p>
         <p>Use the app link below, then select the saved record if needed.</p>
         <a href="http://127.0.0.1:8787/results.html?v=20260622-export-menu-edit">App Report</a>
       `;
@@ -7392,14 +7392,21 @@
         <p><strong>Timing:</strong> ${escapeHtml(recommendation.timing)}</p>
         <p><strong>Success measure:</strong> ${escapeHtml(recommendation.successMeasure)}</p>
       `;
-      const actions = document.createElement("div");
-      const improveButton = document.createElement("button");
-      actions.className = "card-actions no-print";
-      improveButton.type = "button";
-      improveButton.textContent = "Improve This Section";
-      improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(`${recommendation.category} ${recommendation.title}`), improveButton, recommendation.title));
-      actions.appendChild(improveButton);
-      block.appendChild(actions);
+      if (recommendation.needsImprovement) {
+        const actions = document.createElement("div");
+        const improveButton = document.createElement("button");
+        actions.className = "card-actions no-print";
+        improveButton.type = "button";
+        improveButton.textContent = "Improve This Section";
+        improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(`${recommendation.category} ${recommendation.title}`), improveButton, recommendation.title));
+        actions.appendChild(improveButton);
+        block.appendChild(actions);
+      } else {
+        const status = document.createElement("p");
+        status.className = "decision-meta";
+        status.innerHTML = "<strong>Status:</strong> No specific improvement is recommended at this time. Use this as execution guidance.";
+        block.appendChild(status);
+      }
       container.appendChild(block);
     }
 
@@ -8464,13 +8471,7 @@
         const nextAction = cleanText(values.nextAction || values.followUpAction || values.permissionNextStep || values.lessonNextAction);
         let angle = synthesizedOfferMessage(model) || (outcome ? `Use this story to show ${outcome.toLowerCase()} without inventing numeric results.` : "Use qualitative proof until numeric results are confirmed.");
 
-        if (/grounded brand/i.test(customerProject)) {
-          angle = "Grounded Brand appears to support a proof angle around keeping overhead low while launching new products.";
-        } else if (/little poppy/i.test(customerProject)) {
-          angle = "Little Poppy supports a proof angle around managing manufacturing and logistics with a small internal team.";
-        } else if (/mission belt/i.test(customerProject)) {
-          angle = "Mission Belt supports a proof angle around saving time and money for recurring product orders.";
-        } else if (hasSourcingPattern(model)) {
+        if (hasSourcingPattern(model)) {
           angle = "Use customer evidence showing that lean product brands can launch and manage products without building a larger internal sourcing or production team.";
         }
 
@@ -8577,6 +8578,7 @@
         timing: item.timing || "Days 1-30",
         successMeasure: item.successMeasure || "Completed and reviewed in the weekly GTM review.",
         confidence: item.confidence || "Medium",
+        needsImprovement: Boolean(item.needsImprovement),
         score: item.score || 0
       });
     }
@@ -8603,6 +8605,7 @@
         timing: "Weekly for 90 days",
         successMeasure: buildActivityModel(model).totals ? `${buildActivityModel(model).totals.weeklyActivity} weekly activities completed and reviewed.` : "Weekly activity, meetings, opportunities, and stalled deals reviewed for 12 consecutive weeks.",
         confidence: model.revenueSnapshot.score >= 66 ? "Medium" : "High",
+        needsImprovement: impactPriorities.some((priority) => ["Revenue Motion Discipline", "Execution Evidence", "Activity Capacity"].includes(priority.category)),
         score: 100 + impactScore("Revenue Motion Discipline")
       });
 
@@ -8617,6 +8620,7 @@
           timing: "Days 1-14",
           successMeasure: `${targetList.count} accounts identified, reviewed, tiered, and ready for outreach.`,
           confidence: model.priorityGroup?.score >= 13 ? "High" : "Medium",
+          needsImprovement: impactPriorities.some((priority) => priority.category === "ICP Focus"),
           score: 95 + impactScore("ICP Focus")
         });
       }
@@ -8635,6 +8639,7 @@
           timing: "Days 1-30",
           successMeasure: "Two proof assets completed and used in outreach, referrals, and discovery.",
           confidence: "Medium",
+          needsImprovement: true,
           score: 90 + impactScore("Proof Assets")
         });
       }
@@ -8650,6 +8655,7 @@
           timing: "Days 1-30",
           successMeasure: "Use these questions in at least five buyer conversations.",
           confidence: "Medium",
+          needsImprovement: impactPriorities.some((priority) => /buyer/i.test(priority.category)),
           score: 88
         });
       }
@@ -8665,6 +8671,7 @@
           timing: "Days 1-21",
           successMeasure: "Every active opportunity has owner, stage, source, next action, and ICP fit tier.",
           confidence: data.revenueDataQuality === "Low" ? "High" : "Medium",
+          needsImprovement: impactPriorities.some((priority) => priority.category === "CRM / Data Quality"),
           score: 82 + impactScore("CRM / Data Quality")
         });
       }
@@ -8679,6 +8686,7 @@
         timing: "Weekly",
         successMeasure: "Weekly review completed for 12 consecutive weeks.",
         confidence: "High",
+        needsImprovement: impactPriorities.some((priority) => ["Activity Capacity", "Execution Evidence"].includes(priority.category)),
         score: 78 + impactScore("Activity Capacity")
       });
 
@@ -8695,6 +8703,7 @@
         timing: "Days 1-14",
         successMeasure: "New offer message used consistently in target list outreach, website copy, and discovery calls.",
         confidence: offerDraft ? "Medium" : "Low",
+        needsImprovement: impactPriorities.some((priority) => priority.category === "Offer Clarity"),
         score: 72 + impactScore("Offer Clarity")
       });
 
@@ -8781,14 +8790,21 @@
           wrap.innerHTML = `<h3>${escapeHtml(label)}</h3>${recommendationHtml(value)}`;
           card.appendChild(wrap);
         });
-        const actions = document.createElement("div");
-        const workButton = document.createElement("button");
-        actions.className = "card-actions no-print";
-        workButton.type = "button";
-        workButton.textContent = "Improve This Section";
-        workButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(`${recommendation.category} ${recommendation.title}`), workButton, recommendation.title));
-        actions.appendChild(workButton);
-        card.appendChild(actions);
+        if (recommendation.needsImprovement) {
+          const actions = document.createElement("div");
+          const workButton = document.createElement("button");
+          actions.className = "card-actions no-print";
+          workButton.type = "button";
+          workButton.textContent = "Improve This Section";
+          workButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(`${recommendation.category} ${recommendation.title}`), workButton, recommendation.title));
+          actions.appendChild(workButton);
+          card.appendChild(actions);
+        } else {
+          const status = document.createElement("p");
+          status.className = "decision-meta";
+          status.innerHTML = "<strong>Status:</strong> No specific improvement is recommended at this time. Use this as execution guidance.";
+          card.appendChild(status);
+        }
         list.appendChild(card);
       });
       container.appendChild(list);

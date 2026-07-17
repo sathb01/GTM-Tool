@@ -4,6 +4,14 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-17 Recommendation Status and Example Hygiene
+
+- Removed `Improve This Section` from prescriptive recommendations when no specific deficiency is identified.
+- Added a clear status explaining that complete recommendations are execution guidance, not requested remediation.
+- Retained improvement actions only when the related impact analysis identifies a real ICP, revenue-motion, buyer, proof, CRM, activity, or offer gap.
+- Removed legacy Grounded Brand, Blacksmith, Little Poppy, and Mission Belt example logic from reusable facilitation and proof guidance.
+- Replaced company-specific examples with neutral instructions that cannot leak context between company records.
+
 ## 2026-07-17 Revenue Motion Remediation Write-Back
 
 - Closed the loop between Revenue Motion Facilitation and the Ranked Action Plan.
