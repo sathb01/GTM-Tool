@@ -9465,6 +9465,14 @@
       return `Connect the buyer problem to a measurable outcome, proof, and a clear next step.`;
     }
 
+    function identifiedBlockerRole(data, values = {}) {
+      const candidates = personaAssetItems(data.dealBlocker, values.commonTitles)
+        .map((item) => cleanText(item))
+        .filter((item) => item && item.length <= 90 && !/[.!?]/.test(item))
+        .filter((item) => !/^(?:none|unknown|not identified|not sure|no clear)/i.test(item));
+      return candidates[0] || "";
+    }
+
     function personaRowsForPlan(model) {
       const data = model.data;
       const priorityByRole = new Map(personaPriorityRows(data).map((row) => [row.roleId, row]));
@@ -9472,12 +9480,14 @@
         .map(([roleId, label]) => {
           const values = roleCardValues(data, roleId);
           const priority = priorityByRole.get(roleId) || {};
+          const blockerRole = roleId === "likely-blocker" ? identifiedBlockerRole(data, values) : "";
+          if (roleId === "likely-blocker" && !blockerRole) return null;
           const hasData = roleHasData(values) || priority.importance || /economic-buyer|executive-sponsor|champion|procurement-finance|likely-blocker/.test(roleId);
           if (!hasData) return null;
           return {
             roleId,
-            label,
-            titles: cleanRecommendation(values.commonTitles, roleId === "economic-buyer" ? cleanRecommendation(data.budgetOwner || model.buyer.label, "Not yet defined") : "Not yet defined"),
+            label: blockerRole ? `${blockerRole} (Potential blocker)` : label,
+            titles: blockerRole || cleanRecommendation(values.commonTitles, roleId === "economic-buyer" ? cleanRecommendation(data.budgetOwner || model.buyer.label, "Not yet defined") : "Not yet defined"),
             power: cleanText(values.decisionPower) || (/economic|sponsor|finance|legal|board/.test(roleId) ? "High" : /champion|implementation|blocker|technical/.test(roleId) ? "Medium" : "Low / Medium"),
             influence: cleanText(values.influenceLevel) || (/champion|blocker|sponsor|economic|operations/.test(roleId) ? "High" : "Medium"),
             concern: personaConcern(values, label),
@@ -14280,6 +14290,8 @@
       const rows = buyerPersonaRoles.map(([roleId, label], order) => {
         const values = roleCardValues(data, roleId);
         const priority = priorities.get(roleId) || {};
+        const blockerRole = roleId === "likely-blocker" ? identifiedBlockerRole(data, values) : "";
+        if (roleId === "likely-blocker" && !blockerRole) return null;
         const substantive = Object.entries(values).some(([key, value]) => key !== "involved" && cleanText(value));
         const mapped = values.involved === "Yes" || substantive || (priority.importance && priority.importance !== "Not involved");
         if (!mapped) return null;
@@ -14287,7 +14299,8 @@
         return {
           ...planRow,
           roleId,
-          label,
+          label: blockerRole ? "Potential blocker" : label,
+          identifiedRole: blockerRole,
           values,
           priority: priority.importance || planRow.priority || "Medium",
           priorityConfidence: priority.confidence || "",
@@ -14418,7 +14431,7 @@
         discoverySource: discovery.length ? "From intake" : "GTM OS recommendation",
         nextAsk: nextAsk.length ? nextAsk : ["Ask for the smallest next step that creates evidence: a focused follow-up, proof review, pilot discussion, or buyer introduction."],
         supportingRoles: mappedRoles.slice(1).map((row) => ({
-          role: personaRoleTitle(row, sharedContext, customerGroup),
+          role: row.identifiedRole || personaRoleTitle(row, sharedContext, customerGroup),
           label: row.label,
           relationship: personaAssetRoleRelationship(row.label),
           need: personaRoleSpecificText(row.values?.needsToBelieve || row.concern || row.priorityWhy, sharedContext, customerGroup)
