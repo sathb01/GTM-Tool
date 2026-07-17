@@ -1220,6 +1220,47 @@
       padding-top: 14px;
     }
 
+    .data-quality-return-bar {
+      align-items: center;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent-coral);
+      border-radius: 8px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      position: sticky;
+      top: 78px;
+      z-index: 12;
+    }
+
+    .data-quality-return-bar[hidden] {
+      display: none;
+    }
+
+    .data-quality-affected-fields {
+      display: grid;
+      gap: 8px;
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    .data-quality-affected-fields > div {
+      align-items: center;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      display: grid;
+      gap: 12px;
+      grid-template-columns: minmax(0, 1fr) auto;
+      padding: 10px 12px;
+    }
+
+    .data-quality-affected-fields button {
+      min-width: 88px;
+    }
+
     .data-quality-resolution {
       border-top: 1px solid var(--border);
       display: grid;
@@ -1753,7 +1794,7 @@
 
   <script src="gtm-taxonomy.js?v=20260617-revenue-motions"></script>
   <script src="intake-schema.js?v=20260713-copyable-examples-5"></script>
-  <script src="app.js?v=20260717-improvement-route-no-flash"></script>
+  <script src="app.js?v=20260717-quality-review-return"></script>
   <script src="ai-research.js?v=20260616-quick-review"></script>
   <script src="ai-intake-assist.js?v=20260716-ai-answer-value-4"></script>
 </body>

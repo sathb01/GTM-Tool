@@ -14,6 +14,7 @@ let currentReportMode = "quick";
 let detailedSectionsVisible = false;
 let activeSectionId = "company";
 let formStateData = {};
+let activeDataQualityReview = null;
 
 const carryForwardRules = [
   {
@@ -4708,7 +4709,7 @@ function renderImprovementFocusCard(sectionId) {
   actions.className = "action-bar";
   saveAnswers.type = "button";
   saveAnswers.className = "secondary";
-  saveAnswers.textContent = "Save Answers";
+  saveAnswers.textContent = "Save";
   saveAnswers.addEventListener("click", async () => {
     formStateData = {
       ...formStateData,
@@ -4718,7 +4719,7 @@ function renderImprovementFocusCard(sectionId) {
     saveAnswers.textContent = "Saving...";
     await saveDraft(true);
     saveAnswers.disabled = false;
-    saveAnswers.textContent = "Save Answers";
+    saveAnswers.textContent = "Save";
   });
   updateModel.type = "button";
   updateModel.className = "secondary";
@@ -7475,7 +7476,7 @@ async function saveDraft(showStatus = true) {
   if (showStatus) {
     document.getElementById("saveStatus").textContent = savedToWorkspace
       ? "Company saved."
-      : "Saved in this browser, but the workspace copy could not be updated. Try Save Answers again.";
+      : "Saved in this browser, but the workspace copy could not be updated. Try Save again.";
   }
   return savedToWorkspace;
 }
@@ -8132,7 +8133,15 @@ function repeatedSummaryTextIssues(data) {
       severity: "error",
       kind: "repeated-summary-text",
       title: "Replace repeated summary text",
-      detail: `The same long answer appears in ${keys.length} unrelated fields. Replace it with a specific answer for each question before generating the plan.`
+      detail: `The same long answer appears in ${keys.length} unrelated fields. Review the affected questions below and replace the copied text with an answer that fits each question.`,
+      matches: keys.map((matchKey) => {
+        const matchSection = sectionForDataKey(matchKey);
+        return {
+          key: matchKey,
+          sectionId: matchSection?.id || "company",
+          fieldLabel: dataQualityLabel(matchKey)
+        };
+      })
     });
   });
   return issues;
@@ -8184,7 +8193,10 @@ function dataQualityIssues(data = getFormData()) {
       });
     }
 
-    if (!relationshipIdFields.has(key) && /^(?:motion|play|offer|customer-group)-\d+$/i.test(value)) {
+    const fieldDefinition = findFieldDefinitionForDataKey(key);
+    const storesRelationshipId = relationshipIdFields.has(key)
+      || ["offerPortfolio", "signalPlayPortfolio", "revenueMotionPortfolio"].includes(fieldDefinition?.dynamicOptionsFrom);
+    if (!storesRelationshipId && /^(?:motion|play|offer|customer-group)-\d+$/i.test(value)) {
       issues.push({
         ...baseIssue,
         severity: "error",
@@ -8437,11 +8449,62 @@ function renderSourceConflictResolution(item, issue) {
   item.appendChild(controls);
 }
 
-function hideDataQualityReview() {
+function renderRepeatedTextResolution(item, issue) {
+  const controls = document.createElement("div");
+  const list = document.createElement("div");
+  controls.className = "data-quality-resolution";
+  list.className = "data-quality-affected-fields";
+  (issue.matches || []).forEach((match) => {
+    const row = document.createElement("div");
+    const label = document.createElement("span");
+    const review = document.createElement("button");
+    const section = schema.sections.find((candidate) => candidate.id === match.sectionId);
+    label.textContent = `${section?.title || "Intake"}: ${match.fieldLabel}`;
+    review.type = "button";
+    review.className = "secondary";
+    review.textContent = "Review";
+    review.addEventListener("click", () => focusDataQualityIssue(match));
+    row.append(label, review);
+    list.appendChild(row);
+  });
+  controls.appendChild(list);
+  item.appendChild(controls);
+}
+
+function dataQualityReturnBar() {
+  let bar = document.getElementById("dataQualityReturnBar");
+  if (bar) return bar;
+  bar = document.createElement("div");
+  const button = document.createElement("button");
+  bar.id = "dataQualityReturnBar";
+  bar.className = "data-quality-return-bar";
+  bar.hidden = true;
+  button.type = "button";
+  button.textContent = "← Back to Required Changes";
+  button.addEventListener("click", () => {
+    const state = activeDataQualityReview;
+    const remaining = dataQualityIssues();
+    if (remaining.length && state) {
+      showDataQualityReview(remaining, state.mode, state.asset);
+    } else {
+      hideDataQualityReview();
+    }
+  });
+  bar.appendChild(button);
+  document.getElementById("intakeForm")?.insertBefore(bar, document.getElementById("sections"));
+  return bar;
+}
+
+function hideDataQualityReview(preserveReturn = false) {
   const review = document.getElementById("dataQualityReview");
   if (review) {
     review.hidden = true;
     review.innerHTML = "";
+  }
+  if (!preserveReturn) {
+    activeDataQualityReview = null;
+    const bar = document.getElementById("dataQualityReturnBar");
+    if (bar) bar.hidden = true;
   }
 }
 
@@ -8497,7 +8560,8 @@ function markPlanGenerated() {
 }
 
 function focusDataQualityIssue(issue) {
-  hideDataQualityReview();
+  hideDataQualityReview(true);
+  dataQualityReturnBar().hidden = false;
   if (issue.sectionId) {
     switchActiveSection(issue.sectionId);
   }
@@ -8525,6 +8589,8 @@ function showDataQualityReview(issues, mode, asset) {
 
   const errors = issues.filter((issue) => issue.severity === "error");
   const warnings = issues.filter((issue) => issue.severity === "warning");
+  activeDataQualityReview = { mode, asset };
+  dataQualityReturnBar().hidden = true;
   review.innerHTML = "";
   review.hidden = false;
 
@@ -8559,6 +8625,8 @@ function showDataQualityReview(issues, mode, asset) {
       renderSourceConflictResolution(item, issue);
     } else if (issue.title === "Confirm a possible duplicate") {
       renderDuplicateResolution(item, issue);
+    } else if (issue.kind === "repeated-summary-text") {
+      renderRepeatedTextResolution(item, issue);
     } else {
       const fix = document.createElement("button");
       fix.type = "button";

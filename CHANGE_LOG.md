@@ -4,6 +4,15 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-17 Data Quality Review Navigation and QA Repair
+
+- Changed guided improvement `Save Answers` buttons to the consistent label `Save`.
+- Stopped valid relationship IDs, including a linked targeting strategy, from being reported as internal-label errors.
+- Expanded repeated-answer warnings into a reviewable list of every affected question.
+- Added a persistent `Back to Required Changes` control while correcting an answer, avoiding browser history and the login page.
+- Replaced copied ICP text in the ForgeLine QA fixture with role-specific persona answers, operating assumptions, and pipeline metrics.
+- Added the ForgeLine semantic repair to the fully populated fixture generator so the copied-answer defect does not return.
+
 ## 2026-07-17 Improvement Route Loading
 
 - Prevented the default GTM OS intake section from flashing before an `Improve This Section` destination loads.

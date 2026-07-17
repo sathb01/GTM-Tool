@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
+import { repairedForgeLineData } from "./repair-forgeline-quality.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const apiBase = "http://127.0.0.1:8787";
@@ -196,6 +197,9 @@ for (const sourceId of sourceIds) {
   sections.forEach((section) => walk(section, data, company));
   // A second pass fills fields revealed by choices made during the first pass.
   sections.forEach((section) => walk(section, data, company, new Set()));
+  if (sourceId === "qa-post-b2b-forgeline-20260712") {
+    Object.assign(data, repairedForgeLineData(data));
+  }
   Object.assign(data, workspaceData(company, isPreRevenue));
   data.savedAt = new Date().toISOString();
   const record = { id: `${sourceId}-full-20260714`, name: company.name, data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
