@@ -5682,9 +5682,7 @@
     function dynamicPlanSummary(model) {
       const data = model.data;
       const feedback = model.readinessDiagnostic?.executionFeedback || executionEvidenceFeedback(data);
-      const weekly = data.activePlanWeeklyWorkspace && typeof data.activePlanWeeklyWorkspace === "object"
-        ? data.activePlanWeeklyWorkspace
-        : {};
+      const weekly = activePlanWeeklyWorkspace(data, activePlanDefinition(data));
       const priorities = Array.isArray(weekly.currentPriorities) ? weekly.currentPriorities : [];
       const blocked = priorities.filter((item) => item?.status === "Blocked");
       const nextPriority = priorities.find((item) => item && item.status !== "Complete" && item.status !== "Blocked");
@@ -13469,6 +13467,17 @@
           disposition: index < 2 ? "Carry forward" : "Drop",
           revisedTask: ""
         }));
+      } else if (!saved.history.length) {
+        saved.currentPriorities.forEach((priority) => {
+          if (!Number.isInteger(priority.sourceIndex) || priority.status !== "Not started" || cleanText(priority.evidence)) return;
+          const currentAction = plan.actions[priority.sourceIndex];
+          if (!currentAction) return;
+          priority.title = currentAction.title;
+          priority.why = currentAction.why;
+          priority.output = currentAction.output;
+          priority.decision = currentAction.decision;
+          priority.owner = priority.owner || plan.owner;
+        });
       }
       data.activePlanWeeklyWorkspace = saved;
       return saved;

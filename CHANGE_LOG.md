@@ -12,6 +12,7 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Replaced the generic fallback with motion optimization when the operating structure is already complete.
 - Routed inconsistent loss-reason or source-attribution data to a specific CRM Data Quality recommendation instead of a rebuild-the-motion recommendation.
 - Removed the same false-positive pattern from Strategic Insights.
+- Refreshes untouched, not-started Active Plan priorities from corrected recommendation logic while preserving priorities that have progress, evidence, or history.
 
 ## 2026-07-17 GTM Summary Output Mapping
 
