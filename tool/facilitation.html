@@ -116,7 +116,7 @@
     <section>
       <h2>Questions to answer</h2>
       <div id="questionList"></div>
-      <p class="notice">These answers save as facilitation notes first. They do not overwrite scored intake fields.</p>
+      <p class="notice" id="saveBehaviorNotice">These answers save as facilitation notes first. They do not overwrite scored intake fields.</p>
     </section>
 
     <section>
@@ -200,7 +200,7 @@
         title: "Revenue Motion Facilitation",
         why: "A specific 30-day motion turns the GTM OS into a test the team can run and review, but first the available channels and motion options need to be made explicit.",
         current: [["Revenue motion labels found", "$revenueMotions"], ["Channels already mentioned", "$channels"], ["Customer groups already mentioned", "$customerGroups"], ["Offers on the table", "$offers"], ["Sales motions already mentioned", "$salesMotions"], ["Weekly activity target", "weeklyRevenueHours"], ["Revenue owner", "primaryRevenueOwner"], ["CRM data quality", "revenueDataQuality"], ["90-day goal", ["goal90", "quick90DayGoal"]]],
-        questions: ["Which channels or sources currently create, or could create, opportunities? A channel/source is where opportunities come from, not the full revenue motion.", "For each selected channel/source, is it active and working, active but inconsistent, planned, or just an idea?", "For each selected channel/source, how do buyers usually evaluate the offer?", "Build candidate revenue motions by combining one customer group, one offer, one channel/source, one primary sales motion, and the evidence behind it.", "Which candidate motion has the strongest evidence or lowest uncertainty?", "Which candidate motion should be tested or improved first for the next 30 days?", "Who owns that motion?", "What weekly activity should happen?", "What qualifies as a real opportunity?", "What review cadence will be used for this motion?", "What will be reviewed at that cadence?", "What outcome would tell you to keep using this motion?", "Which results would tell you this motion needs to be revised? Select all that apply.", "What would you revise first?", "What result means stop or pause this motion?"],
+        questions: ["Which channels or sources currently create, or could create, opportunities? A channel/source is where opportunities come from, not the full revenue motion.", "For each selected channel/source, is it active and working, active but inconsistent, planned, or just an idea?", "For each selected channel/source, how do buyers usually evaluate the offer?", "Build candidate revenue motions by combining one customer group, one offer, one channel/source, one primary sales motion, and the evidence behind it.", "Which candidate motion has the strongest evidence or lowest uncertainty?", "Which candidate motion should be tested or improved first for the next 30 days?", "Who owns that motion?", "What is the primary weekly activity target for this motion?", "What qualifies as a real opportunity?", "What review cadence will be used for this motion?", "What will be reviewed at that cadence?", "What outcome would tell you to keep using this motion?", "Which results would tell you this motion needs to be revised? Select all that apply.", "What would you revise first?", "What result means stop or pause this motion?"],
         example: "Possible motions include founder-led referrals, LinkedIn outbound to the priority segment, and customer expansion. The first 30-day test is founder-led referrals because it has the strongest evidence, clearest owner, and fastest path to qualified conversations.",
         draftLabels: ["Available channels", "Channel status", "Evaluation path by source", "Candidate revenue motions", "Best-evidence motion", "30-day motion", "Owner", "Weekly activity target", "Opportunity definition", "Review cadence", "Review inputs", "Continue rule", "Revise trigger", "Revise first", "Stop / pause rule"]
       },
@@ -314,7 +314,7 @@
         4: { type: "select", options: optionSets.evidenceLevel },
         5: { type: "select", options: ["Founder-led referrals", "LinkedIn outbound", "Direct outbound email", "Inbound conversion", "Partner-led", "Customer expansion", "Event follow-up", "Paid campaign", "Not sure yet", "Other"] },
         6: { type: "select", options: optionSets.ownerOptions },
-        7: { type: "select", options: ["0-2 hours", "3-5 hours", "6-10 hours", "11-20 hours", "20+ hours", "Not sure yet"] },
+        7: { type: "select", options: ["5 targeted outreach attempts per week", "10 targeted outreach attempts per week", "20 targeted outreach attempts per week", "5 referral or introduction requests per week", "10 referral or introduction requests per week", "3 buyer conversations per week", "5 buyer conversations per week", "3 qualified opportunities per week", "5 qualified opportunities per week", "Not sure yet", "Other"] },
         8: { type: "checkbox", options: ["Pain confirmed", "ICP fit confirmed", "Budget or authority identified", "Next step agreed", "Timeline known", "Proof need identified", "Other"] },
         9: { type: "select", options: optionSets.cadence },
         10: { type: "checkbox", options: optionSets.reviewInputs },
@@ -979,6 +979,95 @@
       return lines.join("\n");
     }
 
+    function usableAnswer(value) {
+      const text = cleanValue(value);
+      return text && !/^(?:not sure yet|other)$/i.test(text) ? text : "";
+    }
+
+    function selectedCandidateMotionId(answers) {
+      const selected = usableAnswer(answers.q5);
+      return ["motion-1", "motion-2", "motion-3"].find((rowId) => candidateMotionLabel(answers, rowId) === selected) || "";
+    }
+
+    function revenueMotionField(rowId, groupId, fieldId) {
+      return `revenueMotionAssessments__${rowId}__${groupId}__${fieldId}`;
+    }
+
+    function applyRevenueMotionAnswers(data, answers) {
+      const selectedCandidateId = selectedCandidateMotionId(answers);
+      const savedPrimaryId = /^motion-\d+$/i.test(cleanValue(data.primaryRevenueMotion)) ? cleanValue(data.primaryRevenueMotion) : "";
+      const rowId = selectedCandidateId || savedPrimaryId || "motion-1";
+      const candidateValue = (field) => usableAnswer(answers[`q3__${selectedCandidateId || rowId}__${field}`]);
+      const customerGroup = candidateValue("customerGroup");
+      const offer = candidateValue("offer");
+      const channel = candidateValue("channel") || selectedAnswerValues("q0").map(usableAnswer).find(Boolean) || "";
+      const salesMotion = candidateValue("primaryMotion");
+      const selectedMotion = usableAnswer(answers.q5);
+      const generatedName = [salesMotion, channel ? `via ${channel}` : ""].filter(Boolean).join(" ");
+      const existingName = usableAnswer(data[`revenueMotionPortfolio__${rowId}__playName`]);
+      const motionName = existingName || generatedName || selectedMotion;
+      const owner = usableAnswer(answers.q6);
+      const weeklyActivity = usableAnswer(answers.q7);
+      const opportunityDefinition = usableAnswer(answers.q8);
+      const reviewCadence = usableAnswer(answers.q9);
+      const reviewInputs = usableAnswer(answers.q10);
+      const continueRule = usableAnswer(answers.q11);
+      const reviseRule = usableAnswer(answers.q12);
+      const reviseFirst = usableAnswer(answers.q13);
+      const stopRule = usableAnswer(answers.q14);
+      const next = { ...data };
+
+      if (motionName) next[`revenueMotionPortfolio__${rowId}__playName`] = motionName;
+      if (customerGroup) next[`revenueMotionPortfolio__${rowId}__customerGroup`] = customerGroup;
+      if (offer) next[`revenueMotionPortfolio__${rowId}__offer`] = offer;
+      if (channel) next[`revenueMotionPortfolio__${rowId}__channelSource`] = channel;
+      if (salesMotion) next[`revenueMotionPortfolio__${rowId}__salesMotionType`] = salesMotion;
+      next[`revenueMotionPortfolio__${rowId}__playPriority`] = "Primary revenue motion";
+      next[`revenueMotionPortfolio__${rowId}__assessmentDepth`] = "Full motion analysis";
+      next.primaryRevenueMotion = rowId;
+
+      if (owner) {
+        next.primaryRevenueOwner = owner;
+        next[revenueMotionField(rowId, "channelPerformance", "owner")] = owner;
+        next[revenueMotionField(rowId, "nextExperiment", "owner")] = owner;
+      }
+      if (weeklyActivity) next[revenueMotionField(rowId, "channelPerformance", "currentActivity")] = weeklyActivity;
+      if (customerGroup) next[revenueMotionField(rowId, "nextExperiment", "audience")] = customerGroup;
+      if (channel) next[revenueMotionField(rowId, "nextExperiment", "channel")] = channel;
+      if (offer) next[revenueMotionField(rowId, "nextExperiment", "offer")] = offer;
+      if (continueRule) next[revenueMotionField(rowId, "nextExperiment", "successMetric")] = continueRule;
+      next[revenueMotionField(rowId, "nextExperiment", "timeframe")] = "30 days";
+      if (reviewCadence) {
+        next.revenueReportingCadence = reviewCadence;
+        next[revenueMotionField(rowId, "nextExperiment", "reviewCadence")] = reviewCadence;
+      }
+      if (reviewInputs) next[revenueMotionField(rowId, "nextExperiment", "reviewInputs")] = reviewInputs;
+      if (continueRule) next[revenueMotionField(rowId, "nextExperiment", "continueRule")] = continueRule;
+      if (reviseRule) next[revenueMotionField(rowId, "nextExperiment", "reviseRule")] = reviseRule;
+      if (stopRule) next[revenueMotionField(rowId, "nextExperiment", "stopRule")] = stopRule;
+      if (reviseFirst || reviseRule) {
+        next[revenueMotionField(rowId, "nextExperiment", "decisionRule")] = reviseFirst
+          ? `Revise ${reviseFirst.toLowerCase()} first when: ${reviseRule || "the revision signal appears"}.`
+          : reviseRule;
+      }
+      if (customerGroup || offer || channel || salesMotion) {
+        next[revenueMotionField(rowId, "nextExperiment", "hypothesis")] = [
+          customerGroup ? `${customerGroup} will respond` : "The priority customer will respond",
+          offer ? `to ${offer}` : "to the selected offer",
+          channel ? `through ${channel}` : "through the selected channel",
+          salesMotion ? `using ${salesMotion}` : "using the selected sales motion"
+        ].join(" ");
+      }
+      if (opportunityDefinition) {
+        const stagePrefix = `revenueMotionAssessments__${rowId}__conversionStages__stage-1__`;
+        next[`${stagePrefix}stageName`] = "Qualified opportunity";
+        next[`${stagePrefix}entryCriteria`] = opportunityDefinition;
+        next[`${stagePrefix}exitCriteria`] = continueRule || "The buyer agrees to a dated next step, owner, and decision process.";
+        if (owner) next[`${stagePrefix}owner`] = owner;
+      }
+      return next;
+    }
+
     function collectAnswers() {
       const answers = {};
       document.querySelectorAll("[data-answer]").forEach((input) => {
@@ -1550,6 +1639,9 @@
         ? "Answer the prompts, save the output, then regenerate the GTM OS report."
         : "Choose a Sprint 10 facilitation flow or continue with the Customer Priority Framework.";
       document.getElementById("whyText").textContent = flow.why;
+      document.getElementById("saveBehaviorNotice").textContent = flowType === "revenueMotion"
+        ? "Saving updates the revenue-motion inputs used by the plan and also keeps these facilitation answers for reference."
+        : "These answers save as facilitation notes first. They do not overwrite scored intake fields.";
       document.getElementById("exampleText").textContent = flow.example;
       updateBackLinks(reportUrl);
       if (!requestedFlowType || !flows[requestedFlowType]) renderFlowPicker(reportUrl);
@@ -1594,15 +1686,16 @@
       const flow = flows[flowType] || flows.icp;
       const answers = collectAnswers();
       const draft = { text: draftText(flow, answers) };
+      const appliedData = flowType === "revenueMotion" ? applyRevenueMotionAnswers(currentData, answers) : { ...currentData };
       const nextData = {
-        ...currentData,
+        ...appliedData,
         facilitationOutputs: {
           ...(currentData.facilitationOutputs || {}),
           [flowType]: {
             answers,
             draft,
             schemaVersion: schemaVersionFor(flowType),
-            appliedToIntake: false,
+            appliedToIntake: flowType === "revenueMotion",
             updatedAt: new Date().toISOString()
           }
         }

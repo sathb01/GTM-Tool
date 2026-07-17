@@ -4,6 +4,18 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-17 Revenue Motion Remediation Write-Back
+
+- Closed the loop between Revenue Motion Facilitation and the Ranked Action Plan.
+- Saving the remediation now updates the selected revenue-motion portfolio row and primary-motion relationship.
+- Writes the owner, weekly activity, opportunity criteria, review cadence, review inputs, and continue/revise/stop rules into the 30-day experiment fields used by the report.
+- Creates a qualified-opportunity stage from the user's opportunity definition so completed remediation can satisfy the stage-criteria check.
+- Marks the facilitation output as applied to the intake while retaining the saved interview notes.
+- Reads previously saved Revenue Motion facilitation answers as report fallbacks so completed interviews from before this fix can affect the regenerated plan without re-entry.
+- Replaced the mismatched weekly-hours dropdown with guided weekly activity targets that can be executed and measured.
+- Includes saved remediation answers in revenue-motion context, channel activity, process, ownership, and experiment-readiness scoring.
+- Stops repeating the generic Revenue Motion Discipline remediation after all ten operating questions are complete, unless a genuinely uncovered operating element such as CRM tracking is still missing.
+
 ## 2026-07-17 Revenue Motion Revision Signals
 
 - Changed `Which results would tell you this motion needs to be revised?` from single-select to multi-select.

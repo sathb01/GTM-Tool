@@ -4238,14 +4238,18 @@
       const routing = repeatableRows(data, revenueScopedTable(activeMotionRowId, "dealRoutingRules")).filter((row) => row.values.routingTrigger || row.values.routingType || row.values.action);
       const stalled = repeatableRows(data, revenueScopedTable(activeMotionRowId, "stalledDeals")).filter((row) => row.values.opportunityName || row.values.reason || row.values.gtmLesson || row.values.nextAction);
       const experiment = ["hypothesis", "audience", "channel", "offer", "successMetric", "timeframe", "owner", "reviewCadence", "reviewInputs", "continueRule", "reviseRule", "stopRule", "decisionRule"].map((field) => data[revenueScopedField(activeMotionRowId, "nextExperiment", field)]).filter(Boolean);
-      const contextScore = motion?.values.customerGroup && motion.values.customerGroup !== "Not sure yet" && motion.values.offer && motion.values.offer !== "Not sure yet" && motion.values.channelSource && motion.values.salesMotionType ? 5 : motion?.values.channelSource ? 3 : 1;
-      const channelEvidenceScore = channel.last90DayResults && channel.confidence === "High" ? 5 : channel.currentActivity && channel.last90DayResults ? 4 : channel.currentActivity || channel.activeStatus ? 3 : 1;
+      const facilitation = data.facilitationOutputs?.revenueMotion?.answers || {};
+      const facilitationExperimentCount = ["q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14"].filter((key) => cleanText(facilitation[key])).length;
+      const facilitationHasCandidateContext = Boolean(cleanText(facilitation.q5)) && Object.entries(facilitation).some(([key, value]) => /^q3__motion-\d+__(?:customerGroup|offer|channel|primaryMotion)$/.test(key) && cleanText(value));
+      const contextScore = motion?.values.customerGroup && motion.values.customerGroup !== "Not sure yet" && motion.values.offer && motion.values.offer !== "Not sure yet" && motion.values.channelSource && motion.values.salesMotionType ? 5 : facilitationHasCandidateContext ? 4 : motion?.values.channelSource || cleanText(facilitation.q5) ? 3 : 1;
+      const channelEvidenceScore = channel.last90DayResults && channel.confidence === "High" ? 5 : channel.currentActivity && channel.last90DayResults ? 4 : channel.currentActivity || channel.activeStatus || cleanText(facilitation.q7) ? 3 : 1;
       const pipelineScore = metricConfidence?.startsWith("High") && metrics.length >= 5 ? 5 : metrics.length >= 4 ? 4 : metrics.length >= 2 ? 3 : metricConfidence === "Not tracked" ? 1 : 2;
-      const processScore = stages.length >= 5 && stages.some((row) => row.values.owner && row.values.entryCriteria && row.values.exitCriteria) ? 5 : stages.length >= 3 ? 4 : stages.length ? 3 : 1;
+      const processScore = stages.length >= 5 && stages.some((row) => row.values.owner && row.values.entryCriteria && row.values.exitCriteria) ? 5 : stages.length >= 3 ? 4 : stages.length || cleanText(facilitation.q8) ? 3 : 1;
       const conversionScore = biggestDropoff && stages.some((row) => row.values.currentConversion || row.values.issuesImprovements) ? 5 : biggestDropoff ? 4 : stages.some((row) => row.values.issuesImprovements) ? 3 : 1;
-      const ownershipScore = (channel.owner || data.primaryRevenueOwner) && routing.length ? 5 : (channel.owner || data.primaryRevenueOwner) ? 3 : data.sellingCapacity ? 2 : 1;
+      const ownershipScore = (channel.owner || data.primaryRevenueOwner) && routing.length ? 5 : (channel.owner || data.primaryRevenueOwner || cleanText(facilitation.q6)) ? 3 : data.sellingCapacity ? 2 : 1;
       const stalledScore = !stalled.length ? 2 : stalled.some((row) => row.values.nextAction && row.values.gtmLesson && row.values.shouldBecome) ? 5 : stalled.some((row) => row.values.nextAction || row.values.gtmLesson) ? 4 : 2;
-      const experimentScore = experiment.length >= 7 ? 5 : experiment.length >= 5 ? 4 : experiment.length >= 2 ? 3 : 1;
+      const combinedExperimentCount = Math.max(experiment.length, facilitationExperimentCount);
+      const experimentScore = combinedExperimentCount >= 7 ? 5 : combinedExperimentCount >= 5 ? 4 : combinedExperimentCount >= 2 ? 3 : 1;
       return [
         { name: "Channel focus", score: contextScore, nextMove: "Narrow the primary motion to one customer group, offer, channel, and buyer." },
         { name: "Channel evidence", score: channelEvidenceScore, nextMove: "Define 30-day activity and result targets for the selected channel." },
@@ -6829,13 +6833,14 @@
         });
       }
 
-      const structuredMotionName = [model.revenueMotion?.values.playName, data.primaryRevenueMotion, model.revenueMotion?.values.salesMotionType, data.primarySalesMotion, data.quickCurrentSalesMotion]
+      const savedRevenueFacilitation = data.facilitationOutputs?.revenueMotion?.answers || {};
+      const structuredMotionName = [model.revenueMotion?.values.playName, data.primaryRevenueMotion, model.revenueMotion?.values.salesMotionType, data.primarySalesMotion, data.quickCurrentSalesMotion, savedRevenueFacilitation.q5]
         .map((value) => cleanText(value))
         .find(Boolean) || "";
       const hasStructuredMotion = Boolean(
         structuredMotionName
-        && model.conversionStages.some((row) => row.values.stageName && row.values.entryCriteria && row.values.exitCriteria)
-        && cleanText(data[revenueScopedField(model.revenueMotion?.rowId || primaryRevenueMotionRowId(data), "nextExperiment", "reviewCadence")] || data.revenueReportingCadence)
+        && (model.conversionStages.some((row) => row.values.stageName && row.values.entryCriteria && row.values.exitCriteria) || cleanText(savedRevenueFacilitation.q8))
+        && (cleanText(data[revenueScopedField(model.revenueMotion?.rowId || primaryRevenueMotionRowId(data), "nextExperiment", "reviewCadence")] || data.revenueReportingCadence) || cleanText(savedRevenueFacilitation.q9))
       );
       if (model.revenueSnapshot.score < 66 && !hasStructuredMotion) {
         addStrategicInsight(insights, {
@@ -7056,8 +7061,9 @@
       const activity = buildActivityModel(model);
       const targetList = targetListGuidance(model);
       const executionFeedback = model.readinessDiagnostic?.executionFeedback || executionEvidenceFeedback(data);
+      const savedRevenueFacilitation = data.facilitationOutputs?.revenueMotion?.answers || {};
       const motionRowId = model.revenueMotion?.rowId || primaryRevenueMotionRowId(data);
-      const motionName = [model.revenueMotion?.values.playName, data.primaryRevenueMotion, model.revenueMotion?.values.salesMotionType, data.primarySalesMotion, data.quickCurrentSalesMotion]
+      const motionName = [model.revenueMotion?.values.playName, data.primaryRevenueMotion, model.revenueMotion?.values.salesMotionType, data.primarySalesMotion, data.quickCurrentSalesMotion, savedRevenueFacilitation.q5]
         .map((value) => cleanText(value))
         .find(Boolean) || "";
       const motionStages = model.conversionStages || [];
@@ -7068,9 +7074,9 @@
       const operatingCoverage = {
         motion: Boolean(motionName),
         target: Boolean(savedTargets.length || model.priorityGroup?.values.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer),
-        activityTarget: Boolean(experimentMetric || channelActivity || activity.totals?.weeklyActivity),
-        stageCriteria: motionStages.some((row) => row.values.stageName && row.values.entryCriteria && row.values.exitCriteria),
-        reviewCadence: Boolean(experimentCadence || data.revenueReportingCadence),
+        activityTarget: Boolean(experimentMetric || channelActivity || activity.totals?.weeklyActivity || cleanText(savedRevenueFacilitation.q7)),
+        stageCriteria: motionStages.some((row) => row.values.stageName && row.values.entryCriteria && row.values.exitCriteria) || Boolean(cleanText(savedRevenueFacilitation.q8)),
+        reviewCadence: Boolean(experimentCadence || data.revenueReportingCadence || cleanText(savedRevenueFacilitation.q9)),
         tracking: Boolean(data.revenueTrackingSystem && !/none/i.test(data.revenueTrackingSystem))
       };
       const operatingElementDetails = {
@@ -7085,6 +7091,8 @@
         .filter(([, complete]) => !complete)
         .map(([part]) => operatingElementDetails[part]);
       const missingMotionParts = missingOperatingElements.map((item) => item.label.toLowerCase());
+      const completedRevenueRemediation = ["q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14"]
+        .every((key) => Boolean(cleanText(savedRevenueFacilitation[key])));
       if (executionFeedback.state === "Challenged") {
         addRevenueImpactPriority(priorities, model, {
           category: "Execution Evidence",
@@ -7098,10 +7106,12 @@
           connectedTo90DayGoal: true
         });
       }
-      const motionReadinessLow = model.revenueSnapshot.score < 66
-        || missingMotionParts.length > 0
-        || (choiceScore(data.salesMotion) < 3 && !operatingCoverage.stageCriteria)
-        || (choiceScore(data.funnelTracking) < 3 && !operatingCoverage.tracking);
+      const motionReadinessLow = missingMotionParts.length > 0
+        || (!completedRevenueRemediation && (
+          model.revenueSnapshot.score < 66
+          || (choiceScore(data.salesMotion) < 3 && !operatingCoverage.stageCriteria)
+          || (choiceScore(data.funnelTracking) < 3 && !operatingCoverage.tracking)
+        ));
       if (motionReadinessLow) {
         addRevenueImpactPriority(priorities, model, {
           category: "Revenue Motion Discipline",
