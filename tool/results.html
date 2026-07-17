@@ -2965,7 +2965,7 @@
       }
 
       try {
-        const response = await fetch(`${API_BASE}/api/records/${encodeURIComponent(recordId)}`);
+        const response = await fetch(`${API_BASE}/api/records/${encodeURIComponent(recordId)}`, { cache: "no-store" });
 
         if (!response.ok) {
           return null;
@@ -2991,7 +2991,7 @@
       }
 
       try {
-        const response = await fetch(`${API_BASE}/api/records`);
+        const response = await fetch(`${API_BASE}/api/records`, { cache: "no-store" });
 
         if (!response.ok) {
           return null;

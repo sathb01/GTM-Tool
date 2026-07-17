@@ -4533,7 +4533,8 @@ function improvementFocusFromUrl() {
       why: "These answers have the biggest effect on the readiness score. Review weak or vague answers before treating the score as final.",
       missing: ["Customer priority score and evidence", "Offer and proof readiness", "Buying signal clarity", "Revenue motion and CRM operating rhythm"],
       questions: ["Which score area is red or yellow?", "Which answer is still an assumption instead of evidence?", "Which intake answer could be made more specific today?", "Which section would most improve execution if clarified?"],
-      example: "Customer Priority: choose the best-fit customer group, select the primary pain, add evidence, and define observable fit and disqualification signals."
+      example: "Customer Priority: choose the best-fit customer group, select the primary pain, add evidence, and define observable fit and disqualification signals.",
+      fieldIds: ["customerContextStarter", "bestFitCustomerGroup", "bestFitDecisionMaker", "bestFitChampion", "bestFitEvidence"]
     },
     risk: {
       area: "Risk warning inputs",
@@ -4547,7 +4548,8 @@ function improvementFocusFromUrl() {
       why: "Review the buying committee answers that shape the persona section and outreach plan.",
       missing: ["Economic buyer", "Champion", "Likely blocker", "Proof needed by role", "What each role must believe"],
       questions: ["Who owns budget?", "Who feels the pain most often?", "Who can block the deal?", "What proof does each role need?", "Which persona should the first outreach target?"],
-      example: "Economic Buyer: CFO or CEO. Needs proof of margin impact, implementation risk control, and a clear business case."
+      example: "Economic Buyer: CFO or CEO. Needs proof of margin impact, implementation risk control, and a clear business case.",
+      fieldIds: ["buyingSituation", "conversationStarter", "budgetOwner", "painOwner", "dealBlocker", "reviewRequirements"]
     },
     offer: {
       area: "Offer and proof answers",
@@ -4561,14 +4563,16 @@ function improvementFocusFromUrl() {
       why: "Review the observable signals that determine which accounts should be prioritized.",
       missing: ["Trigger events", "Fit signals", "Negative signals", "Data sources", "Action when signal appears"],
       questions: ["What event means the buyer may act now?", "How can the user observe that signal?", "What signal disqualifies an account?", "What action should the signal trigger?"],
-      example: "Trigger: new product launch. Source: website, job posts, trade show list. Action: add to target list and lead with launch-risk message."
+      example: "Trigger: new product launch. Source: website, job posts, trade show list. Action: add to target list and lead with launch-risk message.",
+      fieldIds: ["primarySignalPlay"]
     },
     revenue: {
       area: "Revenue motion and CRM answers",
       why: "Review the answers that define the motion, owner, weekly target, and review rhythm.",
       missing: ["Target customer group", "Offer", "Channel/source", "Sales motion", "Weekly activity target", "Review cadence"],
       questions: ["Which customer group and offer will the motion test?", "Which channel/source will be used?", "Who owns the motion?", "What will be done weekly?", "What result means continue, revise, or stop?"],
-      example: "Founder-led referral motion to 10 Tier A accounts, reviewed weekly, with continue/revise/stop rules after 30 days."
+      example: "Founder-led referral motion to 10 Tier A accounts, reviewed weekly, with continue/revise/stop rules after 30 days.",
+      fieldIds: ["revenueTrackingSystem", "revenueReportingCadence", "primaryRevenueOwner", "pipelineReviewOwner", "sellingCapacity", "primaryRevenueMotion"]
     }
   };
 
@@ -4608,7 +4612,8 @@ function improvementFocusFromUrl() {
         "Include concrete details that distinguish this customer from a broad market label.",
         "Save the answer and return to the ICP Brief."
       ],
-      example: "Operations leaders at specialty manufacturers with urgent throughput constraints, limited internal process-improvement capacity, and pressure to increase output without adding another facility or a large permanent team."
+      example: "Operations leaders at specialty manufacturers with urgent throughput constraints, limited internal process-improvement capacity, and pressure to increase output without adding another facility or a large permanent team.",
+      fieldIds: ["customerContextStarter"]
     };
   }
 
@@ -4638,24 +4643,24 @@ function renderImprovementFocusCard(sectionId) {
   const questionsList = document.createElement("ol");
   const exampleHeading = document.createElement("h4");
   const example = document.createElement("p");
-  const returnOrigin = document.createElement("p");
   const actions = document.createElement("div");
   const saveAnswers = document.createElement("button");
   const updateModel = document.createElement("button");
   const regenerate = document.createElement("button");
   const dismiss = document.createElement("button");
   const returnLink = document.createElement("a");
+  const answerFields = document.createElement("div");
   const savedReturnUrl = () => {
     const destination = new URL(focus.returnTo, window.location.href);
     destination.searchParams.set("improvement", "saved");
     destination.searchParams.set("improved", focus.area || "Intake section");
+    destination.searchParams.set("refreshed", Date.now().toString());
     return `${destination.pathname.split("/").pop() || "results.html"}${destination.search}${destination.hash}`;
   };
 
   card.className = "improvement-focus";
   heading.textContent = `${focus.returnTo ? "Improving" : "Workshop"}: ${focus.area || "Recommended follow-up"}`;
-  returnOrigin.className = "muted";
-  returnOrigin.textContent = focus.returnTo ? `Return to: ${focus.returnLabel || "the report section where you started"}` : "";
+  answerFields.className = "improvement-answer-fields";
   why.textContent = focus.why || "Answer the questions below to improve report confidence.";
   missingHeading.textContent = "What is missing or unclear";
   (focus.missing || []).forEach((item) => {
@@ -4762,17 +4767,19 @@ function renderImprovementFocusCard(sectionId) {
   }
 
   card.appendChild(heading);
-  if (returnOrigin.textContent) card.appendChild(returnOrigin);
   card.appendChild(why);
-  if (missingList.children.length) {
+  if (Array.isArray(focus.fieldIds) && focus.fieldIds.length) {
+    card.appendChild(answerFields);
+  }
+  if (!focus.fieldIds?.length && missingList.children.length) {
     card.appendChild(missingHeading);
     card.appendChild(missingList);
   }
-  if (questionsList.children.length) {
+  if (!focus.fieldIds?.length && questionsList.children.length) {
     card.appendChild(questionsHeading);
     card.appendChild(questionsList);
   }
-  if (example.textContent) {
+  if (!focus.fieldIds?.length && example.textContent) {
     card.appendChild(exampleHeading);
     card.appendChild(example);
   }
@@ -4787,6 +4794,32 @@ function renderImprovementFocusCard(sectionId) {
   if (!focus.returnTo) actions.appendChild(dismiss);
   card.appendChild(actions);
   return card;
+}
+
+function mountImprovementAnswerFields(card, sectionEl) {
+  const focus = currentImprovementFocus();
+  const host = card?.querySelector(".improvement-answer-fields");
+  if (!focus?.fieldIds?.length || !host) return;
+
+  focus.fieldIds.forEach((fieldId) => {
+    const wrapper = sectionEl.querySelector(`[data-field-id="${CSS.escape(fieldId)}"]`);
+    if (!wrapper) return;
+    const sourceGrid = wrapper.parentElement;
+    const example = wrapper.querySelector(".field-example");
+    const firstControl = wrapper.querySelector("textarea, select, input, [data-multi-select-dropdown]");
+    if (example && firstControl) wrapper.insertBefore(example, firstControl);
+    wrapper.classList.add("improvement-answer-field");
+    host.appendChild(wrapper);
+    if (sourceGrid?.classList.contains("grid") && !sourceGrid.children.length) {
+      const hint = sourceGrid.previousElementSibling?.classList.contains("hint") ? sourceGrid.previousElementSibling : null;
+      const heading = (hint?.previousElementSibling || sourceGrid.previousElementSibling)?.tagName === "H3"
+        ? (hint?.previousElementSibling || sourceGrid.previousElementSibling)
+        : null;
+      sourceGrid.remove();
+      hint?.remove();
+      heading?.remove();
+    }
+  });
 }
 
 function syncFormStateFromDom() {
@@ -5062,6 +5095,7 @@ function renderSections() {
     sectionEl.appendChild(improvementFocus);
   }
   renderSectionBody(activeSection, sectionEl);
+  if (improvementFocus) mountImprovementAnswerFields(improvementFocus, sectionEl);
 
   if (activeSection.id === "executiveQuickReview") {
     sectionEl.appendChild(createBaseGtmReportActions());
