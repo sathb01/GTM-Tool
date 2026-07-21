@@ -4,6 +4,13 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-20 First-Win Segment Question Cleanup
+
+- Removed the duplicate `What kind of customer is this?` field from First-Win Segment cards.
+- Clarified that the first dropdown selects the broad first-customer type being narrowed into a candidate segment.
+- Preserved legacy `segmentType` answers for existing records while making the first customer-type answer the fallback source for ICP, discovery, route, and validation outputs.
+- Kept observable traits, use case, problem, urgency, buying path, and buyer roles as the distinct narrowing questions that follow.
+
 ## 2026-07-20 Company-Safe Intake Examples
 
 - Removed all hard-coded customer descriptions from the reusable `Think Big, Start Small` customer-context field.

@@ -11869,6 +11869,8 @@
         values.likelyBuyerPath,
         values.segmentType,
         values.segmentTypeUnknown,
+        values.segmentName__other,
+        values.segmentName,
         values.likelyBuyerDtc,
         values.likelyBuyerChannel,
         values.validationPathDtc,
@@ -11970,7 +11972,7 @@
       const values = row?.values || {};
       const problem = cleanText(values.problemUnknown || values.problem);
       const whyNow = cleanText(values.whyNowUnknown || values.whyNow);
-      const buyer = cleanText(preRevenueBuyerRoles(values) || values.segmentTypeUnknown);
+      const buyer = cleanText(preRevenueBuyerRoles(values));
       const reach = cleanText(values.reachabilityUnknown || values.reachability);
       const credibility = cleanText(values.credibilityUnknown || values.credibility);
       const validationPath = cleanText(preRevenueValidationPaths(values));
@@ -12264,7 +12266,7 @@
       if (!row) return [missingText];
       const name = preRevenueTargetLabel(data, row);
       const values = row.values || {};
-      const type = preRevenueFirstListItem(preRevenueKnownOrClue(values.segmentType, values.segmentTypeUnknown), "a reachable buyer or user group");
+      const type = preRevenueFirstListItem(preRevenueKnownOrClue(values.segmentType, values.segmentTypeUnknown, values.segmentName__other, values.segmentName), "a reachable buyer or user group");
       const problem = preRevenueFirstListItem(preRevenueKnownOrClue(values.problem, values.problemUnknown), "a problem worth validating");
       const specificDefinition = preRevenueSpecificSegmentDefinition(data, row);
       return [
@@ -12306,7 +12308,7 @@
 
     function preRevenueDiscoveryQuestions(row) {
       const lensText = [
-        preRevenueKnownOrClue(row?.values.segmentType, row?.values.segmentTypeUnknown),
+        preRevenueKnownOrClue(row?.values.segmentType, row?.values.segmentTypeUnknown, row?.values.segmentName__other, row?.values.segmentName),
         preRevenueBuyerRoles(row?.values)
       ].filter(Boolean).join(" ");
       const isConsumer = /consumer|dtc|direct|gift|hobby|community/i.test(lensText);
@@ -12355,7 +12357,7 @@
       const messageToTest = preRevenueMessageToTest(data, model.primary?.values.problem);
       const routeText = [
         data.preRevenueRouteToMarket,
-        preRevenueKnownOrClue(model.primary?.values.segmentType, model.primary?.values.segmentTypeUnknown),
+        preRevenueKnownOrClue(model.primary?.values.segmentType, model.primary?.values.segmentTypeUnknown, model.primary?.values.segmentName__other, model.primary?.values.segmentName),
         preRevenueBuyerRoles(model.primary?.values)
       ].filter(Boolean).join(" ");
       const isConsumer = /consumer|dtc|direct|gift|hobby|community/i.test(routeText);
@@ -14423,7 +14425,7 @@
           rows: [
             ["Customer Context Starter", preRevenueBulletAnswer(data.customerContextStarter || "Add a detailed customer, user, or buyer description in Company Information. The structured ICP fields below should confirm or refine it.")],
             ["ICP Hypothesis", preRevenueIcpHypothesis(primary, data)],
-            ["Who They Are", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.segmentType, primary?.values.segmentTypeUnknown), "Define whether this is an end consumer, channel buyer, marketplace buyer, or business buyer.")],
+            ["Who They Are", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.segmentType, primary?.values.segmentTypeUnknown, primary?.values.segmentName__other, primary?.values.segmentName), "Define whether this is an end consumer, channel buyer, marketplace buyer, or business buyer.")],
             ["Specific Use Case or Context", preRevenueListAnswer(primary?.values.specificUseCaseDefinition || primary?.values.description, "Add a plain-language definition of the use case, job, task, or occasion before treating this as an ICP.")],
             ["Problem to Validate", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.problem, primary?.values.problemUnknown), "Define the problem, buying job, or unmet need this group has.")],
             ["Likely Buyer, User, or Influencer", preRevenueListAnswer(preRevenueBuyerRoles(primary?.values), "Clarify who would buy, use, influence, approve, recommend, or carry the product.")],
