@@ -195,15 +195,16 @@
       if (!assistedFields.has(fieldId) || wrapper.querySelector(".ai-field-help")) return;
       const control = wrapper.querySelector(`[name="${CSS.escape(fieldId)}"]`);
       if (!control || !["INPUT", "TEXTAREA"].includes(control.tagName)) return;
+      const isCustomerContext = fieldId === "customerContextStarter";
       const help = document.createElement("div");
       help.className = "ai-field-help";
-      help.innerHTML = `<button type="button" class="ai-field-help-button">Help me answer this</button><span class="ai-field-status" aria-live="polite"></span><div class="ai-field-suggestion" hidden><p></p><div class="ai-field-suggestion-actions"><button type="button" data-use-ai-field>Use this answer</button><button type="button" class="secondary" data-dismiss-ai-field>Dismiss</button></div></div>`;
+      help.innerHTML = `<button type="button" class="ai-field-help-button">${isCustomerContext ? "Generate company-specific example" : "Help me answer this"}</button><span class="ai-field-status" aria-live="polite"></span><div class="ai-field-suggestion" hidden>${isCustomerContext ? "<strong>Suggested example for this company</strong>" : ""}<p></p><div class="ai-field-suggestion-actions"><button type="button" data-use-ai-field>Use this answer</button><button type="button" class="secondary" data-dismiss-ai-field>Dismiss</button></div></div>`;
       wrapper.appendChild(help);
       const fieldStatus = help.querySelector(".ai-field-status");
       const suggestion = help.querySelector(".ai-field-suggestion");
       const suggestionText = suggestion.querySelector("p");
       help.querySelector(".ai-field-help-button").addEventListener("click", async () => {
-        fieldStatus.textContent = "Building a suggestion from the current intake...";
+        fieldStatus.textContent = isCustomerContext ? "Building an example for this company..." : "Building a suggestion from the current intake...";
         suggestion.hidden = true;
         const options = control.tagName === "SELECT" ? Array.from(control.options).map((option) => option.textContent.trim()).filter(Boolean) : [];
         try {
@@ -211,7 +212,9 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              question: `Suggest the strongest honest answer for this intake field. Use only supported context and state uncertainty inside the answer when needed.`,
+              question: isCustomerContext
+                ? "Create a specific plain-language description of the customer, user, or buyer this company should reach first. Use only this active company's saved context. Include who they are, their situation, what they are trying to accomplish, what is difficult today, and observable details that would help find more of them. Never reuse an example from another company."
+                : "Suggest the strongest honest answer for this intake field. Use only supported context and state uncertainty inside the answer when needed.",
               recordId: currentRecordId(),
               workspace: "GTM OS Intake",
               section: document.querySelector("#sections h2")?.textContent?.trim() || "Current intake section",

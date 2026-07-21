@@ -6,9 +6,10 @@ This file records the major actions and changes made during the GTM Tool refinem
 
 ## 2026-07-20 Company-Safe Intake Examples
 
-- Removed Fishing Shorts and ForgeLine-specific customer descriptions from the reusable `Think Big, Start Small` customer-context field.
-- Replaced them with a neutral, copyable example format that applies to consumer, retail, channel, and business customers.
-- Replaced the remaining fishing-specific use-case placeholder in the same section so examples cannot look like data carried over from another company.
+- Removed all hard-coded customer descriptions from the reusable `Think Big, Start Small` customer-context field.
+- Added `Generate company-specific example`, which uses AI and only the active company's saved context to propose a customer description for review.
+- Kept AI suggestions opt-in: the generated example changes the intake only after the user selects `Use this answer`.
+- Removed the remaining fishing-specific use-case placeholder in the same section so examples cannot look like data carried over from another company.
 
 ## 2026-07-17 Plan Summary Score Guidance
 
