@@ -6,6 +6,10 @@ This file records the major actions and changes made during the GTM Tool refinem
 
 ## 2026-07-20 First-Win Segment Question Cleanup
 
+- Reset `New` company navigation to Company Information and clear inherited section, improvement, refresh, and pending-autosave state before the blank intake opens.
+- Added a reusable, non-writing multi-select visibility sweep across all saved pre-revenue records, including immediate selection display and section-away/section-back persistence.
+- Added a New-company regression check that begins inside a deep pre-revenue section with inherited improvement state and verifies a blank Company Information start.
+- Refreshed intake script version identifiers so already-open alpha sessions load the corrected schema and navigation code after reload.
 - Removed the duplicate `What kind of customer is this?` field from First-Win Segment cards.
 - Clarified that the first dropdown selects the broad first-customer type being narrowed into a candidate segment.
 - Preserved legacy `segmentType` answers for existing records while making the first customer-type answer the fallback source for ICP, discovery, route, and validation outputs.

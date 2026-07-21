@@ -7579,9 +7579,22 @@ function startBlankCompany() {
     saveDraft(false);
   }
 
+  window.clearTimeout(autosaveTimer);
+  window.clearTimeout(intakeUiRefreshTimer);
+  autosaveTimer = null;
+  intakeUiRefreshTimer = null;
+  formStateData = {};
+  lastAutosaveSignature = "";
+  currentReportMode = "quick";
+  detailedSectionsVisible = false;
+  activeSectionId = "company";
   setActiveRecordId("");
   localStorage.removeItem(STORAGE_KEY);
-  window.location.href = "index.html";
+  localStorage.removeItem(IMPROVEMENT_FOCUS_KEY);
+  ["quick", "detailed", "preRevenue"].forEach((mode) => {
+    localStorage.removeItem(`${ACTIVE_SECTION_KEY}:draft:${mode}`);
+  });
+  window.location.href = "index.html?new=1#company";
 }
 
 function clearCurrentForm() {
@@ -7591,7 +7604,11 @@ function clearCurrentForm() {
 
   setActiveRecordId("");
   localStorage.removeItem(STORAGE_KEY);
-  window.location.href = "index.html";
+  localStorage.removeItem(IMPROVEMENT_FOCUS_KEY);
+  ["quick", "detailed", "preRevenue"].forEach((mode) => {
+    localStorage.removeItem(`${ACTIVE_SECTION_KEY}:draft:${mode}`);
+  });
+  window.location.href = "index.html?new=1#company";
 }
 
 function updateScoreTotals() {
