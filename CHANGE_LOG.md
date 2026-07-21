@@ -4,6 +4,12 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-20 Company-Safe Intake Examples
+
+- Removed Fishing Shorts and ForgeLine-specific customer descriptions from the reusable `Think Big, Start Small` customer-context field.
+- Replaced them with a neutral, copyable example format that applies to consumer, retail, channel, and business customers.
+- Replaced the remaining fishing-specific use-case placeholder in the same section so examples cannot look like data carried over from another company.
+
 ## 2026-07-17 Plan Summary Score Guidance
 
 - Fixed Offer readiness scoring so saved numeric ratings from 1 through 5 count as their intended scores instead of being treated as missing.
