@@ -141,7 +141,7 @@ const HELP_BLOCKS = {
     {
       title: "What is a revenue motion play?",
       body: "A revenue motion play is the specific path used to create and convert revenue for a customer group and offer. It combines the target customer, offer, channel, sales process, owner, and success metric.",
-      examples: ["Outbound email to operations leaders at multi-location service businesses to sell a paid diagnostic."]
+      examples: ["Founder-led referral outreach to a defined customer group, with a weekly activity target and review cadence."]
     }
   ]
 };

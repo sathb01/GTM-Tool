@@ -15,6 +15,7 @@ let detailedSectionsVisible = false;
 let activeSectionId = "company";
 let formStateData = {};
 let activeDataQualityReview = null;
+let preferIntakeStartOnInitialLoad = false;
 
 const carryForwardRules = [
   {
@@ -1897,7 +1898,10 @@ function blockerStatement(values) {
 function createCardField(field, name) {
   const wrapper = document.createElement("div");
   const label = document.createElement("label");
-  const input = createInput(field, name);
+  const inputField = field.type === "repeatableList" && field.itemType === "select"
+    ? { ...field, type: "multiSelectDropdown" }
+    : field;
+  const input = createInput(inputField, name);
 
   wrapper.className = field.full ? "full" : "";
   if (field.showWhen) {
@@ -1935,8 +1939,8 @@ function createCardField(field, name) {
   wrapper.appendChild(label);
   wrapper.appendChild(field.type === "money" ? createMoneyControl(input) : input);
 
-  if (supportsOtherField(field)) {
-    wrapper.appendChild(createOtherField(input, field.otherLabel || "Define other", field.otherValue || otherOptionValue(field) || "Other", Boolean(field.requireOther)));
+  if (supportsOtherField(inputField)) {
+    wrapper.appendChild(createOtherField(input, inputField.otherLabel || "Define other", inputField.otherValue || otherOptionValue(inputField) || "Other", Boolean(inputField.requireOther)));
   }
 
   if (field.hint) {
@@ -4895,8 +4899,25 @@ function rememberedActiveSection(sectionsToShow = visibleSections()) {
     return incomingSectionId;
   }
 
+  if (preferIntakeStartOnInitialLoad && sectionsToShow.some((section) => section.id === "company")) {
+    return "company";
+  }
+
   const savedSectionId = localStorage.getItem(activeSectionStorageKey()) || "";
   return sectionsToShow.some((section) => section.id === savedSectionId) ? savedSectionId : "";
+}
+
+function shouldStartAtIntakeBeginning() {
+  const params = new URLSearchParams(window.location.search);
+  const hasExplicitDestination = params.has("recordId")
+    || params.has("section")
+    || params.has("focus")
+    || params.has("review")
+    || params.has("improve")
+    || Boolean(String(window.location.hash || "").replace(/^#/, ""));
+  const navigationEntry = window.performance?.getEntriesByType?.("navigation")?.[0];
+
+  return !hasExplicitDestination && navigationEntry?.type !== "reload";
 }
 
 function sectionIdFromUrl() {
@@ -5846,7 +5867,10 @@ function setFormData(data) {
 
     fields.forEach((field) => {
       if (field.type === "checkbox") {
-        const selected = String(value).split(", ").map((item) => item.trim());
+        const optionValues = Array.from(document.querySelectorAll(`[name="${CSS.escape(field.name)}"]`))
+          .map((option) => option.value)
+          .filter(Boolean);
+        const selected = splitMultiSelectValues(value, optionValues);
         const otherMatch = selected.find((item) => item.startsWith(`${field.value}:`));
         field.checked = selected.includes(field.value) || Boolean(otherMatch) || value === true || value === "true";
         if (otherMatch) {
@@ -7349,7 +7373,8 @@ function normalizeRepeatableData(data) {
   const normalized = { ...data };
 
   Object.keys(normalized).forEach((key) => {
-    if (/customerGroup|targetCustomerGroup|priorityIcp|offerTargetSegment|verticalFit/i.test(key)) {
+    const isCustomerGroupReference = /(?:^|__)(?:customerGroup|targetCustomerGroup|priorityIcp|offerTargetSegment|verticalFit)(?:__item-\d+)?$/i.test(key);
+    if (isCustomerGroupReference) {
       normalized[key] = String(normalized[key] || "")
         .split(/[;,|]/)
         .map((item) => normalizedCustomerGroupOption(item) || String(item || "").trim())
@@ -9519,6 +9544,7 @@ function loadDraft() {
 
 async function initializeIntake() {
   migrateLegacyDraft();
+  preferIntakeStartOnInitialLoad = shouldStartAtIntakeBeginning();
   const reportNotice = new URLSearchParams(window.location.search).get("reportNotice");
   const incomingRecordId = requestedRecordIdFromUrl();
   if (incomingRecordId) {
@@ -9557,6 +9583,7 @@ async function initializeIntake() {
   updateBuyingCommitteeMessageAngles();
   updateDetailedActionBar();
   updatePlanStaleWarning();
+  preferIntakeStartOnInitialLoad = false;
 
   if (reportNotice === "empty") {
     const message = "I would love to provide a report! Unfortunately, it looks like the intake has not been filled out yet.";

@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-07-22T13:42:40.173Z",
+  "passed": 66,
+  "failed": 0,
+  "failures": [],
+  "records": [
+    {
+      "id": "qa2-pre-dtc-nesttrail-20260721",
+      "name": "QA2 - NestTrail Kids",
+      "savedKeys": 233,
+      "longDuplicateGroupsOver12": 0,
+      "suspiciousAnswers": 0
+    },
+    {
+      "id": "qa2-pre-saas-queuepilot-20260721",
+      "name": "QA2 - QueuePilot Health",
+      "savedKeys": 233,
+      "longDuplicateGroupsOver12": 0,
+      "suspiciousAnswers": 0
+    },
+    {
+      "id": "qa2-post-mixed-fieldsip-20260721",
+      "name": "QA2 - FieldSip Pantry",
+      "savedKeys": 620,
+      "longDuplicateGroupsOver12": 0,
+      "suspiciousAnswers": 0
+    },
+    {
+      "id": "qa2-post-saas-renewalgrid-20260721",
+      "name": "QA2 - RenewalGrid",
+      "savedKeys": 622,
+      "longDuplicateGroupsOver12": 0,
+      "suspiciousAnswers": 0
+    }
+  ]
+}

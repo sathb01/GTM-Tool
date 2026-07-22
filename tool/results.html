@@ -326,6 +326,14 @@
       padding: 16px;
     }
 
+    .summary-support-content > .card-actions {
+      border-top: 1px solid var(--border);
+      clear: both;
+      margin-top: 16px;
+      padding-top: 14px;
+      width: 100%;
+    }
+
     .summary-support-content .score-list {
       margin-bottom: 12px;
     }
@@ -8220,7 +8228,7 @@
     }
 
     function escapeHtml(value) {
-      return String(value || "").replace(/[&<>"']/g, (char) => ({
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({
         "&": "&amp;",
         "<": "&lt;",
         ">": "&gt;",
