@@ -8061,17 +8061,26 @@ function goalValueForField(canonical, fieldId) {
   return values[canonical] || "";
 }
 
+function sourceConflictAcceptanceId(conflictId, values = []) {
+  const signature = values
+    .map((value) => String(value || "").trim().toLowerCase().replace(/\s+/g, " "))
+    .join("::");
+  return `${conflictId}::${signature}`;
+}
+
 function sourceTruthConflictIssues(data) {
   const issues = [];
   const accepted = new Set(storedDataHygieneList(data, "dataHygieneAcceptedConflicts"));
   const quickGoal = canonical90DayGoal(data.quick90DayGoal);
   const detailedGoal = canonical90DayGoal(data.goal90);
+  const goalAcceptanceId = sourceConflictAcceptanceId("90-day-goal", [data.quick90DayGoal, data.goal90]);
 
-  if (quickGoal && detailedGoal && quickGoal !== detailedGoal && !accepted.has("90-day-goal")) {
+  if (quickGoal && detailedGoal && quickGoal !== detailedGoal && !accepted.has(goalAcceptanceId)) {
     issues.push({
-      severity: "warning",
+      severity: "error",
       kind: "source-conflict",
       conflictId: "90-day-goal",
+      acceptanceId: goalAcceptanceId,
       title: "Confirm the 90-day goal",
       detail: "The quick intake and detailed intake name different primary goals for the same 90-day period.",
       choices: [
@@ -8098,11 +8107,13 @@ function sourceTruthConflictIssues(data) {
   const quickTarget = parsePositiveMoneyValue(data.quick90DayRevenueTarget);
   const detailedTarget = parsePositiveMoneyValue(data.goal90RevenueTarget);
   const revenueGoalApplies = quickGoal === "revenue" && detailedGoal === "revenue";
-  if (revenueGoalApplies && quickTarget && detailedTarget && quickTarget !== detailedTarget && !accepted.has("90-day-revenue-target")) {
+  const targetAcceptanceId = sourceConflictAcceptanceId("90-day-revenue-target", [quickTarget, detailedTarget]);
+  if (revenueGoalApplies && quickTarget && detailedTarget && quickTarget !== detailedTarget && !accepted.has(targetAcceptanceId)) {
     issues.push({
-      severity: "warning",
+      severity: "error",
       kind: "source-conflict",
       conflictId: "90-day-revenue-target",
+      acceptanceId: targetAcceptanceId,
       title: "Confirm the 90-day revenue target",
       detail: "The quick intake and detailed intake contain different revenue targets for the same 90-day period.",
       choices: [
@@ -8410,11 +8421,12 @@ async function applySourceConflictResolution(issue, action, updates = {}) {
 
   if (action === "intentional") {
     const accepted = new Set(storedDataHygieneList(data, "dataHygieneAcceptedConflicts"));
-    accepted.add(issue.conflictId);
+    accepted.add(issue.acceptanceId || issue.conflictId);
     data.dataHygieneAcceptedConflicts = JSON.stringify(Array.from(accepted));
     appendDataHygieneResolution(data, {
       action: "accepted-intentional-conflict",
       conflictId: issue.conflictId,
+      reason: String(updates.reason || "").trim(),
       choices: issue.choices?.map((choice) => ({ source: choice.source, label: choice.label })) || []
     });
   } else {
@@ -8488,6 +8500,8 @@ function renderDuplicateResolution(item, issue) {
 function renderSourceConflictResolution(item, issue) {
   const controls = document.createElement("div");
   const choiceList = document.createElement("div");
+  const explanationLabel = document.createElement("label");
+  const explanation = document.createElement("textarea");
   const intentional = document.createElement("button");
   controls.className = "data-quality-resolution";
   choiceList.className = "data-quality-conflict-choices";
@@ -8508,9 +8522,21 @@ function renderSourceConflictResolution(item, issue) {
 
   intentional.type = "button";
   intentional.className = "secondary";
-  intentional.textContent = "Keep Both as Intentional";
-  intentional.addEventListener("click", () => applySourceConflictResolution(issue, "intentional"));
-  controls.append(choiceList, intentional);
+  intentional.textContent = "Keep Different With Explanation";
+  intentional.disabled = true;
+  explanationLabel.textContent = "Why should these answers remain different?";
+  explanation.rows = 2;
+  explanation.placeholder = "Explain the different periods, definitions, or decisions so the plan does not treat this as an accidental conflict.";
+  explanation.addEventListener("input", () => {
+    intentional.disabled = !explanation.value.trim();
+  });
+  intentional.addEventListener("click", () => {
+    const reason = explanation.value.trim();
+    if (!reason) return;
+    applySourceConflictResolution(issue, "intentional", { reason });
+  });
+  explanationLabel.appendChild(explanation);
+  controls.append(choiceList, explanationLabel, intentional);
   item.appendChild(controls);
 }
 

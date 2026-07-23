@@ -1,6 +1,6 @@
 # GTM Tool Scoring Model
 
-Last updated: 2026-07-13
+Last updated: 2026-07-23
 
 ## Scoring Layers
 
@@ -13,7 +13,7 @@ The app currently has four scoring layers:
 
 ## Overall Readiness Score
 
-The overall readiness score is calculated in `tool/results.html`. It starts with the 12 fields listed in `schema.scoreFields`, then gives more weight to evidence and execution that the company has actually captured in the intake.
+The overall readiness score is calculated in `tool/results.html`. It combines evidence-based GTM foundations, planned operating readiness, and a limited self-assessment contribution. Evidence confidence and completed execution progress are reported separately so activity volume or form completeness cannot silently inflate readiness.
 
 Fields:
 
@@ -38,16 +38,22 @@ Formula:
 self-assessment score = round((sum of 12 score fields / 12) * 20)
 
 overall readiness score =
-  45% evidence coverage
-  30% execution coverage
-  15% self-assessment score
-  10% assessment-input confidence
-  minus an uncertainty adjustment of up to 12 points when detailed evidence coverage is low
+  55% GTM foundation readiness
+  35% planned operating readiness
+  10% respondent self-assessment
 ```
 
-Evidence coverage looks for customer evidence, an offer with a defined problem and value claim, buyer context, proof, and signal detail. Execution coverage looks for an identified revenue motion, channels, activity targets, conversion stages, and a defined CRM or pipeline view.
+GTM foundation readiness looks for customer-priority evidence, buyer context, an offer with a defined problem and value claim, proof, and buying-signal detail. Planned operating readiness looks for an identified revenue motion, channel, measurable operating rhythm, ownership, conversion stages, and a defined CRM or pipeline view.
 
-The uncertainty adjustment prevents a confident self-rating from appearing more proven than the underlying intake supports. It decreases as detailed evidence coverage approaches 75/100.
+Missing evidence lowers the area it belongs to instead of applying a second hidden uncertainty penalty. The score detail lists the saved evidence counted in each area and the next inputs that can change it.
+
+### Separate evidence confidence
+
+Evidence confidence is displayed as its own 0-100 metric and Low, Medium, or High label. It reflects the specificity and completeness of the saved intake. It does not contribute points to the GTM readiness score.
+
+### Separate execution progress
+
+Execution progress is displayed as its own 0-100 metric and evidence state. It reflects completed interviews, outreach attempts, replies, conversations, meaningful next steps, proof usage, active assignments, opportunities, and saved weekly reviews. It does not automatically contribute points to the GTM readiness score.
 
 ### Saved execution evidence feedback
 
@@ -58,9 +64,7 @@ Saved work from the Validation Workspace, Messaging Kit, Proof Assets, Outreach 
 - Supported: a sufficient test has produced a meaningful commitment, confirmed problem pattern, or active opportunity.
 - Challenged: a sufficient test or saved decision indicates that the segment, message, offer, channel, or timing should change.
 
-Execution evidence applies a bounded adjustment of -3 to +6 points to the execution-readiness input. Because that input is 30% of the post-revenue overall score, the effect on the overall score remains intentionally small. Pre-revenue plans apply the same bounded adjustment directly to the first-win hypothesis score.
-
-Activity volume alone cannot create market confidence. The evidence state also requires outcomes and decision discipline. A challenged test can replace the first Active Plan and ranked-action priority with a recommendation to revise or stop before adding volume.
+Activity volume alone cannot create market confidence. The evidence state also requires outcomes and decision discipline. A challenged test can replace the first Active Plan and ranked-action priority with a recommendation to revise or stop before adding volume, but the execution-progress number itself does not prove GTM readiness.
 
 ## Readiness Stages
 

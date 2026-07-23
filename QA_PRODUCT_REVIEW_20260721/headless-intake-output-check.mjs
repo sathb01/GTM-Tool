@@ -77,6 +77,7 @@ async function inspectPage(page, expectedSelector, expectedCompany, expectedReco
       mainTextLength: mainText.length,
       mainTextPreview: mainText.slice(0, 1000),
       blankOrFailed: /report failed to render|page failed to render|something went wrong|undefined|null|\[object object\]/i.test(mainText),
+      internalLogicVisible: /Rule used:|confidenceCompletenessScore|plannedExecutionScore|uncertaintyPenalty|possibleCustomerGroups__|offerPortfolio__|revenueMotionPortfolio__|activePlanWeeklyWorkspace/i.test(mainText),
       accent: getComputedStyle(document.documentElement).getPropertyValue("--accent").trim(),
       font: getComputedStyle(document.body).fontFamily,
       activeSection: document.querySelector("#sections > section")?.id || "",
@@ -105,7 +106,7 @@ try {
       const state = await inspectPage(page, `#${section}`, profile.name, profile.id);
       if (sectionWaitError) errors.push(sectionWaitError);
       const url = new URL(page.url());
-      const passed = response?.status() === 200 && state.expectedVisible && state.recordCorrect && state.mainTextLength > 300 && !state.blankOrFailed && state.overlaps.length === 0 && errors.length === 0 && (url.searchParams.get("section") === section || url.hash === `#${section}`);
+      const passed = response?.status() === 200 && state.expectedVisible && state.recordCorrect && state.mainTextLength > 300 && !state.blankOrFailed && !state.internalLogicVisible && state.overlaps.length === 0 && errors.length === 0 && (url.searchParams.get("section") === section || url.hash === `#${section}`);
       checks.push({ profile: profile.key, type: "intake", section, passed, status: response?.status(), ...state, errors });
       await context.close();
     }
@@ -126,7 +127,7 @@ try {
         { timeout: 15000 }
       );
       const state = await inspectPage(page, selector, profile.name, profile.id);
-      const passed = response?.status() === 200 && state.expectedVisible && state.companyVisible && state.mainTextLength > 300 && !state.blankOrFailed && state.overlaps.length === 0 && errors.length === 0 && state.accent === "#ff7a59" && /Source Sans|Segoe UI|Inter/i.test(state.font);
+      const passed = response?.status() === 200 && state.expectedVisible && state.companyVisible && state.mainTextLength > 300 && !state.blankOrFailed && !state.internalLogicVisible && state.overlaps.length === 0 && errors.length === 0 && state.accent === "#ff7a59" && /Source Sans|Segoe UI|Inter/i.test(state.font);
       checks.push({ profile: profile.key, type: "asset", asset, passed, status: response?.status(), ...state, errors });
       await context.close();
     }

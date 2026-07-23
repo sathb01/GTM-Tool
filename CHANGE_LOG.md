@@ -29,6 +29,19 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Restored and highlighted the affected priority after a guided intake round trip.
 - Added ranked-priority provenance and save/recalculate/return regression checks.
 
+## 2026-07-23 Phase 1 Score and Conflict Integrity
+
+- Separated GTM readiness, evidence confidence, and execution progress into three clearly labeled metrics.
+- Removed evidence confidence and completed activity volume from the overall readiness formula.
+- Reweighted readiness around GTM foundation evidence, planned operating readiness, and a limited respondent self-assessment.
+- Added the saved evidence counted and exact next score-changing inputs to every readiness component.
+- Added direct guided improvement routes and qualified estimated score opportunities for the top three score improvements.
+- Centralized customer, buyer, offer, signal, revenue, and risk source mappings used by output claims.
+- Made genuine 90-day goal and revenue-target conflicts block plan generation until the user selects a source of truth or explains why the values should remain different.
+- Bound intentional conflict confirmations to the exact values so changed answers trigger a new review.
+- Replaced visible internal `Rule used` wording with plain-language recommendation rationale.
+- Added release checks for metric separation, conflict resolution, and visible internal diagnostic labels.
+
 ## 2026-07-20 First-Win Segment Question Cleanup
 
 - Reset `New` company navigation to Company Information and clear inherited section, improvement, refresh, and pending-autosave state before the blank intake opens.

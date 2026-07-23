@@ -108,3 +108,17 @@ These are not yet all confirmed defects. They have been separated from harness a
 - Authenticated Render guided save, recalculation, and return gate: 14 passed, 0 failed.
 - Authenticated Render summary claim dependency gate: 9 passed, 0 failed.
 - The live round-trip check used an intercepted synthetic copy and did not change the persisted QA company record.
+
+### Phase 1 Completion: Score and Conflict Integrity
+
+- Score separation gate: 14 passed, 0 failed.
+- The execution test moved from Not started to 89/100 Supported while GTM readiness remained 57/100.
+- Genuine conflict resolution gate: 12 passed, 0 failed.
+- Conflict confirmations are tied to the exact compared values; changing either value requires a new decision.
+- Source conflicts block generation, while ordinary completeness warnings remain reviewable and nonblocking.
+- Focused Phase 1 gates: 60 passed, 0 failed.
+- Four-company route and rendering sweep: 78 passed, 0 failed.
+- Profile quality gate: 210 passed, 0 failed.
+- Semantic answer-quality gate: 66 passed, 0 failed.
+- Post-revenue section deep-link gate: 9 passed, 0 failed.
+- The route and rendering sweep now fails if raw source keys or internal diagnostic labels appear visibly.
