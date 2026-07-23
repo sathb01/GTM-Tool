@@ -5,6 +5,10 @@ import { qaProfiles } from "./company-profiles.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const apiBase = process.env.GTM_QA_API || "http://127.0.0.1:8787";
+const requestHeaders = {
+  "Content-Type": "application/json",
+  ...(process.env.GTM_QA_COOKIE ? { Cookie: process.env.GTM_QA_COOKIE } : {})
+};
 const dryRun = process.argv.includes("--dry-run");
 const unresolvedOutputPath = path.join(import.meta.dirname, "unresolved-fields.json");
 const taxonomySource = fs.readFileSync(path.join(root, "tool/gtm-taxonomy.js"), "utf8");
@@ -738,12 +742,12 @@ if (unresolved.length) {
   for (const { record, sections } of builds) {
     const response = await fetch(`${apiBase}/api/records/${encodeURIComponent(record.id)}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: requestHeaders,
       body: JSON.stringify(record)
     });
     if (!response.ok) throw new Error(`Could not save ${record.name}: ${response.status} ${await response.text()}`);
     const saved = (await response.json()).record;
-    const reload = await fetch(`${apiBase}/api/records/${encodeURIComponent(record.id)}`);
+    const reload = await fetch(`${apiBase}/api/records/${encodeURIComponent(record.id)}`, { headers: requestHeaders });
     if (!reload.ok) throw new Error(`Could not reload ${record.name}: ${reload.status}`);
     const reloaded = (await reload.json()).record;
     if (JSON.stringify(saved.data) !== JSON.stringify(reloaded.data)) throw new Error(`${record.name} changed during API save and reload`);

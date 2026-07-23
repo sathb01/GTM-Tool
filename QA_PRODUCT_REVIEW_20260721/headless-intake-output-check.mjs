@@ -4,6 +4,10 @@ import { qaProfiles } from "./company-profiles.mjs";
 const require = createRequire(import.meta.url);
 const { chromium } = require("C:/Users/sathb/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright");
 const baseUrl = String(process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
+const contextOptions = { viewport: { width: 1440, height: 900 }, ...(process.env.GTM_QA_COOKIE ? { extraHTTPHeaders: { Cookie: process.env.GTM_QA_COOKIE } } : {}) };
+const selectedProfiles = process.env.GTM_QA_PROFILE
+  ? qaProfiles.filter((profile) => profile.key === process.env.GTM_QA_PROFILE)
+  : qaProfiles;
 
 const intakeSections = {
   preRevenue: ["company", "preRevenueContext", "preRevenueHypotheses", "preRevenueProblem", "preRevenueWedge", "preRevenueBuyerDiscovery", "preRevenueValidationMotion", "preRevenueEvidenceTracker"],
@@ -71,6 +75,7 @@ async function inspectPage(page, expectedSelector, expectedCompany, expectedReco
       companyVisible: mainText.includes(expectedCompany) || companyInputValue === expectedCompany,
       recordCorrect: localStorage.getItem("gtmReadinessIntake:activeRecordId") === expectedRecordId,
       mainTextLength: mainText.length,
+      mainTextPreview: mainText.slice(0, 1000),
       blankOrFailed: /report failed to render|page failed to render|something went wrong|undefined|null|\[object object\]/i.test(mainText),
       accent: getComputedStyle(document.documentElement).getPropertyValue("--accent").trim(),
       font: getComputedStyle(document.body).fontFamily,
@@ -81,19 +86,19 @@ async function inspectPage(page, expectedSelector, expectedCompany, expectedReco
 }
 
 try {
-  for (const profile of qaProfiles) {
+  for (const profile of selectedProfiles) {
     for (const section of intakeSections[profile.mode]) {
-      const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const context = await browser.newContext(contextOptions);
       const page = await context.newPage();
       const errors = [];
       page.on("pageerror", (error) => errors.push(error.message));
       page.on("console", (message) => {
         if (message.type() === "error" && /TypeError|ReferenceError|SyntaxError|failed to render/i.test(message.text())) errors.push(message.text());
       });
-      const response = await page.goto(`${baseUrl}/index.html?section=${section}&recordId=${profile.id}#${section}`, { waitUntil: "networkidle" });
+      const response = await page.goto(`${baseUrl}/index.html?section=${section}&recordId=${profile.id}#${section}`, { waitUntil: "load" });
       let sectionWaitError = "";
       try {
-        await page.waitForSelector(`#${section}`, { timeout: 1500 });
+        await page.waitForSelector(`#${section}`, { timeout: 15000 });
       } catch (error) {
         sectionWaitError = error.message;
       }
@@ -106,14 +111,20 @@ try {
     }
 
     for (const [asset, selector] of assetsFor(profile)) {
-      const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const context = await browser.newContext(contextOptions);
       const page = await context.newPage();
       const errors = [];
       page.on("pageerror", (error) => errors.push(error.message));
       page.on("console", (message) => {
         if (message.type() === "error" && /TypeError|ReferenceError|SyntaxError|failed to render/i.test(message.text())) errors.push(message.text());
       });
-      const response = await page.goto(`${baseUrl}/results.html?v=20260721-product-review&asset=${asset}&recordId=${profile.id}`, { waitUntil: "networkidle" });
+      const response = await page.goto(`${baseUrl}/results.html?v=20260722-product-review&asset=${asset}&recordId=${profile.id}`, { waitUntil: "load" });
+      await page.waitForSelector(selector, { timeout: 15000 });
+      await page.waitForFunction(
+        (expectedCompany) => (document.querySelector("main")?.innerText || document.body.innerText || "").includes(expectedCompany),
+        profile.name,
+        { timeout: 15000 }
+      );
       const state = await inspectPage(page, selector, profile.name, profile.id);
       const passed = response?.status() === 200 && state.expectedVisible && state.companyVisible && state.mainTextLength > 300 && !state.blankOrFailed && state.overlaps.length === 0 && errors.length === 0 && state.accent === "#ff7a59" && /Source Sans|Segoe UI|Inter/i.test(state.font);
       checks.push({ profile: profile.key, type: "asset", asset, passed, status: response?.status(), ...state, errors });

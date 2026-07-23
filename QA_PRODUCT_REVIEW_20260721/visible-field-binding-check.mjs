@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { chromium } = require("C:/Users/sathb/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright");
 const baseUrl = String(process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
+const contextOptions = { viewport: { width: 1440, height: 900 }, ...(process.env.GTM_QA_COOKIE ? { extraHTTPHeaders: { Cookie: process.env.GTM_QA_COOKIE } } : {}) };
 const cases = [
   ["qa2-post-mixed-fieldsip-20260721", "quickIcp"],
   ["qa2-post-saas-renewalgrid-20260721", "quickIcp"]
@@ -12,9 +13,10 @@ const results = [];
 
 try {
   for (const [recordId, section] of cases) {
-    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const context = await browser.newContext(contextOptions);
     const page = await context.newPage();
-    await page.goto(`${baseUrl}/index.html?section=${section}&recordId=${recordId}#${section}`, { waitUntil: "networkidle" });
+    await page.goto(`${baseUrl}/index.html?section=${section}&recordId=${recordId}#${section}`, { waitUntil: "load" });
+    await page.waitForSelector(`#${section} [name*='possibleCustomerGroups']`, { timeout: 15000 });
     const binding = await page.evaluate(async (recordId) => {
       const requiredSuffixes = ["groupName", "whoTheyAre", "problem", "whyNow", "observableCompanySignals", "listBuildingClues", "evidenceSource", "implementationFit", "urgency", "abilityToPay", "easeOfAccess", "proofEvidence"];
       const groups = ["customer-group-1", "customer-group-2"].map((rowId) => {

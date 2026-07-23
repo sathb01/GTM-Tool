@@ -65,3 +65,15 @@ These are not yet all confirmed defects. They have been separated from harness a
 2. Dense intake cards may place `Copy`, `Choose options`, or `Edit selections` controls too close to labels and explanatory text.
 3. The GTM summary may place `Improve This Section` and `Work on this action` controls over supporting copy in some content-length cases.
 4. A reusable sales-motion help example references outbound email to operations leaders at multi-location service businesses, even for unrelated consumer and SaaS scenarios. This is help copy, not leaked record data, but it is not company-specific guidance.
+
+## July 23 Render Release Verification
+
+- Release commit `d19ad9f` was deployed from GitHub `main`.
+- The deployed application returned the expected `app.js?v=20260722-intake-entry-1` release marker.
+- All four replacement QA records were saved to Render and returned by the authenticated record API.
+- Live startup behavior: 3 passed, 0 failed.
+- Live post-revenue section deep links: 9 passed, 0 failed.
+- Live saved customer-group field binding: 2 records passed with both visible customer-group rows complete.
+- Live authenticated intake, report, and asset rendering sweep: 78 passed, 0 failed.
+- Render's persistent background connections made `networkidle` an unreliable readiness signal. The deployed harness now waits for page load plus the exact section, company, or asset content required by each check.
+- No visible browser window was opened during release verification.
