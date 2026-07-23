@@ -134,3 +134,7 @@ These are not yet all confirmed defects. They have been separated from harness a
 - Recommendation text is shown before write-back and the current answer remains unchanged until explicit use.
 - Explanation-only help for unpublished founder or team background cannot write an AI answer.
 - Field requests contain only the context declared for that question.
+- Phase 2 point-of-answer release commit: `604ddbf`.
+- Authenticated Render AI classification and safety gate: 19 passed, 0 failed.
+- Authenticated Render four-company route and asset sweep: 78 passed, 0 failed.
+- The live gate waits for saved-record hydration before testing that an AI recommendation leaves the current field unchanged.

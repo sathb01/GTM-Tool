@@ -54,6 +54,7 @@ try {
   const preContext = await inspect("/index.html?section=preRevenueContext&recordId=qa2-pre-dtc-nesttrail-20260721#preRevenueContext", "#preRevenueContext");
   const preHypothesis = await inspect("/index.html?section=preRevenueHypotheses&recordId=qa2-pre-dtc-nesttrail-20260721#preRevenueHypotheses", "#preRevenueHypotheses");
   await page.goto(`${baseUrl}/index.html?section=executiveQuickReview&recordId=qa2-post-mixed-fieldsip-20260721#executiveQuickReview`, { waitUntil: "load" });
+  await page.waitForFunction(() => Boolean(document.querySelector('[name="quickPrimaryRevenueSource"]')?.value), null, { timeout: 15000 });
   const revenueSource = page.locator('[data-field-id="quickPrimaryRevenueSource"]');
   const originalRevenueSource = await revenueSource.locator('[name="quickPrimaryRevenueSource"]').inputValue();
   await revenueSource.locator(".ai-field-help-button").click();
@@ -64,6 +65,7 @@ try {
     useVisible: await revenueSource.locator("[data-use-ai-field]").isVisible()
   };
   await page.goto(`${baseUrl}/index.html?section=preRevenueContext&recordId=qa2-pre-dtc-nesttrail-20260721#preRevenueContext`, { waitUntil: "load" });
+  await page.waitForFunction(() => Boolean(document.querySelector('[name="preFounderBackground"]')?.value), null, { timeout: 15000 });
   const founderBackground = page.locator('[data-field-id="preFounderBackground"]');
   const originalBackground = await founderBackground.locator('[name="preFounderBackground"]').inputValue();
   await founderBackground.locator(".ai-field-help-button").click();
@@ -107,6 +109,9 @@ try {
     failed: failures.length,
     failures,
     configuredFields: Object.keys(config),
+    recommendationState,
+    originalRevenueSource,
+    assistantRequestFields: assistantRequests.map((request) => request.field?.id),
     errors
   }, null, 2));
   if (failures.length) process.exitCode = 1;
