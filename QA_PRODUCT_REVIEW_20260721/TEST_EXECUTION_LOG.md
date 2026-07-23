@@ -89,3 +89,17 @@ These are not yet all confirmed defects. They have been separated from harness a
 - Profile quality gate: 210 passed, 0 failed.
 - Semantic answer-quality gate: 66 passed, 0 failed.
 - Full local intake, report, and asset rendering sweep: 78 passed, 0 failed.
+
+### Ranked Priority Integrity
+
+- Ranked-priority provenance gate: 11 passed, 0 failed.
+- Guided save, recalculation, and return gate: 14 passed, 0 failed.
+- The round-trip test verified all three user outcomes: the priority changed, the priority did not change, and the priority was resolved or reranked.
+- Ranked priorities now expose user-readable evidence sources without showing raw source keys.
+- Every priority has exactly one primary action and routes to its exact supporting input or saved execution evidence.
+- Missing unsaved inputs remain eligible for improvement routing.
+- The save/return regression uses an intercepted synthetic record and does not write test data to persistent storage.
+- Profile quality gate: 210 passed, 0 failed.
+- Semantic answer-quality gate: 66 passed, 0 failed.
+- Full local intake, report, and asset rendering sweep: 78 passed, 0 failed.
+- Summary claim dependency gate: 9 passed, 0 failed.

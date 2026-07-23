@@ -19,6 +19,16 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Distinguished calculated results, saved inputs, saved evidence, inferences, and recommendations.
 - Added a dependency regression test that changes the same company’s readiness inputs and verifies the calculated score and provenance update together.
 
+## 2026-07-23 Phase 1 Ranked Priority Integrity
+
+- Gave every Ranked Action Plan priority a stable claim ID, status, confidence, source fields, source categories, and exact improvement topic.
+- Replaced broad and repeated improvement buttons with one action per priority: either improve the supporting intake inputs or review the saved execution evidence.
+- Added direct links for each missing revenue-motion and conversion assumption so users land on the exact unanswered field, including fields that do not yet have a saved value.
+- Changed ICP ranking to use the evidence-based customer-priority score instead of the respondent's ICP clarity self-rating.
+- Added return-state feedback that says whether a saved change updated the recommendation, left it unchanged, or resolved and reranked the priority.
+- Restored and highlighted the affected priority after a guided intake round trip.
+- Added ranked-priority provenance and save/recalculate/return regression checks.
+
 ## 2026-07-20 First-Win Segment Question Cleanup
 
 - Reset `New` company navigation to Company Information and clear inherited section, improvement, refresh, and pending-autosave state before the blank intake opens.

@@ -87,9 +87,11 @@ async function inspectScenario(label, data) {
   }
 
   const result = await page.evaluate(() => {
-    const cards = Array.from(document.querySelectorAll("[data-claim-id]"));
+    const summary = document.getElementById("workspaceSummaryCards");
+    const recommendation = document.getElementById("workspaceRecommendation");
+    const cards = Array.from(summary?.querySelectorAll("[data-claim-id]") || []);
     const readiness = document.querySelector('[data-claim-id="summary-readiness"]');
-    const traces = Array.from(document.querySelectorAll("[data-claim-trace]"));
+    const traces = Array.from(recommendation?.querySelectorAll("[data-claim-trace]") || []);
     return {
       score: Number(readiness?.dataset.claimValue || 0),
       cardCount: cards.length,

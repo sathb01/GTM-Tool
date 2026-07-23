@@ -2933,6 +2933,7 @@
     const RECORDS_KEY = `${STORAGE_KEY}:records`;
     const ACTIVE_RECORD_KEY = `${STORAGE_KEY}:activeRecordId`;
     const IMPROVEMENT_FOCUS_KEY = `${STORAGE_KEY}:improvementFocus`;
+    const IMPROVEMENT_RETURN_SNAPSHOT_KEY = `${IMPROVEMENT_FOCUS_KEY}:returnSnapshot`;
     const API_BASE = window.location.protocol.startsWith("http") ? window.location.origin : "";
     let loadedRecordId = "";
 
@@ -5955,9 +5956,17 @@
           fields.push(
             `revenueMotionPortfolio__${motionRowId}__playName`,
             `revenueMotionPortfolio__${motionRowId}__channelSource`,
+            revenueScopedField(motionRowId, "channelPerformance", "currentActivity"),
             revenueScopedField(motionRowId, "nextExperiment", "successMetric"),
             revenueScopedField(motionRowId, "nextExperiment", "reviewCadence")
           );
+          (model.conversionStages || []).forEach((row) => {
+            fields.push(
+              `${revenueScopedTable(motionRowId, "conversionStages")}__${row.rowId}__stageName`,
+              `${revenueScopedTable(motionRowId, "conversionStages")}__${row.rowId}__entryCriteria`,
+              `${revenueScopedTable(motionRowId, "conversionStages")}__${row.rowId}__exitCriteria`
+            );
+          });
         }
       }
       if (/risk|constraint|capacity/.test(text)) {
@@ -6289,6 +6298,7 @@
       if (/buyer|persona|committee|finance|sponsor|champion/.test(text)) return "personas";
       if (/offer|proof|business case|message|claim/.test(text)) return "offer";
       if (/signal|trigger|target/.test(text)) return "signals";
+      if (/90-day revenue goal|numeric revenue goal|growth goal/.test(text)) return "goals";
       if (/motion|pipeline|crm|revenue|activity|conversion|capacity|goal/.test(text)) return "pipeline";
       if (/customer|icp|segment|priority|score/.test(text)) return "quickIcp";
       return "executiveQuickReview";
@@ -6432,6 +6442,18 @@
           fieldIds: focus.fieldIds,
           createdAt: new Date().toISOString()
         }));
+        if (options.claim) {
+          localStorage.setItem(IMPROVEMENT_RETURN_SNAPSHOT_KEY, JSON.stringify({
+            recordId: activeReportRecordId(),
+            claimId: options.claim.id,
+            label: options.claim.label,
+            value: options.claim.value,
+            returnSectionId: options.returnSectionId || "",
+            createdAt: new Date().toISOString()
+          }));
+        } else {
+          localStorage.removeItem(IMPROVEMENT_RETURN_SNAPSHOT_KEY);
+        }
       });
       return link;
     }
@@ -7429,10 +7451,98 @@
       return "Tier 3 / Supporting system";
     }
 
+    function rankedPrioritySourceFields(category, model) {
+      const text = String(category || "").toLowerCase();
+      const data = model.data;
+      const offerRowId = model.primaryOffer?.rowId;
+      const motionRowId = model.revenueMotion?.rowId;
+      if (/execution evidence/.test(text)) {
+        return ["weeklyReviewWorkspace", "evidenceReconciliationWorkspace", "activePlanWeeklyWorkspace"];
+      }
+      if (/revenue motion/.test(text)) {
+        return summaryClaimSourceFields("revenue motion pipeline", model);
+      }
+      if (/icp/.test(text)) {
+        return summaryClaimSourceFields("customer icp priority", model);
+      }
+      if (/proof/.test(text)) {
+        const fields = summaryClaimSourceFields("offer proof", model);
+        if (offerRowId) {
+          model.proofRows.forEach((row) => {
+            ["claim", "proofType", "assetExists", "assetSource", "gapNextAction"].forEach((fieldId) => {
+              fields.push(`${scopedOfferTable(offerRowId, "proofReadiness")}__${row.rowId}__${fieldId}`);
+            });
+          });
+        }
+        return [...new Set(fields)];
+      }
+      if (/crm|data quality/.test(text)) {
+        return ["revenueTrackingSystem", "revenueDataQuality", "revenueReportingCadence", "revenueInfrastructureNotes", "primaryRevenueOwner", "pipelineReviewOwner"];
+      }
+      if (/activity capacity/.test(text)) {
+        return ["sellingCapacity", "weeklyRevenueHours", "capacityNotes", "primaryRevenueOwner"];
+      }
+      if (/conversion assumptions/.test(text)) {
+        const fields = [
+          "goal90RevenueTarget",
+          "quick90DayRevenueTarget",
+          "averageDealSize",
+          "averageExpectedDealSize",
+          "closeRate",
+          "opportunityToMeetingConversion",
+          "meetingRateFromActivity",
+          "followUpTouchesPerOpportunity",
+          "sellingCapacity",
+          "weeklyRevenueHours"
+        ];
+        if (motionRowId) {
+          fields.push(revenueScopedField(motionRowId, "pipelineMetrics", "averageDealSize"));
+          model.conversionStages.forEach((row) => {
+            fields.push(`${revenueScopedTable(motionRowId, "conversionStages")}__${row.rowId}__currentConversion`);
+          });
+        }
+        if (offerRowId) fields.push(scopedOfferField(offerRowId, "averageExpectedDealSize"));
+        return [...new Set(fields.filter(Boolean))];
+      }
+      if (/offer/.test(text)) {
+        return summaryClaimSourceFields("offer proof", model);
+      }
+      return summaryClaimSourceFields(category, model);
+    }
+
     function addRevenueImpactPriority(priorities, model, item) {
       if (!item || !item.priority || !item.whyItMatters || !item.drivers || !item.recommendedAction) {
         return;
       }
+      const category = item.category || item.priority;
+      const improvementTopic = item.improvementTopic || immediateActionTopic(`${category} ${item.priority} ${item.recommendedAction}`);
+      const sourceFields = item.sourceFields?.length
+        ? item.sourceFields
+        : rankedPrioritySourceFields(category, model);
+      const claimId = `ranked-${String(category || item.priority)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || "priority"}`;
+      const claim = outputClaim({
+        id: claimId,
+        label: item.priority,
+        value: item.recommendedAction,
+        status: "Recommendation",
+        confidence: item.confidence || "Medium",
+        sources: [
+          {
+            label: "Current intake and plan evidence",
+            detail: item.drivers,
+            fields: sourceFields
+          },
+          {
+            label: "Priority logic",
+            detail: item.whyItMatters
+          }
+        ],
+        sourceFields,
+        improvementTopic
+      });
       priorities.push({
         category: item.category || item.priority,
         priority: item.priority,
@@ -7448,8 +7558,30 @@
         blocksOthers: Boolean(item.blocksOthers),
         shortTimeToAction: item.shortTimeToAction !== false,
         connectedTo90DayGoal: Boolean(item.connectedTo90DayGoal),
+        improvementAsset: item.improvementAsset || (/execution evidence/i.test(category) ? "weekly-review" : ""),
+        claim,
         score: 0
       });
+    }
+
+    function priorityImprovementFocus(priority) {
+      const missing = priority.missingOperatingElements?.length
+        ? priority.missingOperatingElements.map((item) => item.label)
+        : priority.missingInputs?.length
+          ? priority.missingInputs
+          : ["Confirm the source answers supporting this priority", "Add evidence where the current answer is still an assumption"];
+      return {
+        area: priority.priority,
+        why: priority.whyItMatters,
+        missing,
+        questions: [
+          "Are the source answers below still accurate?",
+          "Which answer needs to become more specific, measurable, or evidence-based?",
+          "After revising the source answer, should this priority remain in the same position?"
+        ],
+        example: priority.recommendedAction,
+        fieldIds: priority.claim?.sourceFields || []
+      };
     }
 
     function targetListGuidance(model) {
@@ -7521,7 +7653,11 @@
       const missingOperatingElements = Object.entries(operatingCoverage)
         .filter(([, complete]) => !complete)
         .map(([part]) => operatingElementDetails[part]);
-      const missingMotionParts = missingOperatingElements.map((item) => item.label.toLowerCase());
+      const missingMotionParts = missingOperatingElements.map((item) => (
+        item.label.startsWith("CRM")
+          ? `CRM${item.label.slice(3).toLowerCase()}`
+          : item.label.toLowerCase()
+      ));
       const completedRevenueRemediation = ["q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14"]
         .every((key) => Boolean(cleanText(savedRevenueFacilitation[key])));
       if (executionFeedback.state === "Challenged") {
@@ -7563,13 +7699,13 @@
       }
 
       const priorityGroupExists = Boolean(model.priorityGroup?.values.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer);
-      if (priorityGroupExists && choiceScore(data.icpClarity) < 3) {
+      if (priorityGroupExists && Number(model.readinessDiagnostic?.customerPriorityScore || 0) < 70) {
         addRevenueImpactPriority(priorities, model, {
           category: "ICP Focus",
           priority: "ICP focus",
           impact: "High",
           whyItMatters: "A narrower ICP improves targeting, messaging, proof, and sales efficiency.",
-          drivers: "A priority customer group exists, but ICP clarity is still weak.",
+          drivers: `A priority customer group exists, but its evidence-based customer priority score is ${model.readinessDiagnostic?.customerPriorityScore || 0}/100.`,
           recommendedAction: `Build a ${targetList.label} and validate it through outreach or customer interviews. ${targetList.reason}`,
           confidence: "Medium",
           blocksOthers: true,
@@ -7646,6 +7782,28 @@
 
       if (activity.missingInputs.length || !activity.totals) {
         const missingOperatingInputs = activity.missingInputs.filter((item) => !["Numeric 90-day revenue goal", "Average deal size"].includes(item));
+        const missingOperatingElements = activity.missingInputs.map((label) => {
+          const normalized = String(label || "").toLowerCase();
+          if (/90-day revenue goal/.test(normalized)) {
+            return { label, topic: "Numeric 90-day revenue goal" };
+          }
+          if (/average deal size/.test(normalized)) {
+            return { label, topic: "Average deal size" };
+          }
+          if (/close rate/.test(normalized)) {
+            return { label, topic: "Actual close rate" };
+          }
+          if (/meeting-to-opportunity/.test(normalized)) {
+            return { label, topic: "Meeting-to-opportunity conversion" };
+          }
+          if (/activity-to-meeting/.test(normalized)) {
+            return { label, topic: "Activity-to-meeting conversion" };
+          }
+          if (/capacity|weekly revenue hours/.test(normalized)) {
+            return { label, topic: "Weekly revenue activity capacity" };
+          }
+          return { label, topic: label };
+        });
         const operatingAction = !activity.revenueGoal.value || !activity.averageDealSize.value
           ? `Add ${activity.missingInputs.join(", ").toLowerCase()}.`
           : missingOperatingInputs.length
@@ -7660,7 +7818,8 @@
           recommendedAction: operatingAction,
           confidence: "High",
           blocksOthers: true,
-          connectedTo90DayGoal: true
+          connectedTo90DayGoal: true,
+          missingOperatingElements
         });
       }
 
@@ -7786,14 +7945,6 @@
         <p><strong>${escapeHtml(area.exampleLabel || "Example of a stronger answer")}:</strong> ${escapeHtml(area.example)}</p>
         <p><strong>How this improves GTM Intelligence OS:</strong> ${escapeHtml(area.improves)}</p>
       `;
-      const actions = document.createElement("div");
-      const improveButton = document.createElement("button");
-      actions.className = "card-actions no-print";
-      improveButton.type = "button";
-      improveButton.textContent = "Improve This Section";
-      improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(area.area), improveButton, area.area));
-      actions.appendChild(improveButton);
-      block.appendChild(actions);
       container.appendChild(block);
     }
 
@@ -7823,16 +7974,7 @@
         <p><strong>Timing:</strong> ${escapeHtml(recommendation.timing)}</p>
         <p><strong>Success measure:</strong> ${escapeHtml(recommendation.successMeasure)}</p>
       `;
-      if (recommendation.needsImprovement) {
-        const actions = document.createElement("div");
-        const improveButton = document.createElement("button");
-        actions.className = "card-actions no-print";
-        improveButton.type = "button";
-        improveButton.textContent = "Improve This Section";
-        improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(`${recommendation.category} ${recommendation.title}`), improveButton, recommendation.title));
-        actions.appendChild(improveButton);
-        block.appendChild(actions);
-      } else {
+      if (!recommendation.needsImprovement) {
         const status = document.createElement("p");
         status.className = "decision-meta";
         status.innerHTML = "<strong>Status:</strong> No specific improvement is recommended at this time. Use this as execution guidance.";
@@ -7852,14 +7994,6 @@
           <ul>${section.lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
         `).join("")}
       `;
-      const actions = document.createElement("div");
-      const improveButton = document.createElement("button");
-      actions.className = "card-actions no-print";
-      improveButton.type = "button";
-      improveButton.textContent = "Improve This Section";
-      improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(asset.title), improveButton, asset.title));
-      actions.appendChild(improveButton);
-      block.appendChild(actions);
       container.appendChild(block);
     }
 
@@ -7874,14 +8008,6 @@
         <p><strong>Success measure:</strong> ${escapeHtml(plan.successMeasure)}</p>
         <p><strong>Time box:</strong> ${escapeHtml(plan.timeBox)}</p>
       `;
-      const actions = document.createElement("div");
-      const improveButton = document.createElement("button");
-      actions.className = "card-actions no-print";
-      improveButton.type = "button";
-      improveButton.textContent = "Improve This Section";
-      improveButton.addEventListener("click", () => openFacilitation(facilitationTypeForText(plan.title), improveButton, plan.title));
-      actions.appendChild(improveButton);
-      block.appendChild(actions);
       container.appendChild(block);
     }
 
@@ -7929,6 +8055,11 @@
         const item = document.createElement("article");
         item.className = "revenue-impact-item avoid-break";
         item.id = `action-plan-${index + 1}`;
+        item.dataset.claimId = priority.claim.id;
+        item.dataset.claimStatus = priority.claim.status;
+        item.dataset.claimConfidence = priority.claim.confidence;
+        item.dataset.claimValue = priority.claim.value;
+        item.dataset.claimSourceFields = priority.claim.sourceFields.join("|");
         const heading = document.createElement("h3");
         const action = document.createElement("p");
         const details = document.createElement("details");
@@ -7949,7 +8080,9 @@
             missingItem.appendChild(createReviewLink(element.label, element.topic, {
               sameTab: true,
               returnSectionId: item.id,
-              task: `Complete ${element.label}`
+              task: `Complete ${element.label}`,
+              focus: priorityImprovementFocus(priority),
+              claim: priority.claim
             }));
             missingList.appendChild(missingItem);
           });
@@ -7976,6 +8109,26 @@
         body.appendChild(why);
         body.appendChild(drivers);
         if (priority.missingInputs.length) body.appendChild(prerequisites);
+        const traceTemplate = document.createElement("template");
+        traceTemplate.innerHTML = claimTraceMarkup(priority.claim);
+        body.appendChild(traceTemplate.content);
+        if (priority.improvementAsset) {
+          const actions = document.createElement("div");
+          const link = document.createElement("a");
+          actions.className = "card-actions no-print";
+          link.href = reportAssetUrl(priority.improvementAsset);
+          link.textContent = priority.improvementAsset === "weekly-review" ? "Review Execution Evidence" : "Work on This Priority";
+          actions.appendChild(link);
+          body.appendChild(actions);
+        } else {
+          appendReviewLink(body, "Improve This Priority", priority.claim.improvementTopic, {
+            sameTab: true,
+            returnSectionId: item.id,
+            task: `Improve ${priority.priority}`,
+            focus: priorityImprovementFocus(priority),
+            claim: priority.claim
+          });
+        }
         matchingRemediation.forEach((area) => {
           usedRemediationAreas.add(area.area);
           appendInlineRemediation(body, area);
@@ -8471,19 +8624,58 @@
       const resumeY = resumeValue === null ? Number.NaN : Number(resumeValue);
       const saved = params.get("improvement") === "saved";
       const improved = params.get("improved") || "This section";
-      const target = window.location.hash ? document.getElementById(decodeURIComponent(window.location.hash.slice(1))) : null;
+      const hashTarget = window.location.hash ? document.getElementById(decodeURIComponent(window.location.hash.slice(1))) : null;
+      let snapshot = null;
+      try {
+        snapshot = JSON.parse(localStorage.getItem(IMPROVEMENT_RETURN_SNAPSHOT_KEY) || "null");
+      } catch (error) {
+        localStorage.removeItem(IMPROVEMENT_RETURN_SNAPSHOT_KEY);
+      }
+      if (snapshot?.recordId && snapshot.recordId !== activeReportRecordId()) {
+        snapshot = null;
+      }
+      const claimTarget = snapshot?.claimId
+        ? document.querySelector(`[data-claim-id="${CSS.escape(snapshot.claimId)}"]`)
+        : null;
+      const resolvedOrReranked = Boolean(saved && snapshot?.claimId && !claimTarget);
+      const target = claimTarget
+        || (resolvedOrReranked ? document.getElementById("revenueImpactPriorities") : null)
+        || hashTarget;
+      const currentClaimValue = claimTarget?.dataset.claimValue || "";
+      const claimChanged = Boolean(saved && snapshot?.claimId && currentClaimValue && currentClaimValue !== snapshot.value);
+      const shortValue = (value) => {
+        const text = String(value || "").trim();
+        return text.length > 180 ? `${text.slice(0, 177)}...` : text;
+      };
 
       if (saved && !document.getElementById("improvementReturnNotice")) {
         const header = document.querySelector("main > header");
         const notice = document.createElement("div");
         notice.id = "improvementReturnNotice";
         notice.className = "improvement-return-notice no-print";
-        notice.innerHTML = `<strong>Changes saved and the plan has been updated.</strong><span>${escapeHtml(improved)}</span>`;
+        if (snapshot?.claimId) {
+          if (resolvedOrReranked) {
+            notice.innerHTML = `<strong>Changes saved and the previous priority was resolved or reranked.</strong><span>${escapeHtml(snapshot.label || improved)} is no longer returned as the same ranked priority. Review the updated list below.</span>`;
+          } else {
+            notice.innerHTML = claimChanged
+              ? `<strong>Changes saved and this priority was updated.</strong><span><strong>Before:</strong> ${escapeHtml(shortValue(snapshot.value))}<br><strong>Now:</strong> ${escapeHtml(shortValue(currentClaimValue))}</span>`
+              : `<strong>Changes saved. This priority is unchanged.</strong><span>The priority remains in the ranked plan because the current source evidence continues to support it: ${escapeHtml(snapshot.label || improved)}.</span>`;
+          }
+        } else {
+          notice.innerHTML = `<strong>Changes saved and the plan has been updated.</strong><span>${escapeHtml(improved)}</span>`;
+        }
         header?.insertAdjacentElement("afterend", notice);
       }
-      if (target) target.classList.add("improvement-return-highlight");
-      if (Number.isFinite(resumeY)) {
+      if (target) {
+        target.classList.add("improvement-return-highlight");
+        const details = target.matches("details") ? target : target.querySelector("details");
+        if (details) details.open = true;
+        window.__improvementReturnTargetId = target.id || "";
+      } else if (Number.isFinite(resumeY)) {
         window.__improvementResumeY = resumeY;
+      }
+      if (snapshot && (saved || window.location.pathname.endsWith("results.html"))) {
+        localStorage.removeItem(IMPROVEMENT_RETURN_SNAPSHOT_KEY);
       }
       if (saved || Number.isFinite(resumeY)) {
         const cleanUrl = new URL(window.location.href);
@@ -8495,6 +8687,15 @@
     }
 
     function finalizeImprovementReturnPosition() {
+      const targetId = String(window.__improvementReturnTargetId || "");
+      if (targetId) {
+        window.requestAnimationFrame(() => {
+          document.getElementById(targetId)?.scrollIntoView({ block: "start", behavior: "auto" });
+          delete window.__improvementReturnTargetId;
+          delete window.__improvementResumeY;
+        });
+        return;
+      }
       const resumeY = Number(window.__improvementResumeY);
       if (!Number.isFinite(resumeY)) return;
       window.requestAnimationFrame(() => {
