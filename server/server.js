@@ -457,6 +457,7 @@ async function handleAssistant(request, response, url) {
     : {};
   const recordContext = fieldContext ? fieldRecordContext : compactAssistantRecord(savedRecordData);
   const answerMode = String(fieldContext?.answerMode || "");
+  const requestType = String(fieldContext?.requestType || "recommend");
   const prompt = [
     `Workspace: ${String(body.workspace || "GTM Intelligence OS").slice(0, 80)}`,
     `Current section or asset: ${String(body.section || "Not specified").slice(0, 160)}`,
@@ -487,7 +488,9 @@ async function handleAssistant(request, response, url) {
         ? "For this explanation-only field, explain what information the respondent should provide. Do not propose or infer private facts and do not write an answer on the respondent's behalf."
         : "",
       fieldContext && answerMode !== "ask_directly"
-        ? "For this field-assist request, return only the proposed field answer in one to three concise sentences. Do not add a heading, bullets, explanation, quotation marks, or preamble. When options are supplied, return exactly one supplied option and no other text."
+        ? requestType === "review"
+          ? "Review only against the supplied criteria and relevant context. Identify broad, internally inconsistent, unsupported, or unmeasurable wording conservatively. Do not infer a contradiction from missing information. Return only valid JSON with this shape: {\"assessment\":\"One concise explanation of what to improve, or why the answer is already strong.\",\"answer\":\"A stronger field answer.\"}. When options are supplied, answer must be exactly one supplied option."
+          : "For this field-assist request, return only the proposed field answer in one to three concise sentences. Do not add a heading, bullets, explanation, quotation marks, or preamble. When options are supplied, return exactly one supplied option and no other text."
         : ""
     ].join(" "),
     input: prompt,
@@ -521,12 +524,23 @@ async function handleAssistant(request, response, url) {
   }
 
   const responseJson = JSON.parse(raw);
-  const answer = extractResponseText(responseJson).trim();
+  const responseText = extractResponseText(responseJson).trim();
+  let assessment = "";
+  let answer = responseText;
+  if (fieldContext && requestType === "review") {
+    try {
+      const reviewed = parseJsonFromText(responseText);
+      assessment = String(reviewed.assessment || "").trim().slice(0, 700);
+      answer = String(reviewed.answer || "").trim();
+    } catch {
+      answer = responseText;
+    }
+  }
   if (!answer) {
     sendJson(response, 502, { error: "AI help did not return a usable answer. Try again." });
     return true;
   }
-  sendJson(response, 200, { answer, model: openAiModel });
+  sendJson(response, 200, { answer, assessment, model: openAiModel });
   return true;
 }
 

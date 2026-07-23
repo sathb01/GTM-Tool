@@ -655,3 +655,13 @@ https://gtm-tool-1mib.onrender.com/login
   - senior/delegate triggers into Lead Sources, Pipeline, and Sales Motion
   - avoid segments into Quick Response Ideal Customer Profile
 - Results now use four scorecard categories, show Quick score confidence, show an Executive Quick Summary, list Top Recommended Actions, and suggest Detail Needed to Improve Confidence.
+## 2026-07-23 - Phase 2 answer review and proof coaching
+
+- Added field-specific review criteria for customer, problem, urgency, offer, measurement, proof, first-win rationale, channel, motion, goal, constraint, and focus answers.
+- Added `Review current answer` beside supported populated fields.
+- Reviews return a concise assessment and proposed revision without changing the saved answer.
+- Kept `Use this answer` as the required approval step before any reviewed answer is written.
+- Added guided problem, offer, success-measure, and proof coaching.
+- Added proof assistance for both proven post-revenue outcomes and pre-revenue credibility cues.
+- Added safe AI write-back for the existing multi-select dropdown controls using only schema-approved options.
+- Expanded Phase 2 regression coverage to 42 focused checks plus four-company context isolation and the full profile, semantic, route, and asset suites.

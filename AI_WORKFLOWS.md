@@ -8,6 +8,14 @@ Contextual intake and recommendation help is available through the explicit `Fin
 
 High-friction intake questions also provide point-of-answer assistance. Each supported field is classified in `tool/intake-schema.js` with an answer mode, context dependencies, evidence restriction, follow-up rules, and task-specific prompt.
 
+The five opportunity modes are implemented across the intake:
+
+- `Ask Directly`: explains private or unpublished questions without proposing facts.
+- `Recommend From Existing Answers`: proposes a company-specific answer from declared saved context.
+- `Research and Propose`: uses reviewed public sources, citations, confidence, and explicit field selection in Company Information.
+- `Adaptive Coaching`: asks a short set of relevant follow-ups for broad or uncertain answers before proposing a revision.
+- `Derive Silently and Show for Confirmation`: carries deterministic recommendations into guided controls without asking the user to retype earlier answers.
+
 ## Reviewed Company Research
 
 The Company Information workflow uses:
@@ -44,7 +52,11 @@ Behavior:
 - Shows `Use this answer` only for reviewable recommendations. Questions about unpublished facts use explanation-only help without AI write-back.
 - Select fields require the model to return exactly one available option.
 - Adaptive customer and urgency questions collect a short set of relevant follow-up answers before requesting a revised recommendation.
+- Adaptive problem, offer, measurement, and proof questions collect only the details needed for that decision.
 - Supported `Not sure yet` selections open a three-question narrowing path for revenue source, sales motion, 90-day goal, and GTM constraint.
+- Answered fields with review criteria show `Review current answer`. The review checks specificity, consistency, evidence language, and measurability only against that field's declared context.
+- Reviews explain what could improve and show a proposed revision without changing the saved answer.
+- Proof recommendations support the existing multi-select controls and can only return allowed proof or outcome choices.
 - Follow-up answers are sent only after the user selects `Build our recommendation`.
 - Keeps `OPENAI_API_KEY` on the server and defaults to `gpt-4.1-mini` unless `OPENAI_MODEL` is set.
 - Excludes contact and credential fields, caps context and output size, and applies an hourly per-network request limit.

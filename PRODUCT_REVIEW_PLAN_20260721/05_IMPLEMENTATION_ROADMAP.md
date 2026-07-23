@@ -80,6 +80,16 @@
 - Recommended answers are visible where the user chooses them.
 - Completion time and vague-answer rate improve in moderated tests.
 
+### Implementation Status - July 23, 2026
+
+- The five opportunity modes are represented across field assistance, reviewed company research, and deterministic recommendation controls.
+- Customer, problem, urgency, offer, measurement, proof, first-win rationale, channel, motion, goal, and constraint decisions have schema-declared context and safety rules.
+- Broad customer, problem, offer, measurement, urgency, and proof answers use guided follow-ups.
+- Supported uncertain selections use a three-question narrowing path.
+- Answer reviews explain broad, inconsistent, unsupported, or unmeasurable wording and require explicit approval before saving a revision.
+- Automated safety, context-isolation, persistence, semantic, profile, route, and asset gates pass locally.
+- The final completion-time and vague-answer-rate exit criterion requires moderated alpha sessions and remains a product validation measure rather than an automated code gate.
+
 ## Phase 3: Decision-Oriented Plans and Assets
 
 **Order:** Fourth
@@ -149,4 +159,3 @@
 3. Bump frontend asset markers before deployed validation.
 4. Verify the deployed marker before running Render tests.
 5. Archive results by date without storing real customer data.
-

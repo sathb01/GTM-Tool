@@ -84,6 +84,20 @@
   }
 
   function setFieldValue(fieldId, proposedValue) {
+    const multiControl = document.querySelector(`[data-multi-select-dropdown="true"][data-field-name="${CSS.escape(fieldId)}"]`);
+    if (multiControl) {
+      const value = String(proposedValue || "").trim();
+      if (!value) return false;
+      multiControl.value = value;
+      try {
+        formStateData[fieldId] = multiControl.value;
+      } catch {
+        // The rendered multi-select still receives the selection.
+      }
+      multiControl.dispatchEvent(new Event("input", { bubbles: true }));
+      multiControl.dispatchEvent(new Event("change", { bubbles: true }));
+      return Boolean(multiControl.value);
+    }
     const value = mappedValue(fieldId, proposedValue);
     if (!value) return false;
     try {
@@ -184,8 +198,10 @@
     document.querySelectorAll("[data-field-id]").forEach((wrapper) => {
       const fieldId = wrapper.dataset.fieldId;
       if (!assistedFields.has(fieldId) || wrapper.querySelector(".ai-field-help")) return;
-      const control = wrapper.querySelector(`[name="${CSS.escape(fieldId)}"]`);
-      if (!control || !["INPUT", "TEXTAREA", "SELECT"].includes(control.tagName)) return;
+      const control = wrapper.querySelector(`[name="${CSS.escape(fieldId)}"]`)
+        || wrapper.querySelector(`[data-multi-select-dropdown="true"][data-field-name="${CSS.escape(fieldId)}"]`);
+      const isMultiSelect = control?.dataset.multiSelectDropdown === "true";
+      if (!control || (!isMultiSelect && !["INPUT", "TEXTAREA", "SELECT"].includes(control.tagName))) return;
       const config = assistanceConfig[fieldId] || {};
       const isCustomerContext = fieldId === "customerContextStarter";
       const isAskDirectly = config.mode === "ask_directly";
@@ -206,19 +222,32 @@
       const help = document.createElement("div");
       help.className = "ai-field-help";
       help.dataset.aiMode = config.mode || "recommend_from_existing_answers";
-      help.innerHTML = `<button type="button" class="ai-field-help-button">${helpButtonLabel()}</button><span class="ai-field-status" aria-live="polite"></span><div class="ai-field-coaching" hidden><strong>${isUncertain() ? "A few questions to narrow this down" : "Add the details that matter"}</strong><div class="ai-field-coaching-questions"></div><div class="ai-field-suggestion-actions"><button type="button" data-build-ai-field>Build our recommendation</button><button type="button" class="secondary" data-cancel-ai-coaching>Cancel</button></div></div><div class="ai-field-suggestion" hidden><strong>${isAskDirectly ? "How to answer" : "Our recommendation"}</strong><p></p><div class="ai-field-suggestion-actions"><button type="button" data-use-ai-field${isAskDirectly ? " hidden" : ""}>Use this answer</button><button type="button" class="secondary" data-dismiss-ai-field>Dismiss</button></div></div>`;
+      help.innerHTML = `<div class="ai-field-help-actions"><button type="button" class="ai-field-help-button">${helpButtonLabel()}</button><button type="button" class="ai-field-help-button" data-review-ai-field${isAskDirectly || !config.reviewCriteria?.length || !String(control.value || "").trim() ? " hidden" : ""}>Review current answer</button></div><span class="ai-field-status" aria-live="polite"></span><div class="ai-field-coaching" hidden><strong>${isUncertain() ? "A few questions to narrow this down" : "Add the details that matter"}</strong><div class="ai-field-coaching-questions"></div><div class="ai-field-suggestion-actions"><button type="button" data-build-ai-field>Build our recommendation</button><button type="button" class="secondary" data-cancel-ai-coaching>Cancel</button></div></div><div class="ai-field-suggestion" hidden><strong data-ai-suggestion-title>${isAskDirectly ? "How to answer" : "Our recommendation"}</strong><div class="ai-field-review-note" data-ai-review-note hidden></div><p></p><div class="ai-field-suggestion-actions"><button type="button" data-use-ai-field${isAskDirectly ? " hidden" : ""}>Use this answer</button><button type="button" class="secondary" data-dismiss-ai-field>Dismiss</button></div></div>`;
       wrapper.appendChild(help);
       const fieldStatus = help.querySelector(".ai-field-status");
       const helpButton = help.querySelector(".ai-field-help-button");
+      const reviewButton = help.querySelector("[data-review-ai-field]");
       const coaching = help.querySelector(".ai-field-coaching");
       const coachingQuestions = help.querySelector(".ai-field-coaching-questions");
       const suggestion = help.querySelector(".ai-field-suggestion");
       const suggestionText = suggestion.querySelector("p");
+      const suggestionTitle = suggestion.querySelector("[data-ai-suggestion-title]");
+      const reviewNote = suggestion.querySelector("[data-ai-review-note]");
 
-      const requestRecommendation = async (followUpAnswers = []) => {
-        fieldStatus.textContent = isAskDirectly ? "Explaining what belongs here..." : "Building a recommendation from this company's current intake...";
+      const requestRecommendation = async (followUpAnswers = [], requestType = "recommend") => {
+        const reviewing = requestType === "review";
+        fieldStatus.textContent = reviewing
+          ? "Reviewing this answer against the related intake context..."
+          : isAskDirectly
+            ? "Explaining what belongs here..."
+            : "Building a recommendation from this company's current intake...";
         suggestion.hidden = true;
-        const options = control.tagName === "SELECT" ? Array.from(control.options).map((option) => option.textContent.trim()).filter(Boolean) : [];
+        const renderedOptions = control.tagName === "SELECT"
+          ? Array.from(control.options).map((option) => option.textContent.trim()).filter(Boolean)
+          : isMultiSelect
+            ? Array.from(control.querySelectorAll('.multi-select-dropdown-panel input[type="checkbox"]')).map((option) => option.value).filter(Boolean)
+            : [];
+        const options = renderedOptions.length ? renderedOptions : Array.isArray(config.answerOptions) ? config.answerOptions : [];
         const data = currentData();
         const contextFields = Array.from(new Set(["companyName", "toolMode", ...(config.contextDependencies || [])]));
         const relevantContext = Object.fromEntries(contextFields
@@ -231,10 +260,10 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               question: isCustomerContext
-                ? `${config.prompt} ${config.evidenceRestriction}`
+                ? `${reviewing ? "Review and strengthen the current answer." : config.prompt} ${config.evidenceRestriction}`
                 : isAskDirectly
                   ? `${config.prompt} ${config.evidenceRestriction}`
-                  : `${config.prompt} ${config.evidenceRestriction} Return one concise answer${options.length ? " using exactly one of the supplied options" : ""}.`,
+                  : `${reviewing ? "Review the current answer for specificity, consistency, and usefulness, then propose a stronger answer." : config.prompt} ${config.evidenceRestriction} Return one concise answer${options.length ? " using exactly one of the supplied options" : ""}.`,
               recordId: currentRecordId(),
               workspace: "GTM Intelligence OS Intake",
               section: document.querySelector("#sections h2")?.textContent?.trim() || "Current intake section",
@@ -245,9 +274,11 @@
                 currentValue: control.value,
                 options,
                 answerMode: config.mode,
+                requestType,
                 contextDependencies: config.contextDependencies || [],
                 evidenceRestriction: config.evidenceRestriction || "",
-                followUpRules: config.followUpRules || []
+                followUpRules: config.followUpRules || [],
+                reviewCriteria: config.reviewCriteria || []
               }
             })
           });
@@ -256,12 +287,19 @@
           const proposedAnswer = String(payload.answer || "").trim();
           if (!proposedAnswer) throw new Error("AI help did not return a usable answer. Try again.");
           suggestion.dataset.proposedAnswer = proposedAnswer;
+          suggestion.dataset.requestType = requestType;
+          suggestionTitle.textContent = reviewing ? "Suggested improvement" : isAskDirectly ? "How to answer" : "Our recommendation";
+          const assessment = String(payload.assessment || "").trim();
+          reviewNote.textContent = assessment;
+          reviewNote.hidden = !reviewing || !assessment;
           suggestionText.textContent = proposedAnswer;
           coaching.hidden = true;
           suggestion.hidden = false;
           fieldStatus.textContent = isAskDirectly
             ? "Guidance ready. Your answer has not been changed."
-            : "Recommendation ready. Review it before using it.";
+            : reviewing
+              ? "Review complete. Your current answer has not been changed."
+              : "Recommendation ready. Review it before using it.";
         } catch (error) {
           fieldStatus.textContent = `${error.message} Your current answer has not been changed.`;
         }
@@ -285,6 +323,13 @@
           return;
         }
         await requestRecommendation();
+      });
+      reviewButton.addEventListener("click", async () => {
+        if (!String(control.value || "").trim()) {
+          fieldStatus.textContent = "Add an answer first, then review it.";
+          return;
+        }
+        await requestRecommendation([], "review");
       });
       help.querySelector("[data-build-ai-field]").addEventListener("click", async () => {
         const answers = Array.from(coaching.querySelectorAll("[data-ai-follow-up]"))
@@ -341,9 +386,13 @@
         suggestion.hidden = true;
         fieldStatus.textContent = "Suggestion dismissed.";
       });
-      control.addEventListener("change", () => {
+      const refreshActions = () => {
         helpButton.textContent = helpButtonLabel();
-      });
+        reviewButton.hidden = isAskDirectly || !config.reviewCriteria?.length || !String(control.value || "").trim();
+      };
+      control.addEventListener("input", refreshActions);
+      control.addEventListener("change", refreshActions);
+      [0, 250, 1000, 2500].forEach((delay) => window.setTimeout(refreshActions, delay));
     });
   }
 

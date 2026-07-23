@@ -153,3 +153,18 @@ These are not yet all confirmed defects. They have been separated from harness a
 - Authenticated Render adaptive workflow gate: 28 passed, 0 failed.
 - Authenticated Render four-company AI context-isolation gate: 8 passed, 0 failed.
 - Authenticated Render four-company route and asset sweep: 78 passed, 0 failed.
+
+### Answer Review and Proof Coaching
+
+- Expanded Phase 2 workflow gate: 42 passed, 0 failed locally.
+- Populated supported fields now expose a separate answer-review action.
+- Reviews show a concise reason and proposed revision while preserving the original answer until explicit approval.
+- Adaptive coaching now covers broad customer, problem, urgency, offer, measurement, and proof answers.
+- Post-revenue proven outcomes and pre-revenue credibility cues support the existing multi-select controls.
+- Multi-select AI write-back is limited to schema-approved options and is tested through an intercepted record save.
+- Four-company AI context-isolation gate: 8 passed, 0 failed locally.
+- Full four-company route and asset sweep: 78 passed, 0 failed locally.
+- Profile quality gate: 210 passed, 0 failed locally.
+- Semantic answer-quality gate: 66 passed, 0 failed locally.
+- Post-revenue section deep-link gate: 9 passed, 0 failed locally.
+- Live authenticated checks remain pending deployment.

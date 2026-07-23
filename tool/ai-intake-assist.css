@@ -137,12 +137,24 @@
   padding: 2px 0;
 }
 
+.ai-field-help-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
 .ai-field-suggestion {
   background: #fff7f3;
   border-left: 4px solid var(--accent, #ff7a59);
   display: grid;
   gap: 9px;
   padding: 12px;
+}
+
+.ai-field-review-note {
+  color: var(--text, #17212b);
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .ai-field-coaching {

@@ -38,7 +38,7 @@ try {
     await page.waitForFunction((id) => Boolean(document.querySelector(`[name="${id}"]`)?.value), fieldId, { timeout: 15000 });
     const field = page.locator(`[data-field-id="${fieldId}"]`);
     const before = await field.locator(`[name="${fieldId}"]`).inputValue();
-    await field.locator(".ai-field-help-button").click();
+    await field.locator(".ai-field-help-button:not([data-review-ai-field])").click();
     await field.locator(".ai-field-suggestion").waitFor({ state: "visible" });
     const after = await field.locator(`[name="${fieldId}"]`).inputValue();
     const request = requests[0];
