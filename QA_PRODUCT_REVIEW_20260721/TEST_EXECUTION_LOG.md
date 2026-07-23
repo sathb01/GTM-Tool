@@ -149,3 +149,7 @@ These are not yet all confirmed defects. They have been separated from harness a
 - The selected recommendation saves only after explicit approval; the persistence test intercepts the record write and does not modify a QA company.
 - All four company types received only their own relevant saved context.
 - Full four-company route and asset sweep: 78 passed, 0 failed.
+- Adaptive coaching release commit: `9bbb20b`.
+- Authenticated Render adaptive workflow gate: 28 passed, 0 failed.
+- Authenticated Render four-company AI context-isolation gate: 8 passed, 0 failed.
+- Authenticated Render four-company route and asset sweep: 78 passed, 0 failed.
