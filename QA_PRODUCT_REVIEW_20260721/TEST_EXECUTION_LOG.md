@@ -138,3 +138,14 @@ These are not yet all confirmed defects. They have been separated from harness a
 - Authenticated Render AI classification and safety gate: 19 passed, 0 failed.
 - Authenticated Render four-company route and asset sweep: 78 passed, 0 failed.
 - The live gate waits for saved-record hydration before testing that an AI recommendation leaves the current field unchanged.
+
+### Adaptive Coaching and Uncertainty Paths
+
+- Expanded schema and workflow gate: 28 passed, 0 failed.
+- Four-company AI context-isolation gate: 8 passed, 0 failed.
+- Adaptive customer and urgency coaching shows three targeted questions before making an AI request.
+- `Not sure yet` paths narrow revenue source, sales motion, 90-day goal, and GTM constraint.
+- At least one follow-up answer is required before AI generates a recommendation.
+- The selected recommendation saves only after explicit approval; the persistence test intercepts the record write and does not modify a QA company.
+- All four company types received only their own relevant saved context.
+- Full four-company route and asset sweep: 78 passed, 0 failed.

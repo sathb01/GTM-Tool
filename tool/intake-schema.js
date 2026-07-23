@@ -825,6 +825,7 @@ const GTM_INTAKE_SCHEMA = {
       contextDependencies: ["companyName", "primaryOfferName", "industryLabel", "businessTypeLabel", "quickBestFitCustomer", "quickBuyerProblem"],
       evidenceRestriction: "Recommend a customer hypothesis from this company's saved context. Do not present it as customer evidence.",
       followUpRules: ["Ask for observable traits when the description is broad.", "Ask for a use case only when the answer refers to a specific use case without defining it."],
+      coachingQuestions: ["What observable traits would help someone find or recognize this customer?", "What situation, use case, or buying occasion are they in?", "What are they trying to accomplish that is difficult today?"],
       prompt: "Draft a specific, findable customer description with situation, goal, current difficulty, and observable traits."
     },
     quickBestFitCustomer: {
@@ -846,6 +847,7 @@ const GTM_INTAKE_SCHEMA = {
       contextDependencies: ["quickBestFitCustomer", "quickBuyerProblem", "bestFitTrigger", "companyStage"],
       evidenceRestriction: "Separate a plausible urgency hypothesis from a confirmed trigger.",
       followUpRules: ["Ask what changed, what deadline exists, or what cost grows if the buyer waits."],
+      coachingQuestions: ["What changed recently that could make the problem more important now?", "Is there a deadline, buying window, risk, or growing cost if the buyer waits?", "What real evidence, if any, suggests buyers care about the timing?"],
       prompt: "Recommend a concrete why-now hypothesis with an observable trigger or consequence of delay."
     },
     quickOfferPromise: {
@@ -888,6 +890,7 @@ const GTM_INTAKE_SCHEMA = {
       contextDependencies: ["quickBestFitCustomer", "quickCurrentSalesMotion", "primarySalesMotion", "customerContextStarter"],
       evidenceRestriction: "Recommend a channel to test. Do not claim it is proven unless results are saved.",
       followUpRules: ["Explain why the source can reach the selected customer and fit available capacity."],
+      uncertaintyQuestions: ["Where does the target customer already look for products, solutions, or advice?", "What audience, relationships, list, community, location, or platform can the company access now?", "Which source can the team realistically test every week for the next 30 days?"],
       prompt: "Recommend one primary opportunity source for the current focused GTM test."
     },
     quickCurrentSalesMotion: {
@@ -895,7 +898,24 @@ const GTM_INTAKE_SCHEMA = {
       contextDependencies: ["quickBestFitCustomer", "quickPrimaryRevenueSource", "primarySalesMotion", "companyStage", "teamSize"],
       evidenceRestriction: "Recommend an operating motion, not a channel, and do not imply it is already working.",
       followUpRules: ["Clarify who performs the selling and how the buyer moves toward purchase."],
+      uncertaintyQuestions: ["Who will perform the selling or guide the purchase during the next 30 days?", "Does the buyer need a conversation, evaluation, approval process, or can they purchase without sales help?", "How much selling capacity does the team actually have each week?"],
       prompt: "Recommend one sales motion that is distinct from the selected channel and realistic for the team."
+    },
+    quick90DayGoal: {
+      mode: "recommend_from_existing_answers",
+      contextDependencies: ["companyStage", "quickBestFitCustomer", "quickBuyerProblem", "quickPrimaryOutcome", "quickBiggestConstraint"],
+      evidenceRestriction: "Recommend a focus for the next 90 days, not an invented performance commitment.",
+      followUpRules: ["Choose the result that would most reduce uncertainty or unlock progress."],
+      uncertaintyQuestions: ["What is the most important decision the company needs to make within 90 days?", "Which result would remove the biggest current constraint?", "What can the current team realistically influence during this period?"],
+      prompt: "Recommend the single 90-day goal that would create the most useful GTM progress or evidence."
+    },
+    quickBiggestConstraint: {
+      mode: "adaptive_coaching",
+      contextDependencies: ["companyStage", "quickBestFitCustomer", "quickBuyerProblem", "quickOfferPromise", "quickPrimaryRevenueSource", "quickCurrentSalesMotion", "teamSize"],
+      evidenceRestriction: "Recommend the most likely current constraint and label it as a recommendation unless the respondent confirms it.",
+      followUpRules: ["Distinguish the root constraint from its symptoms."],
+      uncertaintyQuestions: ["What repeatedly prevents the company from reaching or converting the right customer?", "Which bottleneck can the team influence during the next 90 days?", "What would remain blocked even if the team simply increased activity?"],
+      prompt: "Recommend the single root GTM constraint that should be addressed before adding more activity."
     }
   },
   sections: [
@@ -1018,10 +1038,10 @@ const GTM_INTAKE_SCHEMA = {
           title: "Execution Readiness",
           description: "Can the company actually execute the GTM plan?",
           fields: [
-            { id: "quick90DayGoal", label: "Primary GTM goal for the next 90 days", type: "select", options: ["Customer validation", "Lead flow", "Revenue", "Retention", "Expansion", "Strategic reference customer", "Category awareness", "Systems / process improvement", "Hiring / team capacity", "Other"] },
+            { id: "quick90DayGoal", label: "Primary GTM goal for the next 90 days", type: "select", options: ["Customer validation", "Lead flow", "Revenue", "Retention", "Expansion", "Strategic reference customer", "Category awareness", "Systems / process improvement", "Hiring / team capacity", "Other", "Not sure yet"] },
             { id: "quick90DayRevenueTarget", label: "90-day revenue target", type: "money", required: true, showWhen: { field: "quick90DayGoal", value: "Revenue" }, placeholder: "Example: 100000", hint: "Required when Revenue is the 90-day goal. Enter the revenue amount you want to create or close in the next 90 days." },
             { id: "quick90DaySuccessMetric", label: "How will you know the next 90 days worked?", type: "text", placeholder: "Example: 20 qualified demos, $100k pipeline created, 5 expansion opportunities, 3 customer interviews." },
-            { id: "quickBiggestConstraint", label: "Biggest GTM constraint", type: "select", options: ["Focus", "ICP clarity", "Messaging", "Proof", "Budget", "Team capacity", "Sales process", "Channel access", "Data quality", "Product readiness", "Implementation capacity", "Technology / systems", "Other"] },
+            { id: "quickBiggestConstraint", label: "Biggest GTM constraint", type: "select", options: ["Focus", "ICP clarity", "Messaging", "Proof", "Budget", "Team capacity", "Sales process", "Channel access", "Data quality", "Product readiness", "Implementation capacity", "Technology / systems", "Other", "Not sure yet"] },
             { id: "quickStopAvoid", label: "What should we stop or avoid for now?", type: "textarea", placeholder: "Example: Low-value custom deals, channels without measurable results, segments with long sales cycles, prospects without budget." },
             { id: "weeklyRevenueHours", label: "Protected weekly hours for direct revenue activity", type: "select", options: ["0-2", "3-5", "6-10", "11-20", "20+"] },
             { id: "experimentReadiness", label: "Experiment readiness", type: "scoreSelect", options: ["No testing process", "Occasional unstructured tests", "Test ideas exist but weak measurement", "Prioritized experiments with success metrics", "Consistent learning loop and decision rhythm"] },

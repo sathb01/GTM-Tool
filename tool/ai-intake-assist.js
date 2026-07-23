@@ -189,20 +189,33 @@
       const config = assistanceConfig[fieldId] || {};
       const isCustomerContext = fieldId === "customerContextStarter";
       const isAskDirectly = config.mode === "ask_directly";
-      const buttonLabel = isCustomerContext
-        ? "Get our customer recommendation"
-        : isAskDirectly
-          ? "Explain this question"
-          : "Get our recommendation";
+      const isAdaptive = config.mode === "adaptive_coaching";
+      const isUncertain = () => /^(?:not sure|not sure yet|do not know|i do not know)$/i.test(String(control.value || "").trim());
+      const activeQuestions = () => {
+        if (isUncertain() && Array.isArray(config.uncertaintyQuestions)) return config.uncertaintyQuestions;
+        if (isAdaptive && Array.isArray(config.coachingQuestions)) return config.coachingQuestions;
+        return [];
+      };
+      const helpButtonLabel = () => {
+        if (isAskDirectly) return "Explain this question";
+        if (isUncertain() && config.uncertaintyQuestions?.length) return "Help me narrow this down";
+        if (isAdaptive && config.coachingQuestions?.length) return "Improve with guided questions";
+        if (fieldId === "customerContextStarter") return "Get our customer recommendation";
+        return "Get our recommendation";
+      };
       const help = document.createElement("div");
       help.className = "ai-field-help";
       help.dataset.aiMode = config.mode || "recommend_from_existing_answers";
-      help.innerHTML = `<button type="button" class="ai-field-help-button">${buttonLabel}</button><span class="ai-field-status" aria-live="polite"></span><div class="ai-field-suggestion" hidden><strong>${isAskDirectly ? "How to answer" : "Our recommendation"}</strong><p></p><div class="ai-field-suggestion-actions"><button type="button" data-use-ai-field${isAskDirectly ? " hidden" : ""}>Use this answer</button><button type="button" class="secondary" data-dismiss-ai-field>Dismiss</button></div></div>`;
+      help.innerHTML = `<button type="button" class="ai-field-help-button">${helpButtonLabel()}</button><span class="ai-field-status" aria-live="polite"></span><div class="ai-field-coaching" hidden><strong>${isUncertain() ? "A few questions to narrow this down" : "Add the details that matter"}</strong><div class="ai-field-coaching-questions"></div><div class="ai-field-suggestion-actions"><button type="button" data-build-ai-field>Build our recommendation</button><button type="button" class="secondary" data-cancel-ai-coaching>Cancel</button></div></div><div class="ai-field-suggestion" hidden><strong>${isAskDirectly ? "How to answer" : "Our recommendation"}</strong><p></p><div class="ai-field-suggestion-actions"><button type="button" data-use-ai-field${isAskDirectly ? " hidden" : ""}>Use this answer</button><button type="button" class="secondary" data-dismiss-ai-field>Dismiss</button></div></div>`;
       wrapper.appendChild(help);
       const fieldStatus = help.querySelector(".ai-field-status");
+      const helpButton = help.querySelector(".ai-field-help-button");
+      const coaching = help.querySelector(".ai-field-coaching");
+      const coachingQuestions = help.querySelector(".ai-field-coaching-questions");
       const suggestion = help.querySelector(".ai-field-suggestion");
       const suggestionText = suggestion.querySelector("p");
-      help.querySelector(".ai-field-help-button").addEventListener("click", async () => {
+
+      const requestRecommendation = async (followUpAnswers = []) => {
         fieldStatus.textContent = isAskDirectly ? "Explaining what belongs here..." : "Building a recommendation from this company's current intake...";
         suggestion.hidden = true;
         const options = control.tagName === "SELECT" ? Array.from(control.options).map((option) => option.textContent.trim()).filter(Boolean) : [];
@@ -211,6 +224,7 @@
         const relevantContext = Object.fromEntries(contextFields
           .filter((key) => String(data[key] || "").trim())
           .map((key) => [key, data[key]]));
+        if (followUpAnswers.length) relevantContext.guidedFollowUpAnswers = followUpAnswers;
         try {
           const response = await fetch("/api/assistant", {
             method: "POST",
@@ -243,6 +257,7 @@
           if (!proposedAnswer) throw new Error("AI help did not return a usable answer. Try again.");
           suggestion.dataset.proposedAnswer = proposedAnswer;
           suggestionText.textContent = proposedAnswer;
+          coaching.hidden = true;
           suggestion.hidden = false;
           fieldStatus.textContent = isAskDirectly
             ? "Guidance ready. Your answer has not been changed."
@@ -250,6 +265,43 @@
         } catch (error) {
           fieldStatus.textContent = `${error.message} Your current answer has not been changed.`;
         }
+      };
+
+      const showCoaching = () => {
+        const questions = activeQuestions();
+        coachingQuestions.innerHTML = questions.map((question, index) => `<label>${escapeHtml(question)}<textarea rows="2" data-ai-follow-up="${index}"></textarea></label>`).join("");
+        coaching.querySelector("strong").textContent = isUncertain()
+          ? "A few questions to narrow this down"
+          : "Add the details that matter";
+        suggestion.hidden = true;
+        coaching.hidden = false;
+        fieldStatus.textContent = "Answer what you can. The tool will use these details with the current company context.";
+        coaching.querySelector("textarea")?.focus();
+      };
+
+      helpButton.addEventListener("click", async () => {
+        if (activeQuestions().length) {
+          showCoaching();
+          return;
+        }
+        await requestRecommendation();
+      });
+      help.querySelector("[data-build-ai-field]").addEventListener("click", async () => {
+        const answers = Array.from(coaching.querySelectorAll("[data-ai-follow-up]"))
+          .map((input, index) => ({
+            question: activeQuestions()[index],
+            answer: input.value.trim()
+          }))
+          .filter((item) => item.answer);
+        if (!answers.length) {
+          fieldStatus.textContent = "Answer at least one question so the recommendation can use your context.";
+          return;
+        }
+        await requestRecommendation(answers);
+      });
+      help.querySelector("[data-cancel-ai-coaching]").addEventListener("click", () => {
+        coaching.hidden = true;
+        fieldStatus.textContent = "Guided questions closed. Your answer has not been changed.";
       });
       help.querySelector("[data-use-ai-field]").addEventListener("click", async () => {
         if (isAskDirectly) return;
@@ -288,6 +340,9 @@
       help.querySelector("[data-dismiss-ai-field]").addEventListener("click", () => {
         suggestion.hidden = true;
         fieldStatus.textContent = "Suggestion dismissed.";
+      });
+      control.addEventListener("change", () => {
+        helpButton.textContent = helpButtonLabel();
       });
     });
   }

@@ -54,6 +54,17 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Preserved explicit `Use this answer` review before any recommendation changes the intake.
 - Added a 19-check regression gate for classification, context scope, recommendation display, option support, and private-fact safety.
 
+## 2026-07-23 Phase 2 Adaptive Coaching and Uncertainty Paths
+
+- Added three-question guided coaching beside broad customer-context and urgency questions.
+- Added `Not sure yet` narrowing paths for primary revenue source, sales motion, 90-day goal, and biggest GTM constraint.
+- Delayed the AI request until the user answers at least one narrowing question and selects `Build our recommendation`.
+- Added follow-up answers to the question-scoped AI context without saving those temporary notes as company evidence.
+- Preserved a separate review step and explicit `Use this answer` before changing or saving the intake.
+- Added select-safe recommendation write-back through the normal save path.
+- Added four-company AI context isolation coverage for pre-revenue consumer, pre-revenue SaaS, mixed-channel consumer, and post-revenue SaaS companies.
+- Added 36 focused checks covering coaching timing, uncertainty paths, option validity, context scope, record isolation, write-back safety, and persistence.
+
 ## 2026-07-20 First-Win Segment Question Cleanup
 
 - Reset `New` company navigation to Company Information and clear inherited section, improvement, refresh, and pending-autosave state before the blank intake opens.

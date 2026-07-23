@@ -43,6 +43,9 @@ Behavior:
 - Never silently writes an AI answer into the intake or plan.
 - Shows `Use this answer` only for reviewable recommendations. Questions about unpublished facts use explanation-only help without AI write-back.
 - Select fields require the model to return exactly one available option.
+- Adaptive customer and urgency questions collect a short set of relevant follow-up answers before requesting a revised recommendation.
+- Supported `Not sure yet` selections open a three-question narrowing path for revenue source, sales motion, 90-day goal, and GTM constraint.
+- Follow-up answers are sent only after the user selects `Build our recommendation`.
 - Keeps `OPENAI_API_KEY` on the server and defaults to `gpt-4.1-mini` unless `OPENAI_MODEL` is set.
 - Excludes contact and credential fields, caps context and output size, and applies an hourly per-network request limit.
 
@@ -150,6 +153,7 @@ AI Research is not configured yet.
 - Assistant and field help share an hourly per-network request limit.
 - Field help sends a small dependency-scoped context and uses the configured compact model by default.
 - No AI recommendation is written until the user selects `Use this answer`.
+- Guided follow-up answers remain temporary context unless the resulting recommendation is explicitly accepted.
 
 ## Good Future AI Workflow Options
 
