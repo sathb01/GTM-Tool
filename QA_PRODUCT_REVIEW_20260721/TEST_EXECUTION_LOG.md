@@ -84,6 +84,7 @@ These are not yet all confirmed defects. They have been separated from harness a
 - Each claim retains source fields internally and displays user-readable source categories, status, and confidence.
 - Raw field IDs and internal source keys are not shown in the interface.
 - Dependency test: 9 passed, 0 failed.
+- Authenticated Render dependency test: 9 passed, 0 failed after deployment of commit `314f55a`.
 - The dependency test changed all 12 self-assessment inputs from 1 to 5 for the same saved company; the overall score recalculated from 55 to 67.
 - Profile quality gate: 210 passed, 0 failed.
 - Semantic answer-quality gate: 66 passed, 0 failed.
