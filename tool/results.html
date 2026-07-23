@@ -1569,6 +1569,31 @@
       text-decoration: none;
     }
 
+    .toc .asset-nav-label,
+    .toc .asset-nav-meta {
+      display: block;
+    }
+
+    .toc .asset-nav-meta {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.25;
+      margin-top: 2px;
+    }
+
+    .toc a.active .asset-nav-meta {
+      color: var(--text);
+    }
+
+    .report-nav .toc .asset-nav-meta {
+      color: var(--nav-muted);
+    }
+
+    .report-nav .toc a.active .asset-nav-meta {
+      color: var(--nav-text);
+    }
+
     .toc a:hover,
     .toc a:focus {
       border-left-color: var(--accent);
@@ -2470,6 +2495,8 @@
     .report-nav .toc a,
     .report-nav .secondary {
       display: flex;
+      flex-direction: column;
+      align-items: stretch;
       border: 0;
       border-left: 2px solid transparent;
       border-radius: 0;
@@ -3016,6 +3043,73 @@
     const IMPROVEMENT_RETURN_SNAPSHOT_KEY = `${IMPROVEMENT_FOCUS_KEY}:returnSnapshot`;
     const API_BASE = window.location.protocol.startsWith("http") ? window.location.origin : "";
     let loadedRecordId = "";
+    let reportDataForNavigation = {};
+
+    const ASSET_CONTENT_CONTRACTS = Object.freeze({
+      gtm: {
+        label: "GTM Plan Summary",
+        purpose: "Turn the current GTM diagnosis into one coherent decision and a ranked, executable plan.",
+        requiredContent: ["plan mode", "primary customer", "offer", "top opportunity", "next best action", "top three actions"]
+      },
+      health: {
+        label: "Plan Status",
+        purpose: "Show whether the current plan is usable and where saved evidence may require a new plan.",
+        requiredContent: ["current status", "plan age", "evidence state", "freshness warning", "recommended next step"]
+      },
+      active: {
+        label: "Active Plan",
+        purpose: "Convert the top priorities into owned work with timing, completion rules, evidence, and a review decision.",
+        requiredContent: ["priority", "owner", "timing", "completion rule", "evidence required", "review decision"]
+      },
+      icp: {
+        label: "ICP Brief",
+        purpose: "Define a measurable, reachable customer hypothesis that can guide research, targeting, and validation.",
+        requiredContent: ["customer definition", "problem or use case", "observable fit", "timing or trigger", "buyer roles", "evidence and gaps"]
+      },
+      personas: {
+        label: "Persona Brief",
+        purpose: "Make each material buying role usable in conversations, messaging, proof selection, and deal navigation.",
+        requiredContent: ["role", "responsibilities", "goals", "problems", "decision role", "objections", "proof", "message"]
+      },
+      messaging: {
+        label: "Messaging Kit",
+        purpose: "Create a buyer-specific message that can be used, tracked, learned from, and revised.",
+        requiredContent: ["audience", "subject or opening", "problem", "outcome", "proof", "next-step ask", "response learning"]
+      },
+      "proof-assets": {
+        label: "Proof Asset Builder",
+        purpose: "Turn verified evidence into a claim-safe asset and track whether it changes buyer behavior.",
+        requiredContent: ["claim", "evidence source", "strength", "permission", "asset content", "planned use", "result"]
+      },
+      targets: {
+        label: "Target List Setup",
+        purpose: "Translate the ICP into practical list criteria and a clean handoff to the user's CRM or spreadsheet.",
+        requiredContent: ["target criteria", "source", "required fields", "system of record", "next action"]
+      },
+      outreach: {
+        label: "Outreach Sequence",
+        purpose: "Turn the chosen message, channel, and proof into a bounded sequence with clear stop rules.",
+        requiredContent: ["audience", "channel", "steps and timing", "message", "proof", "stop rules", "learning path"]
+      },
+      validation: {
+        label: "30-Day Validation Plan",
+        purpose: "Run one focused hypothesis test and use the evidence to continue, revise, or stop.",
+        requiredContent: ["hypothesis", "target", "test", "weekly work", "evidence", "decision rules", "owner"]
+      },
+      "validation-workspace": {
+        label: "Validation Workspace",
+        purpose: "Collect target-level evidence, complete the weekly work, and record the validation decision.",
+        exportType: "workbook",
+        requiredContent: ["targets", "questions", "answers", "evidence", "weekly work", "decision"]
+      },
+      "weekly-review": {
+        label: "Weekly GTM Review",
+        purpose: "Review execution evidence, record what was learned, and choose one change for the next cycle.",
+        requiredContent: ["activity and results", "learning", "decision", "next change", "owner", "next actions"]
+      }
+    });
+
+    window.GTM_ASSET_CONTENT_CONTRACTS = ASSET_CONTENT_CONTRACTS;
 
     const categoryDefinitions = [
       {
@@ -11618,6 +11712,76 @@
       });
     }
 
+    function assetWorkspaceState(asset, data = {}) {
+      const workspaceByAsset = {
+        active: { updatedAt: data.activePlan__updatedAt || "", value: data.activePlanWeeklyWorkspace },
+        messaging: data.messagingKitWorkspace,
+        "proof-assets": data.proofAssetWorkspace,
+        outreach: data.outreachSequenceWorkspace,
+        "validation-workspace": data.validationWorkspace,
+        "weekly-review": data.weeklyReviewWorkspace
+      };
+      const workspace = workspaceByAsset[asset];
+      if (!workspace) return null;
+      if (typeof workspace === "object" && workspace !== null && ("value" in workspace || "updatedAt" in workspace)) return workspace;
+      return typeof workspace === "object" && workspace !== null ? workspace : null;
+    }
+
+    function assetUpdatedAt(asset, data = {}) {
+      const workspace = assetWorkspaceState(asset, data);
+      return cleanText(
+        workspace?.updatedAt
+        || data.lastPlanGeneratedAt
+        || data.savedAt
+      );
+    }
+
+    function formatAssetUpdatedAt(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    }
+
+    function assetNavigationMeta(asset, data = {}) {
+      const workspace = assetWorkspaceState(asset, data);
+      const updated = formatAssetUpdatedAt(assetUpdatedAt(asset, data));
+      let status = "Available";
+      if (asset === "health") status = "Current";
+      if (workspace) status = workspace.updatedAt ? "In progress" : "Ready to use";
+      if (asset === "active" && Array.isArray(window.GTM_CANONICAL_PLAN?.actions) && window.GTM_CANONICAL_PLAN.actions.length) {
+        status = workspace?.updatedAt ? "In progress" : "Ready to use";
+      }
+      return [status, updated ? `Updated ${updated}` : ""].filter(Boolean).join(" | ");
+    }
+
+    function applyAssetContentContract(asset, data = {}) {
+      const resolvedAsset = ASSET_CONTENT_CONTRACTS[asset] ? asset : "gtm";
+      const contract = ASSET_CONTENT_CONTRACTS[resolvedAsset];
+      const visibleSections = Array.from(document.querySelectorAll("main > section"))
+        .filter((section) => !section.hidden && !section.classList.contains("removed-section"));
+      const state = {
+        asset: resolvedAsset,
+        label: contract.label,
+        purpose: contract.purpose,
+        exportType: contract.exportType || "pdf",
+        requiredContent: contract.requiredContent.slice(),
+        visibleSectionCount: visibleSections.length,
+        headingCount: visibleSections.filter((section) => section.querySelector("h2")).length,
+        hasPrintableContent: visibleSections.length > 0,
+        hasPdfControl: Boolean(document.getElementById("exportButton") || document.getElementById("downloadPdfInline")),
+        hasWorkbookControl: Boolean(document.getElementById("downloadTrackerTop") || document.getElementById("downloadValidationWorkbookBottom")),
+        hasPrintControl: Boolean(document.getElementById("printButton") || document.getElementById("printInline")),
+        updatedAt: assetUpdatedAt(resolvedAsset, data)
+      };
+      state.hasPrimaryExport = state.exportType === "workbook" ? state.hasWorkbookControl : state.hasPdfControl;
+      document.body.dataset.assetContract = resolvedAsset;
+      document.body.dataset.assetContractReady = state.hasPrintableContent && state.hasPrimaryExport && (state.exportType === "workbook" || state.hasPrintControl) ? "true" : "false";
+      document.body.dataset.exportReady = state.hasPrintableContent && state.hasPrimaryExport ? "true" : "false";
+      window.GTM_CURRENT_ASSET_CONTRACT = state;
+      return state;
+    }
+
     function setupReportNavigation() {
       const toc = document.getElementById("reportToc");
       const sectionNav = document.getElementById("currentSectionNav");
@@ -11638,7 +11802,7 @@
       sectionToc.innerHTML = "";
       let currentGroup = "";
       const currentAsset = new URLSearchParams(window.location.search).get("asset") || "gtm";
-      const addNavItem = (group, label, href, onClick) => {
+      const addNavItem = (group, label, href, onClick, asset = "") => {
         const item = document.createElement("li");
         const link = document.createElement("a");
         if (group !== currentGroup) {
@@ -11649,7 +11813,19 @@
           currentGroup = group;
         }
         link.href = href;
-        link.textContent = label;
+        const labelElement = document.createElement("span");
+        labelElement.className = "asset-nav-label";
+        labelElement.textContent = label;
+        link.appendChild(labelElement);
+        if (asset) {
+          const contract = ASSET_CONTENT_CONTRACTS[asset];
+          const meta = document.createElement("span");
+          meta.className = "asset-nav-meta";
+          meta.textContent = assetNavigationMeta(asset, reportDataForNavigation);
+          link.appendChild(meta);
+          if (contract?.purpose) link.title = contract.purpose;
+          link.dataset.asset = asset;
+        }
         if (onClick) {
           link.addEventListener("click", onClick);
         }
@@ -11665,23 +11841,23 @@
         item.appendChild(link);
         sectionToc.appendChild(item);
       };
-      addNavItem("Assets", "GTM Plan Summary", reportAssetUrl("gtm"));
-      addNavItem("Assets", "Plan Status", reportAssetUrl("health"));
-      addNavItem("Assets", "Active Plan", reportAssetUrl("active"));
+      addNavItem("Assets", "GTM Plan Summary", reportAssetUrl("gtm"), null, "gtm");
+      addNavItem("Assets", "Plan Status", reportAssetUrl("health"), null, "health");
+      addNavItem("Assets", "Active Plan", reportAssetUrl("active"), null, "active");
       if (document.body.dataset.hasIcpAsset === "true") {
-        addNavItem("Assets", "ICP Brief", reportAssetUrl("icp"));
+        addNavItem("Assets", "ICP Brief", reportAssetUrl("icp"), null, "icp");
       }
       if (document.body.dataset.hasPersonaAsset === "true") {
-        addNavItem("Assets", "Persona Brief", reportAssetUrl("personas"));
+        addNavItem("Assets", "Persona Brief", reportAssetUrl("personas"), null, "personas");
       }
-      addNavItem("Assets", "Messaging Kit", reportAssetUrl("messaging"));
-      addNavItem("Assets", "Target List Setup", reportAssetUrl("targets"));
-      addNavItem("Assets", "Proof Asset Builder", reportAssetUrl("proof-assets"));
-      addNavItem("Assets", "Outreach Sequence", reportAssetUrl("outreach"));
-      addNavItem("Assets", "Weekly GTM Review", reportAssetUrl("weekly-review"));
+      addNavItem("Assets", "Messaging Kit", reportAssetUrl("messaging"), null, "messaging");
+      addNavItem("Assets", "Target List Setup", reportAssetUrl("targets"), null, "targets");
+      addNavItem("Assets", "Proof Asset Builder", reportAssetUrl("proof-assets"), null, "proof-assets");
+      addNavItem("Assets", "Outreach Sequence", reportAssetUrl("outreach"), null, "outreach");
+      addNavItem("Assets", "Weekly GTM Review", reportAssetUrl("weekly-review"), null, "weekly-review");
       if (currentAsset === "validation-workspace" || document.getElementById("plan-decision") || document.getElementById("draft-icp")) {
-        addNavItem("Assets", "Validation Workspace", reportAssetUrl("validation-workspace"));
-        addNavItem("Assets", "30-Day Validation Plan", reportAssetUrl("validation"));
+        addNavItem("Assets", "Validation Workspace", reportAssetUrl("validation-workspace"), null, "validation-workspace");
+        addNavItem("Assets", "30-Day Validation Plan", reportAssetUrl("validation"), null, "validation");
       }
       Array.from(toc.querySelectorAll("a")).forEach((link) => {
         const linkedAsset = new URL(link.href, window.location.href).searchParams.get("asset") || "";
@@ -17505,6 +17681,7 @@
       updateIntakeReturnLinks();
 
       const data = await readData();
+      reportDataForNavigation = data || {};
       const hasReportData = Object.entries(data || {}).some(([key, value]) => (
         !["savedAt", "reviewMode", "lastPlanGeneratedAt", "lastPlanInputSignature"].includes(key)
         && String(value || "").trim()
@@ -17514,9 +17691,10 @@
         return;
       }
       const requestedAsset = new URLSearchParams(window.location.search).get("asset") || "";
-      const finishAsset = () => {
+      const finishAsset = (asset = "gtm") => {
         setupReportNavigation();
         applyStandardActionIcons();
+        applyAssetContentContract(asset, data);
       };
       if (requestedAsset === "health") {
         renderPlanHealthDashboard(data);
@@ -17696,6 +17874,7 @@
       }
       setupReportNavigation();
       applyStandardActionIcons();
+      applyAssetContentContract("gtm", data);
     }
 
     function showRenderError(error) {

@@ -123,8 +123,11 @@
 - Validation, foundation, and optimization modes are explicit in the GTM Plan Summary and Active Plan.
 - The ranked action section, action summary, 30/60/90 sequence, and Active Plan now use the same top-three action order.
 - Validation plans end with an evidence-based continue, revise, or stop decision.
-- The four-company canonical-plan integrity gate passes 30 checks locally.
-- Content contracts, export coverage, and asset status/last-updated work remain in progress.
+- The four-company canonical-plan integrity gate passes 30 checks locally and on authenticated Render.
+- Explicit content contracts now define the purpose and required content for the plan summary, plan status, active plan, ICP, personas, messaging, proof, target setup, outreach, validation, validation workspace, and weekly review.
+- Asset navigation now shows a concise status and last-updated date without changing the links into button-style controls.
+- PDF/print assets and the workbook-based Validation Workspace declare and expose the correct export type.
+- The four-company asset contract, navigation, layout, sidebar-scroll, and print-mode gate passes 440 checks across 44 asset/profile combinations locally.
 
 ## Phase 4: Experience Polish and Accessibility
 

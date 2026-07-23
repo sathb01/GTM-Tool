@@ -182,4 +182,15 @@ These are not yet all confirmed defects. They have been separated from harness a
 - Every canonical action includes an owner, timing, completion rule, evidence requirement, review decision, and destination.
 - Semantic-role deduplication prevents two differently worded priorities for the same job from occupying the top three.
 - Primary and alternative customer hypotheses remain separate in the canonical model.
-- Live authenticated checks remain pending deployment.
+- Release commit `d94e173` deployed to Render.
+- Authenticated Render canonical-plan integrity gate: 30 passed, 0 failed.
+- Authenticated Render full report gate: 78 passed, 0 failed.
+
+### Asset Contracts, Navigation Status, and Export Coverage
+
+- Eleven user-facing plan and workspace types now have explicit purpose and required-content contracts.
+- Four-company asset sweep: 44 asset/profile combinations rendered without a page error.
+- Asset contract, correct export type, sidebar status, active navigation, clean labels, independent sidebar scrolling, non-overlapping controls, and print-mode checks: 440 passed, 0 failed locally.
+- The Validation Workspace correctly uses its separate workbook export instead of presenting the working data grid as a finished PDF asset.
+- A headless screenshot review confirmed that asset status and updated dates are stacked beneath asset names and remain readable in the sidebar.
+- Authenticated Render checks remain pending deployment.

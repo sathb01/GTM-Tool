@@ -673,3 +673,11 @@ https://gtm-tool-1mib.onrender.com/login
 - Aligned the GTM Plan Summary, ranked action plan, 30/60/90 plan, and Active Plan to the same action order.
 - Preserved alternative customer hypotheses separately from the primary customer decision.
 - Added a four-company canonical-plan integrity gate covering pre-revenue consumer, pre-revenue SaaS, mixed consumer, and post-revenue SaaS scenarios.
+
+## 2026-07-23 - Phase 3 asset contracts and export coverage
+
+- Added explicit content contracts for every plan, brief, builder, and review workspace shown in asset navigation.
+- Added a machine-checkable current-asset contract to each rendered asset.
+- Added concise asset status and last-updated information beneath each asset link.
+- Kept the Validation Workspace on a workbook export path while preserving PDF and print controls for finished assets.
+- Added regression coverage for asset contracts, export controls, navigation state, sidebar scrolling, control overlap, and clean print mode.
