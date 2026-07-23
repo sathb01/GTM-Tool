@@ -665,3 +665,11 @@ https://gtm-tool-1mib.onrender.com/login
 - Added proof assistance for both proven post-revenue outcomes and pre-revenue credibility cues.
 - Added safe AI write-back for the existing multi-select dropdown controls using only schema-approved options.
 - Expanded Phase 2 regression coverage to 42 focused checks plus four-company context isolation and the full profile, semantic, route, and asset suites.
+## 2026-07-23 - Phase 3 canonical plan model
+
+- Added one canonical plan model for validation, foundation, and optimization plans.
+- Limited the executable plan to three semantically distinct top priorities.
+- Added owner, timing, completion rule, evidence requirement, review decision, and destination to every canonical action.
+- Aligned the GTM Plan Summary, ranked action plan, 30/60/90 plan, and Active Plan to the same action order.
+- Preserved alternative customer hypotheses separately from the primary customer decision.
+- Added a four-company canonical-plan integrity gate covering pre-revenue consumer, pre-revenue SaaS, mixed consumer, and post-revenue SaaS scenarios.

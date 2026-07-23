@@ -173,3 +173,13 @@ These are not yet all confirmed defects. They have been separated from harness a
 - Authenticated Render four-company route and asset sweep: 78 passed, 0 failed.
 - A read-only request to the real deployed AI endpoint returned both a review assessment and a proposed answer from the configured model.
 - The live review request did not write or change a saved record.
+
+## July 23 Phase 3: Canonical Plan Model
+
+- Four-company canonical-plan integrity gate: 30 passed, 0 failed locally.
+- Both pre-revenue companies render an explicit Validation mode and the same three actions in the canonical model and Active Plan.
+- Both post-revenue companies render an explicit Foundation mode and the same top-three sequence in the summary, ranked plan, 30/60/90 plan, and Active Plan.
+- Every canonical action includes an owner, timing, completion rule, evidence requirement, review decision, and destination.
+- Semantic-role deduplication prevents two differently worded priorities for the same job from occupying the top three.
+- Primary and alternative customer hypotheses remain separate in the canonical model.
+- Live authenticated checks remain pending deployment.

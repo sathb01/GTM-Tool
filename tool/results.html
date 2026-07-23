@@ -5413,9 +5413,38 @@
       });
     }
 
-    function renderPlan(plan) {
+    function renderPlan(plan, model = null) {
       const container = document.getElementById("plan");
       container.innerHTML = "";
+      const canonical = model ? canonicalPlanFor(model) : null;
+      if (canonical?.topActions?.length) {
+        const phaseNames = [
+          "Days 1-30: Focus and Foundation",
+          "Days 31-60: Build and Test",
+          "Days 61-90: Operationalize and Improve"
+        ];
+        canonical.topActions.forEach((action, index) => {
+          const wrapper = document.createElement("div");
+          const heading = document.createElement("h3");
+          heading.textContent = phaseNames[index] || `Priority ${index + 1}`;
+          wrapper.appendChild(heading);
+          [
+            ["Objective", action.action],
+            ["Why this is next", action.why],
+            ["Owner", action.owner],
+            ["Timing", action.timing],
+            ["Complete when", action.completionRule],
+            ["Evidence to review", action.evidenceRequired],
+            ["Decision at review", action.reviewDecision]
+          ].forEach(([label, value]) => {
+            const p = document.createElement("p");
+            p.innerHTML = `<strong>${label}:</strong> ${escapeHtml(value)}`;
+            wrapper.appendChild(p);
+          });
+          container.appendChild(wrapper);
+        });
+        return;
+      }
       const defaults = [
         { metric: "ICP, offer, and proof focus are selected.", decision: "Is the ICP, offer, and proof strong enough to test?" },
         { metric: "Focused GTM test is live and measurable.", decision: "Is the motion producing qualified opportunities?" },
@@ -5975,6 +6004,7 @@
 
     function dynamicPlanSummary(model) {
       const data = model.data;
+      const canonical = canonicalPlanFor(model);
       const feedback = model.readinessDiagnostic?.executionFeedback || executionEvidenceFeedback(data);
       const weekly = activePlanWeeklyWorkspace(data, activePlanDefinition(data));
       const priorities = Array.isArray(weekly.currentPriorities) ? weekly.currentPriorities : [];
@@ -5994,6 +6024,8 @@
       }
       if (nextPriority) {
         nextAction = nextPriority.title || nextPriority.output || nextAction;
+      } else if (canonical.topActions[0]?.action) {
+        nextAction = canonical.topActions[0].action;
       }
       if (blocked.length) {
         risk = `${blocked.length} current-week priorit${blocked.length === 1 ? "y is" : "ies are"} blocked. Resolve or revise ${blocked.length === 1 ? "it" : "them"} before adding new work.`;
@@ -6228,7 +6260,8 @@
       const nextAction = dynamicSummary.nextAction;
       const decisionContent = executiveDecisionContent(model);
       const strategicEvidence = buildStrategicInsights(model).slice(0, 3);
-      const topPriority = buildRevenueImpactPriorities(model)[0];
+      const canonical = canonicalPlanFor(model);
+      const topPriority = canonical.rankedPriorities[0];
       const scorePercent = Math.max(0, Math.min(100, Number(model.readinessScore) || 0));
       const owner = model.data.primaryRevenueOwner
         || model.data.pipelineReviewOwner
@@ -6247,8 +6280,10 @@
       if (!guide && section) {
         guide = document.createElement("div");
         guide.className = "overview-note decision-summary-guide";
-        guide.innerHTML = '<h3>How to use this plan</h3><p>Start with Top Opportunity to confirm the recommended direction, then use Next Best Action to begin the work. Expand the matching section beneath any card to understand its evidence, improve its inputs, or open the related execution asset.</p>';
         section.insertBefore(guide, cards);
+      }
+      if (guide) {
+        guide.innerHTML = `<h3>How to use this plan</h3><p><strong>${escapeHtml(canonical.mode.label)} plan:</strong> ${escapeHtml(canonical.mode.explanation)}</p><p>Start with Top Opportunity to confirm the recommended direction, then use Next Best Action to begin the work. Expand the matching section beneath any card to understand its evidence, improve its inputs, or open the related execution asset.</p>`;
       }
 
       cards.innerHTML = "";
@@ -6357,7 +6392,7 @@
       const insights = buildStrategicInsights(model);
       const opportunity = insights.find((item) => /opportunity|pattern/i.test(item.type));
       if (opportunity) return opportunity.recommendedAction || opportunity.title;
-      const priority = buildRevenueImpactPriorities(model)[0];
+      const priority = canonicalPlanFor(model).rankedPriorities[0];
       return priority?.recommendedAction || priority?.priority || "Use the strongest ICP, offer, and proof evidence to run one focused revenue motion.";
     }
 
@@ -6370,8 +6405,8 @@
     }
 
     function executiveInsightAction(model) {
-      const priority = buildRevenueImpactPriorities(model)[0];
-      return priority ? `${priority.priority}: ${priority.recommendedAction}` : "Run one weekly focused revenue motion against the priority customer list.";
+      const action = canonicalPlanFor(model).topActions[0];
+      return action ? `${action.title}: ${action.action}` : "Run one weekly focused revenue motion against the priority customer list.";
     }
 
     function executiveInsightMeaning(model) {
@@ -8012,6 +8047,193 @@
         .slice(0, 5);
     }
 
+    function canonicalPriorityRole(priority = {}) {
+      const text = `${priority.category || ""} ${priority.priority || ""}`.toLowerCase();
+      if (/execution evidence/.test(text)) return "execution-evidence";
+      if (/icp|customer|target/.test(text)) return "customer";
+      if (/revenue motion|activity capacity|pipeline|sales process/.test(text)) return "motion";
+      if (/proof|business case/.test(text)) return "proof";
+      if (/offer|message/.test(text)) return "offer";
+      if (/conversion|assumption|revenue target/.test(text)) return "economics";
+      if (/crm|data|tracking/.test(text)) return "learning-system";
+      return text.replace(/[^a-z0-9]+/g, "-") || "priority";
+    }
+
+    function canonicalPlanMode(model, priorities) {
+      if (isPreRevenueReport(model.data)) {
+        return {
+          id: "validation",
+          label: "Validation",
+          explanation: "Use this plan to replace important assumptions with real buyer or market evidence before scaling."
+        };
+      }
+      const foundationRoles = new Set(["customer", "motion", "proof", "offer", "economics"]);
+      const foundationGap = priorities.some((priority) => priority.blocksOthers && foundationRoles.has(canonicalPriorityRole(priority)));
+      if (model.readinessScore >= 80 && !foundationGap) {
+        return {
+          id: "optimization",
+          label: "Optimization",
+          explanation: "The core GTM system is defined. Use this plan to improve the weakest measured conversion or execution constraint."
+        };
+      }
+      return {
+        id: "foundation",
+        label: "Foundation",
+        explanation: "Use this plan to complete the few operating decisions that must be clear before adding more GTM volume."
+      };
+    }
+
+    function canonicalCompletionRule(priority, model) {
+      const role = canonicalPriorityRole(priority);
+      if (priority.missingOperatingElements?.length) {
+        return `All listed operating elements are saved and visible in the plan: ${toSentence(priority.missingOperatingElements.map((item) => item.label))}.`;
+      }
+      if (role === "customer") return "A focused target definition is saved, a reachable first list is prepared, and real buyer evidence is recorded.";
+      if (role === "motion") return "The motion has a named owner, channel, weekly activity target, stage rules, and review cadence.";
+      if (role === "proof") return "At least one buyer-facing proof asset supports the primary claim and the highest-risk objection.";
+      if (role === "offer") return "The offer names one customer, problem, measurable outcome, proof point, and next step.";
+      if (role === "economics") return "The revenue goal, deal value, conversion assumptions, and weekly activity requirement are saved or explicitly marked for validation.";
+      if (role === "learning-system") return "Required CRM or tracking fields are complete and reviewed during the saved cadence.";
+      if (role === "execution-evidence") return "The evidence review records a clear continue, revise, or pause decision and the next action.";
+      return priority.recommendedAction || "The recommended work is completed and its result is recorded.";
+    }
+
+    function canonicalEvidenceRequirement(priority) {
+      const role = canonicalPriorityRole(priority);
+      if (role === "customer") return "Target quality, buyer conversations, problem recognition, and meaningful next steps.";
+      if (role === "motion") return "Activity completed, replies, conversations, qualified next steps, opportunities, and stage conversion.";
+      if (role === "proof") return "Named evidence source, permission status, measurable result or customer statement, and buyer response.";
+      if (role === "offer") return "Buyer reaction, objection pattern, measurable outcome, and next-step conversion.";
+      if (role === "economics") return "Actual deal values, conversion rates, cycle time, and weekly capacity.";
+      if (role === "learning-system") return "Required-field completion, source attribution, stage accuracy, loss reasons, and review notes.";
+      return "The completed work product, observed result, and any evidence that changes the next decision.";
+    }
+
+    function canonicalDestination(priority) {
+      const role = canonicalPriorityRole(priority);
+      if (priority.improvementAsset) return { type: "asset", value: priority.improvementAsset };
+      if (role === "customer") return { type: "asset", value: "icp" };
+      if (role === "proof") return { type: "asset", value: "proof-assets" };
+      if (role === "offer") return { type: "intake", value: "offer proof" };
+      if (role === "motion" || role === "economics") return { type: "asset", value: "active" };
+      if (role === "learning-system" || role === "execution-evidence") return { type: "asset", value: "weekly-review" };
+      return { type: "intake", value: priority.claim?.improvementTopic || "current priority" };
+    }
+
+    function canonicalActionFromPriority(priority, index, model) {
+      const owner = cleanText(model.data.primaryRevenueOwner || model.data.pipelineReviewOwner) || "Revenue owner / founder";
+      const timing = index === 0 ? "Start this week" : index === 1 ? "Begin after Priority 1 is underway" : "Begin after the first evidence review";
+      return {
+        id: `canonical-action-${index + 1}`,
+        rank: index + 1,
+        role: canonicalPriorityRole(priority),
+        title: priority.priority,
+        action: priority.recommendedAction,
+        why: priority.whyItMatters,
+        owner,
+        timing,
+        completionRule: canonicalCompletionRule(priority, model),
+        evidenceRequired: canonicalEvidenceRequirement(priority),
+        reviewDecision: "Continue this approach, revise one variable, or pause it based on the saved evidence.",
+        destination: canonicalDestination(priority),
+        sourceClaim: priority.claim,
+        priority
+      };
+    }
+
+    function preRevenueCanonicalActions(model) {
+      const data = model.data;
+      const hypothesis = preRevenuePrimaryHypothesis(data);
+      const target = preRevenueTargetLabel(data, hypothesis);
+      const problem = preRevenuePrimaryProblem(hypothesis);
+      const owner = activePlanOwner(data, true);
+      return [
+        {
+          id: "canonical-action-1",
+          rank: 1,
+          role: "customer",
+          title: "Validate the first-win customer and problem",
+          action: `Build a focused first test list for ${target} and confirm whether ${problem.toLowerCase()} is recognized without prompting.`,
+          why: "The first market decision should be based on real buyer behavior rather than the completeness of the intake.",
+          owner,
+          timing: "Week 1",
+          completionRule: "The first test list is complete and at least five useful buyer or user conversations are recorded.",
+          evidenceRequired: "Problem recognition, current workaround, consequence, exact buyer language, and target-fit notes.",
+          reviewDecision: "Continue with this segment or revise the target and problem hypothesis.",
+          destination: { type: "asset", value: "validation-workspace" }
+        },
+        {
+          id: "canonical-action-2",
+          rank: 2,
+          role: "offer",
+          title: "Test the offer and meaningful next step",
+          action: "Use one message and one clear ask to test whether the target will take a meaningful next step.",
+          why: "Positive comments are not enough to validate demand or the route to market.",
+          owner,
+          timing: "Weeks 2-3",
+          completionRule: "The test records buyer response, objections, and at least one defined demand signal such as a follow-up, sample review, signup, preorder, pilot, or price discussion.",
+          evidenceRequired: "Message response, objection pattern, requested proof, willingness to pay, and meaningful next-step conversion.",
+          reviewDecision: "Continue the offer, revise one part of the message or ask, or pause the test.",
+          destination: { type: "asset", value: "validation-workspace" }
+        },
+        {
+          id: "canonical-action-3",
+          rank: 3,
+          role: "execution-evidence",
+          title: "Make the 30-day validation decision",
+          action: "Review the evidence against the saved continue, revise, and stop rules and choose one next move.",
+          why: "The output of validation is a decision, not a larger collection of notes.",
+          owner,
+          timing: "Week 4",
+          completionRule: "A continue, revise, or stop decision is saved with the evidence used and one next action.",
+          evidenceRequired: "The evidence tracker, response results, decision rules, and unresolved assumptions.",
+          reviewDecision: "Commit to the next cycle, revise one variable, or stop the current hypothesis.",
+          destination: { type: "asset", value: "weekly-review" }
+        }
+      ];
+    }
+
+    function buildCanonicalPlanModel(model) {
+      const rawPriorities = isPreRevenueReport(model.data) ? [] : buildRevenueImpactPriorities(model);
+      const seenRoles = new Set();
+      const rankedPriorities = rawPriorities.filter((priority) => {
+        const role = canonicalPriorityRole(priority);
+        if (seenRoles.has(role)) return false;
+        seenRoles.add(role);
+        return true;
+      }).slice(0, 3);
+      const mode = canonicalPlanMode(model, rankedPriorities);
+      const topActions = isPreRevenueReport(model.data)
+        ? preRevenueCanonicalActions(model)
+        : rankedPriorities.map((priority, index) => canonicalActionFromPriority(priority, index, model));
+      return {
+        version: 1,
+        mode,
+        objective: mode.id === "validation"
+          ? "Create enough evidence to choose the next GTM move without scaling an unproven assumption."
+          : mode.id === "foundation"
+            ? "Complete the highest-leverage GTM foundations and turn them into a measurable operating rhythm."
+            : "Improve the weakest measured part of the current GTM system before adding volume.",
+        primaryCustomer: cleanText(model.priorityGroup?.values.groupName || model.data.bestFitCustomerGroup || model.data.quickBestFitCustomer),
+        alternativeCustomers: (model.groups || [])
+          .filter((group) => group.rowId !== model.priorityGroup?.rowId)
+          .map((group) => cleanText(group.values.groupName))
+          .filter(Boolean)
+          .slice(0, 2),
+        primaryOffer: cleanText(model.primaryOffer?.values.offerName || model.data.primaryOfferName),
+        primaryBuyer: cleanText(model.buyer?.label),
+        primaryMotion: cleanText(model.revenueMotion?.values.playName || model.revenueMotion?.values.salesMotionType || model.data.quickCurrentSalesMotion || model.data.primarySalesMotion),
+        rankedPriorities,
+        topActions
+      };
+    }
+
+    function canonicalPlanFor(model) {
+      if (!model.canonicalPlan) model.canonicalPlan = buildCanonicalPlanModel(model);
+      window.GTM_CANONICAL_PLAN = model.canonicalPlan;
+      return model.canonicalPlan;
+    }
+
     function remediationAreasForRevenuePriority(priority, remediationAreas) {
       const text = [priority.category, priority.priority, priority.drivers, priority.recommendedAction].filter(Boolean).join(" ").toLowerCase();
       const patterns = [];
@@ -8108,7 +8330,7 @@
 
     function renderRevenueImpactPriorities(model) {
       const container = document.getElementById("revenueImpactPriorities");
-      const priorities = buildRevenueImpactPriorities(model);
+      const priorities = canonicalPlanFor(model).rankedPriorities;
       const context = revenueImpactContext(model);
       const remediationAreas = buildRemediationInterview(model);
       const recommendations = buildPrescriptiveRecommendations(model);
@@ -8810,48 +9032,22 @@
     }
 
     function renderExecutiveActionPlan(model) {
-      const data = model.data;
-      const priorities = typeof buildRevenueImpactPriorities === "function" ? buildRevenueImpactPriorities(model) : [];
-      const targetList = targetListGuidance(model);
-      const actions = priorities.map((priority, index) => ({
-        action: `${index + 1}. ${priority.priority}: ${priority.recommendedAction}`,
-        why: priority.whyItMatters,
-        owner: data.primaryRevenueOwner || data.pipelineReviewOwner || "Revenue owner / founder",
-        timing: priority.connectedTo90DayGoal ? "Next 30-90 days" : "Next 30 days"
+      const actions = canonicalPlanFor(model).topActions.map((item) => ({
+        action: `${item.rank}. ${item.title}: ${item.action}`,
+        why: item.why,
+        owner: item.owner,
+        timing: item.timing,
+        complete: item.completionRule
       }));
-      const fallbackActions = [
-        {
-          action: "Run one weekly focused revenue motion.",
-          why: "Revenue activity needs a repeatable weekly operating cadence.",
-          owner: data.primaryRevenueOwner || "Revenue owner / founder",
-          timing: "Weekly for 90 days"
-        },
-        {
-          action: `Build a ${targetList.label} for the priority ICP.`,
-          why: "A focused account list turns ICP strategy into a concrete execution target.",
-          owner: data.primaryRevenueOwner || "Revenue owner / founder",
-          timing: "Days 1-14"
-        },
-        {
-          action: "Create two sales-ready proof assets.",
-          why: "Proof reduces buyer risk and makes the offer easier to trust.",
-          owner: data.primaryRevenueOwner || "Founder / GTM lead",
-          timing: "Days 1-30"
-        }
-      ];
-      fallbackActions.forEach((action) => {
-        if (actions.length < 5 && !actions.some((existing) => existing.action === action.action)) {
-          actions.push(action);
-        }
-      });
       const container = document.getElementById("executiveActionPlan");
       container.innerHTML = "";
       renderBlueprintTable(container, "Ranked Action Summary", [
         { key: "action", label: "Action" },
         { key: "why", label: "Why it matters" },
         { key: "owner", label: "Owner" },
-        { key: "timing", label: "Timing" }
-      ], actions.slice(0, 5));
+        { key: "timing", label: "Timing" },
+        { key: "complete", label: "Complete when" }
+      ], actions);
     }
 
     function cleanText(value) {
@@ -14496,9 +14692,12 @@
         const target = preRevenueTargetLabel(data, row);
         const problem = preRevenuePrimaryProblem(row);
         const owner = activePlanOwner(data, true);
+        const canonical = buildCanonicalPlanModel({ data, groups: [] });
+        window.GTM_CANONICAL_PLAN = canonical;
         return {
           type: "validation",
           title: "30-Day Validation Plan",
+          mode: canonical.mode,
           objective: `Create enough real buyer evidence to decide whether ${target} is the right first-win market to pursue next.`,
           focus: `Test whether ${target} experience ${problem.toLowerCase()} as a meaningful problem and will take a measurable next step.`,
           owner,
@@ -14506,13 +14705,17 @@
           evidence: "Problem recognition, current workaround, buyer language, objections, and a meaningful next-step signal.",
           decision: "Continue, revise, or stop the first-win segment before scaling.",
           feedback,
-          actions: [
-            ...(feedback.state === "Challenged" ? [{ title: feedback.recommendedDecision, why: feedback.explanation, output: feedback.nextAction, decision: "Does the revised test resolve the evidence that challenged the current hypothesis?" }] : []),
-            { title: "Build the focused 25-person test list", why: `A narrow list of ${target} makes the test teachable within 30 days.`, output: "25 qualified targets with a reachable source and basic context.", decision: "Are these the right people to test first?" },
-            { title: "Run problem interviews before presenting the product", why: "Real past behavior reveals whether the problem is urgent enough to matter.", output: "Interview notes with the current alternative, consequence, and exact buyer language.", decision: "Do buyers recognize the problem without being prompted?" },
-            { title: "Test the message and ask for a meaningful next step", why: "Interest alone is not enough evidence to choose a market or offer.", output: "A clear response to the message plus a waitlist, price discussion, sample review, preorder, or other agreed signal.", decision: "Does the current segment and message earn a meaningful next step?" },
-            { title: "Review the evidence and choose the next move", why: "The value of the sprint is the decision it produces, not the amount of activity.", output: "A documented continue, revise, or stop decision with one specific next change.", decision: "Should this segment, message, offer, or route continue, change, or pause?" }
-          ],
+          actions: canonical.topActions.map((action) => ({
+            title: action.title,
+            why: action.why,
+            output: action.action,
+            owner: action.owner,
+            timing: action.timing,
+            completionRule: action.completionRule,
+            evidenceRequired: action.evidenceRequired,
+            decision: action.reviewDecision,
+            destination: action.destination
+          })),
           weeks: preRevenueWeeklyWorkplanRows(data, model)
             .filter(([label]) => /^Week [1-4]/.test(label))
             .map(([label, items]) => ({ label, items: Array.isArray(items) ? items.map((item) => item?.text || item) : [items] })),
@@ -14529,32 +14732,29 @@
       const diagnostic = readinessDiagnostic(data, categories, selfAssessmentScore, confidence);
       const feedback = diagnostic.executionFeedback;
       const model = buildBlueprintModel(data, categories, diagnostic.overallScore, suggestions, plan, confidence, diagnostic);
+      const canonical = canonicalPlanFor(model);
       const owner = activePlanOwner(data);
-      const priorities = buildRevenueImpactPriorities(model).slice(0, 5);
-      const fallback = [
-        { priority: "Define one focused revenue motion", whyItMatters: "A focused motion creates a repeatable way to learn and build qualified pipeline.", recommendedAction: "Choose one customer group, offer, buyer, channel, weekly activity target, and review cadence." },
-        { priority: "Build the first target list", whyItMatters: "A clear target list turns the ICP into action.", recommendedAction: `Build a ${targetListGuidance(model).label} for the priority customer group.` },
-        { priority: "Create the proof needed to start conversations", whyItMatters: "Proof makes the offer safer and easier for buyers to evaluate.", recommendedAction: "Package one customer story, measurable result, or business-case asset for the primary buyer." }
-      ];
-      const chosen = priorities.length ? priorities : fallback;
-      const evidencePriority = feedback.state === "Challenged"
-        ? [{ priority: feedback.recommendedDecision, whyItMatters: feedback.explanation, recommendedAction: feedback.nextAction }]
-        : [];
       return {
         type: "gtm",
         title: "30-Day GTM Action Plan",
-        objective: "Turn the current GTM recommendation into a focused operating rhythm that creates evidence and qualified pipeline.",
+        mode: canonical.mode,
+        objective: canonical.objective,
         focus: `Focus on ${model.priorityGroup?.values?.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer || "the selected priority customer group"} with ${model.primaryOffer?.values?.offerName || data.primaryOfferName || "the primary offer"}.`,
         owner,
         cadence: cleanText(data.revenueReportingCadence) || "Weekly",
         evidence: "Target quality, buyer conversations, next steps, opportunities, conversion, objections, and stalled reasons.",
         decision: "Continue, revise, or pause one focused motion based on the weekly evidence.",
         feedback,
-        actions: [...evidencePriority, ...chosen].slice(0, 5).map((priority) => ({
-          title: priority.priority,
-          why: priority.whyItMatters,
-          output: priority.recommendedAction,
-          decision: "Does this work materially improve the focused revenue motion or unblock the next GTM decision?"
+        actions: canonical.topActions.map((action) => ({
+          title: action.title,
+          why: action.why,
+          output: action.action,
+          owner: action.owner,
+          timing: action.timing,
+          completionRule: action.completionRule,
+          evidenceRequired: action.evidenceRequired,
+          decision: action.reviewDecision,
+          destination: action.destination
         })),
         weeks: [
           { label: "Week 1 - Set the focused motion", items: ["Confirm the priority customer group, offer, buyer, channel, and owner.", "Build the first small target-account batch and prepare the proof or message needed."] },
@@ -14908,6 +15108,7 @@
     function renderActivePlanWorkspace(data) {
       const main = document.querySelector("main");
       const plan = activePlanDefinition(data);
+      window.GTM_ACTIVE_PLAN_DEFINITION = plan;
       const weeklyWorkspace = activePlanWeeklyWorkspace(data, plan);
       const requestedAction = Number(new URLSearchParams(window.location.search).get("action")) - 1;
       if (Number.isInteger(requestedAction) && requestedAction >= 0 && requestedAction < plan.actions.length) {
@@ -14927,7 +15128,8 @@
       const objective = document.createElement("section");
       objective.id = "active-plan-objective";
       objective.dataset.toc = "30-Day Objective";
-      objective.innerHTML = `<div class="active-plan-header"><h2>${escapeHtml(plan.title)}</h2><p>${escapeHtml(plan.objective)}</p></div><ul class="active-plan-overview-list"><li><strong>Current Focus</strong>${escapeHtml(plan.focus)}</li><li><strong>Evidence That Matters</strong>${escapeHtml(plan.evidence)}</li><li><strong>Decision at the End of This Cycle</strong>${escapeHtml(plan.decision)}</li><li><strong>Review Rhythm</strong>${escapeHtml(`${plan.cadence} review led by ${plan.owner}.`)}</li></ul>`;
+      const planMode = plan.mode || { label: plan.type === "validation" ? "Validation" : "Foundation", explanation: plan.type === "validation" ? "Replace the most important assumptions with evidence before scaling." : "Complete the operating foundation before adding volume." };
+      objective.innerHTML = `<div class="active-plan-header"><h2>${escapeHtml(plan.title)}</h2><p>${escapeHtml(plan.objective)}</p></div><ul class="active-plan-overview-list"><li><strong>Plan Mode</strong>${escapeHtml(`${planMode.label}: ${planMode.explanation}`)}</li><li><strong>Current Focus</strong>${escapeHtml(plan.focus)}</li><li><strong>Evidence That Matters</strong>${escapeHtml(plan.evidence)}</li><li><strong>Decision at the End of This Cycle</strong>${escapeHtml(plan.decision)}</li><li><strong>Review Rhythm</strong>${escapeHtml(`${plan.cadence} review led by ${plan.owner}.`)}</li></ul>`;
       main.appendChild(objective);
 
       const actions = document.createElement("section");
@@ -17460,7 +17662,7 @@
       renderRevenueMotionResults(data);
       renderStalledDeals(data);
       renderBlockerResults(data);
-      renderPlan(plan);
+      renderPlan(plan, blueprintModel);
       renderSummary(data);
 
       const includeAppendix = isDetailedReport(data);

@@ -116,6 +116,16 @@
 - Every action has an owner, timing, completion rule, and destination.
 - Every applicable asset prints and downloads cleanly.
 
+### Implementation Status - Canonical Plan Model
+
+- A canonical plan object now defines the plan mode, objective, primary customer, alternative customer hypotheses, offer, buyer, motion, ranked priorities, and top three actions.
+- Each top action contains one semantic role, owner, timing, completion rule, evidence requirement, review decision, destination, and source claim.
+- Validation, foundation, and optimization modes are explicit in the GTM Plan Summary and Active Plan.
+- The ranked action section, action summary, 30/60/90 sequence, and Active Plan now use the same top-three action order.
+- Validation plans end with an evidence-based continue, revise, or stop decision.
+- The four-company canonical-plan integrity gate passes 30 checks locally.
+- Content contracts, export coverage, and asset status/last-updated work remain in progress.
+
 ## Phase 4: Experience Polish and Accessibility
 
 **Order:** Fifth
