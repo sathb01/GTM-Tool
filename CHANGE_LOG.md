@@ -11,6 +11,14 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Preserved existing storage keys and record identifiers so saved company data remains compatible.
 - Added compatibility handling for the legacy `GTM OS is the source of truth` pipeline setting.
 
+## 2026-07-23 Phase 1 Claim Traceability Foundation
+
+- Added a reusable output-claim model with value, source fields, source categories, status, confidence, and improvement topic.
+- Applied claim provenance to the four GTM Plan Summary cards: Readiness Score, Top Opportunity, Next Best Action, and Biggest Risk.
+- Added plain-language `What this is based on` details without exposing raw field IDs or internal scoring rules.
+- Distinguished calculated results, saved inputs, saved evidence, inferences, and recommendations.
+- Added a dependency regression test that changes the same company’s readiness inputs and verifies the calculated score and provenance update together.
+
 ## 2026-07-20 First-Win Segment Question Cleanup
 
 - Reset `New` company navigation to Company Information and clear inherited section, improvement, refresh, and pending-autosave state before the blank intake opens.

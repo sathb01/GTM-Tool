@@ -338,6 +338,54 @@
       margin-bottom: 12px;
     }
 
+    .claim-trace {
+      margin: 16px 0;
+      padding: 14px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .claim-trace-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px 12px;
+      margin-bottom: 8px;
+    }
+
+    .claim-trace-header h3 {
+      margin: 0;
+    }
+
+    .claim-trace-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .claim-trace-meta span {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .claim-trace ul {
+      margin-bottom: 8px;
+    }
+
+    .claim-trace-note {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
     .plan-output-map {
       margin-top: 16px;
       padding-top: 14px;
@@ -5330,6 +5378,64 @@
       return String(label || "").toLowerCase();
     }
 
+    function outputClaim(config = {}) {
+      const identifierText = (value) => String(value || "").trim();
+      const allowedStatuses = new Set(["Saved input", "Saved evidence", "Calculated", "Inference", "Recommendation"]);
+      const status = allowedStatuses.has(config.status) ? config.status : "Recommendation";
+      const confidence = ["High", "Medium", "Low"].includes(config.confidence) ? config.confidence : "Medium";
+      const sources = (config.sources || [])
+        .map((source) => ({
+          label: cleanText(source?.label),
+          detail: cleanText(source?.detail),
+          fields: (source?.fields || []).map(identifierText).filter(Boolean)
+        }))
+        .filter((source) => source.label);
+      const sourceFields = [...new Set([
+        ...(config.sourceFields || []).map(identifierText).filter(Boolean),
+        ...sources.flatMap((source) => source.fields)
+      ])];
+
+      return {
+        id: identifierText(config.id) || "output-claim",
+        label: cleanText(config.label) || "Plan output",
+        value: identifierText(config.value),
+        status,
+        confidence,
+        sources,
+        sourceFields,
+        improvementTopic: identifierText(config.improvementTopic),
+        explanation: cleanText(config.explanation)
+      };
+    }
+
+    function claimStatusExplanation(status) {
+      if (status === "Saved input") return "This comes directly from a choice or plan item saved for this company.";
+      if (status === "Saved evidence") return "This comes directly from information or execution evidence saved for this company.";
+      if (status === "Calculated") return "This is calculated from the named readiness areas using the current scoring model.";
+      if (status === "Inference") return "This is the most likely interpretation of the available evidence and should be confirmed.";
+      return "This is a recommended next move based on the current evidence and identified gaps.";
+    }
+
+    function claimTraceMarkup(claim) {
+      if (!claim) return "";
+      const sources = claim.sources.length
+        ? claim.sources
+        : [{ label: "Current intake and plan evidence", detail: "No narrower source category is available yet." }];
+      return `
+        <div class="claim-trace" data-claim-trace="${escapeHtml(claim.id)}">
+          <div class="claim-trace-header">
+            <h3>What this is based on</h3>
+            <div class="claim-trace-meta">
+              <span>${escapeHtml(claim.status)}</span>
+              <span>${escapeHtml(claim.confidence)} confidence</span>
+            </div>
+          </div>
+          <ul>${sources.map((source) => `<li><strong>${escapeHtml(source.label)}:</strong> ${escapeHtml(source.detail || "Used in the current output.")}</li>`).join("")}</ul>
+          <p class="claim-trace-note">${escapeHtml(claimStatusExplanation(claim.status))}</p>
+        </div>
+      `;
+    }
+
     function listItemsFromText(value) {
       const text = String(value || "").trim();
       if (!text) return [];
@@ -5737,6 +5843,13 @@
     function renderMetricCard(container, card) {
       const article = document.createElement("article");
       article.className = `workspace-card metric-card ${card.tone ? `tone-${card.tone}` : ""}`;
+      if (card.claim) {
+        article.dataset.claimId = card.claim.id;
+        article.dataset.claimStatus = card.claim.status;
+        article.dataset.claimConfidence = card.claim.confidence;
+        article.dataset.claimValue = card.claim.value;
+        article.dataset.claimSourceFields = card.claim.sourceFields.join("|");
+      }
       article.innerHTML = `
         <h3>${escapeHtml(card.label)}</h3>
         <div class="metric-value">${card.valueHtml || escapeHtml(card.value || missingText)}</div>
@@ -5805,7 +5918,159 @@
         risk = `${blocked.length} current-week priorit${blocked.length === 1 ? "y is" : "ies are"} blocked. Resolve or revise ${blocked.length === 1 ? "it" : "them"} before adding new work.`;
       }
 
-      return { feedback, opportunity, nextAction, risk };
+      return { feedback, priorities, blocked, nextPriority, opportunity, nextAction, risk };
+    }
+
+    function summaryClaimSourceFields(topic, model) {
+      const text = String(topic || "").toLowerCase();
+      const fields = [];
+      const customerRowId = model.priorityGroup?.rowId;
+      const offerRowId = model.primaryOffer?.rowId;
+      const motionRowId = model.revenueMotion?.rowId;
+
+      if (/customer|icp|segment|target/.test(text)) {
+        fields.push("bestFitCustomerGroup", "bestFitPrimaryPain", "bestFitTrigger", "bestFitEvidence");
+        if (customerRowId) {
+          fields.push(
+            `possibleCustomerGroups__${customerRowId}__groupName`,
+            `possibleCustomerGroups__${customerRowId}__problem`,
+            `possibleCustomerGroups__${customerRowId}__whyNow`,
+            `possibleCustomerGroups__${customerRowId}__notesEvidence`
+          );
+        }
+      }
+      if (/offer|proof|message|claim/.test(text)) {
+        fields.push("primaryOfferName", "quickOfferPromise", "quickBuyerProblem", "quickPrimaryOutcome");
+        if (offerRowId) {
+          fields.push(
+            `offerPortfolio__${offerRowId}__offerName`,
+            scopedOfferField(offerRowId, "offerBuyerProblem"),
+            scopedOfferField(offerRowId, "offerOutcomes")
+          );
+        }
+      }
+      if (/motion|revenue|pipeline|execution|crm|conversion|activity/.test(text)) {
+        fields.push("primarySalesMotion", "quickCurrentSalesMotion", "quickPrimaryRevenueSource", "revenueTrackingSystem", "revenueReportingCadence", "primaryRevenueOwner");
+        if (motionRowId) {
+          fields.push(
+            `revenueMotionPortfolio__${motionRowId}__playName`,
+            `revenueMotionPortfolio__${motionRowId}__channelSource`,
+            revenueScopedField(motionRowId, "nextExperiment", "successMetric"),
+            revenueScopedField(motionRowId, "nextExperiment", "reviewCadence")
+          );
+        }
+      }
+      if (/risk|constraint|capacity/.test(text)) {
+        fields.push("quickBiggestConstraint", "sellingCapacity", "weeklyRevenueHours", "capacityNotes");
+      }
+      return [...new Set(fields.filter(Boolean))];
+    }
+
+    function buildSummaryClaims(model, context) {
+      const {
+        status,
+        dynamicSummary,
+        topPriority,
+        nextAction,
+        topRisk
+      } = context;
+      const riskInsight = buildStrategicInsights(model)
+        .find((item) => /risk|contradiction/i.test(item.type) || item.severity === "High");
+      const scoreSources = (model.readinessDiagnostic?.components || []).map((item) => ({
+        label: item.label,
+        detail: `${item.score}/100; ${item.explanation}`,
+        fields: item.key === "self" ? schema.scoreFields : []
+      }));
+      const opportunityTopic = immediateActionTopic(`${topPriority?.category || ""} ${dynamicSummary.opportunity}`);
+      const actionTopic = immediateActionTopic(`${topPriority?.category || ""} ${nextAction}`);
+      const riskTopic = immediateActionTopic(`risk ${topRisk}`);
+      const blockedTitles = dynamicSummary.blocked.map((item) => cleanText(item.title || item.output)).filter(Boolean);
+
+      return {
+        readiness: outputClaim({
+          id: "summary-readiness",
+          label: "GTM Readiness Score",
+          value: String(model.readinessScore),
+          status: "Calculated",
+          confidence: model.scoreConfidence,
+          sources: scoreSources,
+          sourceFields: [
+            ...schema.scoreFields,
+            "bestFitCustomerGroup",
+            "primaryOfferName",
+            "primarySalesMotion",
+            "revenueTrackingSystem",
+            "activePlanWeeklyWorkspace"
+          ],
+          improvementTopic: "score",
+          explanation: `${status.label} at ${model.readinessScore}/100.`
+        }),
+        opportunity: outputClaim({
+          id: "summary-opportunity",
+          label: "Top Opportunity",
+          value: dynamicSummary.opportunity,
+          status: "Recommendation",
+          confidence: topPriority?.confidence || (dynamicSummary.feedback.sufficientTest ? "High" : "Medium"),
+          sources: [
+            topPriority ? {
+              label: "Highest-ranked action priority",
+              detail: `${topPriority.priority}: ${topPriority.drivers}`,
+              fields: summaryClaimSourceFields(opportunityTopic, model)
+            } : null,
+            dynamicSummary.feedback.hasEvidence ? {
+              label: "Saved execution evidence",
+              detail: dynamicSummary.feedback.explanation,
+              fields: ["weeklyReviewWorkspace", "evidenceReconciliationWorkspace"]
+            } : null
+          ].filter(Boolean),
+          improvementTopic: opportunityTopic
+        }),
+        action: outputClaim({
+          id: "summary-action",
+          label: "Next Best Action",
+          value: nextAction,
+          status: dynamicSummary.nextPriority ? "Saved input" : "Recommendation",
+          confidence: dynamicSummary.nextPriority ? "High" : (topPriority?.confidence || "Medium"),
+          sources: [
+            dynamicSummary.nextPriority ? {
+              label: "Current-week active plan",
+              detail: `${cleanText(dynamicSummary.nextPriority.title || dynamicSummary.nextPriority.output)}; status: ${cleanText(dynamicSummary.nextPriority.status) || "Not started"}.`,
+              fields: ["activePlanWeeklyWorkspace"]
+            } : null,
+            !dynamicSummary.nextPriority && topPriority ? {
+              label: "Highest-ranked action priority",
+              detail: `${topPriority.priority}: ${topPriority.recommendedAction}`,
+              fields: summaryClaimSourceFields(actionTopic, model)
+            } : null
+          ].filter(Boolean),
+          improvementTopic: actionTopic
+        }),
+        risk: outputClaim({
+          id: "summary-risk",
+          label: "Biggest Risk",
+          value: topRisk,
+          status: blockedTitles.length ? "Saved evidence" : "Inference",
+          confidence: blockedTitles.length ? "High" : (riskInsight?.confidence || "Medium"),
+          sources: [
+            blockedTitles.length ? {
+              label: "Blocked current-week work",
+              detail: blockedTitles.join("; "),
+              fields: ["activePlanWeeklyWorkspace"]
+            } : null,
+            !blockedTitles.length && riskInsight ? {
+              label: "Current strategic evidence",
+              detail: riskInsight.observation || riskInsight.title,
+              fields: summaryClaimSourceFields(riskTopic, model)
+            } : null,
+            !blockedTitles.length && !riskInsight ? {
+              label: "Weakest readiness area",
+              detail: `${model.lowestCategory?.name || "GTM foundation"}: ${model.lowestCategory ? `${model.lowestCategory.score.toFixed(1)}/5` : "needs validation"}.`,
+              fields: summaryClaimSourceFields(riskTopic, model)
+            } : null
+          ].filter(Boolean),
+          improvementTopic: riskTopic
+        })
+      };
     }
 
     function summaryBulletList(text, splitAlternatives = false) {
@@ -5846,6 +6111,13 @@
         || model.data.pipelineReviewOwner
         || (/founder|capacity|executive/i.test(`${topRisk} ${nextAction}`) ? "CEO / Founder" : "CEO / Founder");
       const assets = actionPanelAssets(model);
+      const claims = buildSummaryClaims(model, {
+        status,
+        dynamicSummary,
+        topPriority,
+        nextAction,
+        topRisk
+      });
 
       const section = cards.closest("section");
       let guide = section?.querySelector(".decision-summary-guide");
@@ -5864,7 +6136,8 @@
         badge: status,
         progressHtml: `<div class="score-progress" aria-label="Readiness score progress"><div class="score-progress-bar" style="width:${scorePercent}%; background:${status.color};"></div></div>`,
         tone: "readiness",
-        target: "summary-readiness-details"
+        target: "summary-readiness-details",
+        claim: claims.readiness
       });
       renderMetricCard(cards, {
         label: "Top Opportunity",
@@ -5872,7 +6145,8 @@
         copy: dynamicSummary.opportunity,
         badge: { label: "Opportunity", className: "medium" },
         tone: "opportunity",
-        target: "summary-opportunity-details"
+        target: "summary-opportunity-details",
+        claim: claims.opportunity
       });
       renderMetricCard(cards, {
         label: "Next Best Action",
@@ -5880,7 +6154,8 @@
         copy: nextAction,
         badge: { label: "Priority", className: "strong" },
         tone: "action",
-        target: "summary-action-details"
+        target: "summary-action-details",
+        claim: claims.action
       });
       renderMetricCard(cards, {
         label: "Biggest Risk",
@@ -5888,7 +6163,8 @@
         copy: topRisk,
         badge: { label: /risk|capacity|weak|missing|unclear/i.test(topRisk) ? "Watch" : "Review", className: "warning" },
         tone: "risk",
-        target: "summary-risk-details"
+        target: "summary-risk-details",
+        claim: claims.risk
       });
 
       recommendation.innerHTML = "";
@@ -5899,7 +6175,7 @@
         tone: "readiness",
         title: "GTM Readiness: Evidence and Score Details",
         subtitle: "See what supports the score and what would improve it.",
-        content: `<p><strong>Current status:</strong> ${escapeHtml(status.label)} at ${escapeHtml(model.readinessScore)}/100.</p><div class="score-list"><div><h3>Strong points</h3><ul>${(scoreParts.strengths.length ? scoreParts.strengths : ["No strong score areas yet."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div><div><h3>Weak points</h3><ul>${(scoreParts.weaknesses.length ? scoreParts.weaknesses : ["No major score weaknesses detected."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div></div><h3>Offer and Proof score details</h3><p><strong>${escapeHtml(offerScoreSnapshot.score)}/100</strong> for ${escapeHtml(model.primaryOffer?.values.offerName || model.data.primaryGtmOffer || "the primary offer")}.</p><ul>${offerScoreSnapshot.dimensions.map((item) => `<li><strong>${escapeHtml(item.name)}:</strong> ${escapeHtml(item.score * 20)}/100${item.score < 4 ? ` - ${escapeHtml(item.nextMove)}` : " - sufficiently defined"}</li>`).join("")}</ul><h3>Revenue Motion score details</h3><p><strong>${escapeHtml(model.revenueSnapshot.score)}/100</strong> based on the saved motion context, channel evidence, pipeline visibility, sales process, conversion health, ownership, stalled-deal learning, and next experiment.</p><ul>${model.revenueSnapshot.dimensions.map((item) => `<li><strong>${escapeHtml(item.name)}:</strong> ${escapeHtml(item.score * 20)}/100${item.score < 4 ? ` - ${escapeHtml(item.nextMove)}` : " - sufficiently defined"}</li>`).join("")}</ul><h3>Best ways to improve the score</h3><ul>${(improvements.length ? improvements.map((item) => `${item.area}: ${item.action}`) : ["Continue collecting execution evidence against the current plan."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul><p class="muted">A saved improvement can raise a subscore without immediately changing the rounded overall score because the overall score combines several weighted areas.</p>`
+        content: `<p><strong>Current status:</strong> ${escapeHtml(status.label)} at ${escapeHtml(model.readinessScore)}/100.</p>${claimTraceMarkup(claims.readiness)}<div class="score-list"><div><h3>Strong points</h3><ul>${(scoreParts.strengths.length ? scoreParts.strengths : ["No strong score areas yet."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div><div><h3>Weak points</h3><ul>${(scoreParts.weaknesses.length ? scoreParts.weaknesses : ["No major score weaknesses detected."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div></div><h3>Offer and Proof score details</h3><p><strong>${escapeHtml(offerScoreSnapshot.score)}/100</strong> for ${escapeHtml(model.primaryOffer?.values.offerName || model.data.primaryGtmOffer || "the primary offer")}.</p><ul>${offerScoreSnapshot.dimensions.map((item) => `<li><strong>${escapeHtml(item.name)}:</strong> ${escapeHtml(item.score * 20)}/100${item.score < 4 ? ` - ${escapeHtml(item.nextMove)}` : " - sufficiently defined"}</li>`).join("")}</ul><h3>Revenue Motion score details</h3><p><strong>${escapeHtml(model.revenueSnapshot.score)}/100</strong> based on the saved motion context, channel evidence, pipeline visibility, sales process, conversion health, ownership, stalled-deal learning, and next experiment.</p><ul>${model.revenueSnapshot.dimensions.map((item) => `<li><strong>${escapeHtml(item.name)}:</strong> ${escapeHtml(item.score * 20)}/100${item.score < 4 ? ` - ${escapeHtml(item.nextMove)}` : " - sufficiently defined"}</li>`).join("")}</ul><h3>Best ways to improve the score</h3><ul>${(improvements.length ? improvements.map((item) => `${item.area}: ${item.action}`) : ["Continue collecting execution evidence against the current plan."]).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul><p class="muted">A saved improvement can raise a subscore without immediately changing the rounded overall score because the overall score combines several weighted areas.</p>`
       });
       const readinessActions = readinessPanel.querySelector(".summary-support-content");
       const linkedAreas = new Set();
@@ -5927,9 +6203,9 @@
         tone: "opportunity",
         title: "Top Opportunity",
         subtitle: "Understand what it is, why it was selected, and which inputs affect it.",
-        content: `<h3>Recommended opportunity</h3><p>${escapeHtml(dynamicSummary.opportunity)}</p>${dynamicSummary.feedback.state === "Supported" ? `<h3>Conversion point to improve</h3><p>${dynamicSummary.feedback.weakestConversionPoint ? `<strong>${escapeHtml(dynamicSummary.feedback.weakestConversionPoint)}</strong> is the saved answer for Biggest funnel drop-off in Revenue Motion.` : "No biggest funnel drop-off has been defined yet. Compare the conversion between each sales stage before choosing where to improve."}</p>` : ""}<h3>Recommended direction</h3>${summaryBulletList(decisionContent.decisionRequired, true)}<h3>Why this is prioritized</h3><ul><li>${escapeHtml(opportunityEvidence?.observation || topPriority?.drivers || executiveInsightMeaning(model))}</li><li>${escapeHtml(topPriority?.recommendedAction || "It is the clearest available leverage point for improving focused execution.")}</li></ul><h3>Recommended 90-Day Focus</h3><ul>${decisionContent.recommendedFocusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+        content: `<h3>Recommended opportunity</h3><p>${escapeHtml(dynamicSummary.opportunity)}</p>${claimTraceMarkup(claims.opportunity)}${dynamicSummary.feedback.state === "Supported" ? `<h3>Conversion point to improve</h3><p>${dynamicSummary.feedback.weakestConversionPoint ? `<strong>${escapeHtml(dynamicSummary.feedback.weakestConversionPoint)}</strong> is the saved answer for Biggest funnel drop-off in Revenue Motion.` : "No biggest funnel drop-off has been defined yet. Compare the conversion between each sales stage before choosing where to improve."}</p>` : ""}<h3>Recommended direction</h3>${summaryBulletList(decisionContent.decisionRequired, true)}<h3>Why this is prioritized</h3><ul><li>${escapeHtml(opportunityEvidence?.observation || topPriority?.drivers || executiveInsightMeaning(model))}</li><li>${escapeHtml(topPriority?.recommendedAction || "It is the clearest available leverage point for improving focused execution.")}</li></ul><h3>Recommended 90-Day Focus</h3><ul>${decisionContent.recommendedFocusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
       });
-      appendReviewLink(opportunityPanel.querySelector(".summary-support-content"), "Improve This Section", immediateActionTopic(dynamicSummary.opportunity), { sameTab: true, returnSectionId: "summary-opportunity-details" });
+      appendReviewLink(opportunityPanel.querySelector(".summary-support-content"), "Improve This Section", claims.opportunity.improvementTopic, { sameTab: true, returnSectionId: "summary-opportunity-details" });
       recommendation.appendChild(opportunityPanel);
 
       const actionDetails = summarySupportPanel({
@@ -5937,7 +6213,7 @@
         tone: "action",
         title: "Next Best Action",
         subtitle: "See the owner, timing, and assets needed to complete this work.",
-        content: `<h3>Immediate Action</h3><p>${escapeHtml(nextAction)}</p><ul><li><strong>Owner:</strong> ${escapeHtml(owner)}</li><li><strong>Due:</strong> This week</li><li><strong>Assets needed:</strong> ${escapeHtml(assets.join(", "))}</li></ul><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Work on this action</a></div>`
+        content: `<h3>Immediate Action</h3><p>${escapeHtml(nextAction)}</p>${claimTraceMarkup(claims.action)}<ul><li><strong>Owner:</strong> ${escapeHtml(owner)}</li><li><strong>Due:</strong> This week</li><li><strong>Assets needed:</strong> ${escapeHtml(assets.join(", "))}</li></ul><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Work on this action</a></div>`
       });
       recommendation.appendChild(actionDetails);
 
@@ -5946,9 +6222,9 @@
         tone: "risk",
         title: "Biggest Risk",
         subtitle: "See why the risk matters and which inputs can reduce it.",
-        content: `<h3>Current risk</h3><p>${escapeHtml(topRisk)}</p><h3>What to do about it</h3><p>${escapeHtml(model.readinessDiagnostic?.improvements?.[0]?.action || "Confirm the source inputs, assign an owner, and resolve the risk before expanding activity.")}</p>${strategicEvidence.length ? `<h3>Related evidence</h3><ul>${strategicEvidence.slice(0, 2).map((insight) => `<li>${escapeHtml(insight.observation)}</li>`).join("")}</ul>` : ""}`
+        content: `<h3>Current risk</h3><p>${escapeHtml(topRisk)}</p>${claimTraceMarkup(claims.risk)}<h3>What to do about it</h3><p>${escapeHtml(model.readinessDiagnostic?.improvements?.[0]?.action || "Confirm the source inputs, assign an owner, and resolve the risk before expanding activity.")}</p>${strategicEvidence.length ? `<h3>Related evidence</h3><ul>${strategicEvidence.slice(0, 2).map((insight) => `<li>${escapeHtml(insight.observation)}</li>`).join("")}</ul>` : ""}`
       });
-      appendReviewLink(riskPanel.querySelector(".summary-support-content"), "Improve This Section", `risk ${topRisk}`, { sameTab: true, returnSectionId: "summary-risk-details" });
+      appendReviewLink(riskPanel.querySelector(".summary-support-content"), "Improve This Section", claims.risk.improvementTopic, { sameTab: true, returnSectionId: "summary-risk-details" });
       recommendation.appendChild(riskPanel);
     }
 

@@ -77,3 +77,14 @@ These are not yet all confirmed defects. They have been separated from harness a
 - Live authenticated intake, report, and asset rendering sweep: 78 passed, 0 failed.
 - Render's persistent background connections made `networkidle` an unreliable readiness signal. The deployed harness now waits for page load plus the exact section, company, or asset content required by each check.
 - No visible browser window was opened during release verification.
+
+## July 23 Phase 1: Trust and Score Integrity
+
+- Added reusable output claims for the four GTM Plan Summary decisions.
+- Each claim retains source fields internally and displays user-readable source categories, status, and confidence.
+- Raw field IDs and internal source keys are not shown in the interface.
+- Dependency test: 9 passed, 0 failed.
+- The dependency test changed all 12 self-assessment inputs from 1 to 5 for the same saved company; the overall score recalculated from 55 to 67.
+- Profile quality gate: 210 passed, 0 failed.
+- Semantic answer-quality gate: 66 passed, 0 failed.
+- Full local intake, report, and asset rendering sweep: 78 passed, 0 failed.
