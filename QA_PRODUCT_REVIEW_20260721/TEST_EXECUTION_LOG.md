@@ -125,3 +125,12 @@ These are not yet all confirmed defects. They have been separated from harness a
 - Phase 1 completion release commit: `31fc7eb`.
 - Authenticated Render focused Phase 1 gates: 60 passed, 0 failed.
 - Authenticated Render four-company route and asset sweep: 78 passed, 0 failed.
+
+## July 23 Phase 2: Adaptive Intake and AI Assistance
+
+- Schema-driven AI classification and point-of-answer safety gate: 19 passed, 0 failed.
+- Eleven high-friction fields now declare assistance mode, dependencies, evidence restrictions, follow-up rules, and prompts.
+- Select recommendations are supported at the question.
+- Recommendation text is shown before write-back and the current answer remains unchanged until explicit use.
+- Explanation-only help for unpublished founder or team background cannot write an AI answer.
+- Field requests contain only the context declared for that question.

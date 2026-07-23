@@ -361,12 +361,16 @@ function assistantRequestAllowed(request) {
   return requestAllowed(assistantRateLimit, request, 30, 60 * 60 * 1000);
 }
 
-function compactAssistantRecord(data = {}) {
+function assistantContextKeyAllowed(key) {
   const sensitive = /(?:password|secret|token|api.?key|email|phone|preparedBy|respondent)/i;
   const internal = /(?:savedAt|generatedSummary|segmentFitScore|segmentFitRecommendation|Workspace$)/i;
+  return !sensitive.test(key) && !internal.test(key);
+}
+
+function compactAssistantRecord(data = {}) {
   const entries = [];
   for (const [key, value] of Object.entries(data || {})) {
-    if (sensitive.test(key) || internal.test(key) || value === null || value === undefined || value === "") continue;
+    if (!assistantContextKeyAllowed(key) || value === null || value === undefined || value === "") continue;
     if (typeof value === "object") continue;
     entries.push([key, String(value).slice(0, 500)]);
     if (entries.length >= 180) break;
@@ -440,7 +444,19 @@ async function handleAssistant(request, response, url) {
   }
   const pageContext = String(body.pageContext || "").trim().slice(0, 8000);
   const fieldContext = body.field && typeof body.field === "object" ? body.field : null;
-  const recordContext = compactAssistantRecord(record?.data || body.currentFields || {});
+  const savedRecordData = record?.data || body.currentFields || {};
+  const fieldDependencies = fieldContext && Array.isArray(fieldContext.contextDependencies)
+    ? fieldContext.contextDependencies.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 20)
+    : [];
+  const fieldRecordContext = fieldDependencies.length
+    ? Object.fromEntries(["companyName", "toolMode", ...fieldDependencies]
+      .filter((key, index, all) => all.indexOf(key) === index)
+      .filter(assistantContextKeyAllowed)
+      .filter((key) => String(savedRecordData[key] || "").trim())
+      .map((key) => [key, savedRecordData[key]]))
+    : {};
+  const recordContext = fieldContext ? fieldRecordContext : compactAssistantRecord(savedRecordData);
+  const answerMode = String(fieldContext?.answerMode || "");
   const prompt = [
     `Workspace: ${String(body.workspace || "GTM Intelligence OS").slice(0, 80)}`,
     `Current section or asset: ${String(body.section || "Not specified").slice(0, 160)}`,
@@ -467,7 +483,12 @@ async function handleAssistant(request, response, url) {
       "Prefer concise bullets. Give a direct recommendation, why it fits, and the next action.",
       "When asked how to answer an intake question, suggest up to three realistic answer choices and identify the recommended starting choice.",
       "Never claim that you saved or changed the intake. The user must decide what to enter.",
-      fieldContext ? "For this field-assist request, return only the proposed field answer in one to three concise sentences. Do not add a heading, bullets, explanation, quotation marks, or preamble. Use the field options when options are supplied." : ""
+      fieldContext && answerMode === "ask_directly"
+        ? "For this explanation-only field, explain what information the respondent should provide. Do not propose or infer private facts and do not write an answer on the respondent's behalf."
+        : "",
+      fieldContext && answerMode !== "ask_directly"
+        ? "For this field-assist request, return only the proposed field answer in one to three concise sentences. Do not add a heading, bullets, explanation, quotation marks, or preamble. When options are supplied, return exactly one supplied option and no other text."
+        : ""
     ].join(" "),
     input: prompt,
     max_output_tokens: 900,

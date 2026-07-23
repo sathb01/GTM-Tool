@@ -1,15 +1,6 @@
 (() => {
-  const assistedFields = new Set([
-    "customerContextStarter",
-    "quickBestFitCustomer",
-    "quickBuyerProblem",
-    "quickUrgencyNow",
-    "quickOfferPromise",
-    "quickSuccessMeasure",
-    "quickStopAvoid",
-    "preFounderBackground",
-    "preHypothesisNotes"
-  ]);
+  const assistanceConfig = window.GTM_INTAKE_SCHEMA?.aiAssistance || {};
+  const assistedFields = new Set(Object.keys(assistanceConfig));
   let researchResult = null;
 
   const backdrop = document.createElement("div");
@@ -194,32 +185,56 @@
       const fieldId = wrapper.dataset.fieldId;
       if (!assistedFields.has(fieldId) || wrapper.querySelector(".ai-field-help")) return;
       const control = wrapper.querySelector(`[name="${CSS.escape(fieldId)}"]`);
-      if (!control || !["INPUT", "TEXTAREA"].includes(control.tagName)) return;
+      if (!control || !["INPUT", "TEXTAREA", "SELECT"].includes(control.tagName)) return;
+      const config = assistanceConfig[fieldId] || {};
       const isCustomerContext = fieldId === "customerContextStarter";
+      const isAskDirectly = config.mode === "ask_directly";
+      const buttonLabel = isCustomerContext
+        ? "Get our customer recommendation"
+        : isAskDirectly
+          ? "Explain this question"
+          : "Get our recommendation";
       const help = document.createElement("div");
       help.className = "ai-field-help";
-      help.innerHTML = `<button type="button" class="ai-field-help-button">${isCustomerContext ? "Generate company-specific example" : "Help me answer this"}</button><span class="ai-field-status" aria-live="polite"></span><div class="ai-field-suggestion" hidden>${isCustomerContext ? "<strong>Suggested example for this company</strong>" : ""}<p></p><div class="ai-field-suggestion-actions"><button type="button" data-use-ai-field>Use this answer</button><button type="button" class="secondary" data-dismiss-ai-field>Dismiss</button></div></div>`;
+      help.dataset.aiMode = config.mode || "recommend_from_existing_answers";
+      help.innerHTML = `<button type="button" class="ai-field-help-button">${buttonLabel}</button><span class="ai-field-status" aria-live="polite"></span><div class="ai-field-suggestion" hidden><strong>${isAskDirectly ? "How to answer" : "Our recommendation"}</strong><p></p><div class="ai-field-suggestion-actions"><button type="button" data-use-ai-field${isAskDirectly ? " hidden" : ""}>Use this answer</button><button type="button" class="secondary" data-dismiss-ai-field>Dismiss</button></div></div>`;
       wrapper.appendChild(help);
       const fieldStatus = help.querySelector(".ai-field-status");
       const suggestion = help.querySelector(".ai-field-suggestion");
       const suggestionText = suggestion.querySelector("p");
       help.querySelector(".ai-field-help-button").addEventListener("click", async () => {
-        fieldStatus.textContent = isCustomerContext ? "Building an example for this company..." : "Building a suggestion from the current intake...";
+        fieldStatus.textContent = isAskDirectly ? "Explaining what belongs here..." : "Building a recommendation from this company's current intake...";
         suggestion.hidden = true;
         const options = control.tagName === "SELECT" ? Array.from(control.options).map((option) => option.textContent.trim()).filter(Boolean) : [];
+        const data = currentData();
+        const contextFields = Array.from(new Set(["companyName", "toolMode", ...(config.contextDependencies || [])]));
+        const relevantContext = Object.fromEntries(contextFields
+          .filter((key) => String(data[key] || "").trim())
+          .map((key) => [key, data[key]]));
         try {
           const response = await fetch("/api/assistant", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               question: isCustomerContext
-                ? "Create a specific plain-language description of the customer, user, or buyer this company should reach first. Use only this active company's saved context. Include who they are, their situation, what they are trying to accomplish, what is difficult today, and observable details that would help find more of them. Never reuse an example from another company."
-                : "Suggest the strongest honest answer for this intake field. Use only supported context and state uncertainty inside the answer when needed.",
+                ? `${config.prompt} ${config.evidenceRestriction}`
+                : isAskDirectly
+                  ? `${config.prompt} ${config.evidenceRestriction}`
+                  : `${config.prompt} ${config.evidenceRestriction} Return one concise answer${options.length ? " using exactly one of the supplied options" : ""}.`,
               recordId: currentRecordId(),
               workspace: "GTM Intelligence OS Intake",
               section: document.querySelector("#sections h2")?.textContent?.trim() || "Current intake section",
-              pageContext: JSON.stringify(Object.fromEntries(Object.entries(currentData()).filter(([, value]) => String(value || "").trim()).slice(0, 80))).slice(0, 8000),
-              field: { id: fieldId, label: wrapper.dataset.fieldLabel, currentValue: control.value, options }
+              pageContext: JSON.stringify(relevantContext).slice(0, 5000),
+              field: {
+                id: fieldId,
+                label: wrapper.dataset.fieldLabel,
+                currentValue: control.value,
+                options,
+                answerMode: config.mode,
+                contextDependencies: config.contextDependencies || [],
+                evidenceRestriction: config.evidenceRestriction || "",
+                followUpRules: config.followUpRules || []
+              }
             })
           });
           const payload = await response.json();
@@ -229,12 +244,15 @@
           suggestion.dataset.proposedAnswer = proposedAnswer;
           suggestionText.textContent = proposedAnswer;
           suggestion.hidden = false;
-          fieldStatus.textContent = "Suggestion ready. Review it before using it.";
+          fieldStatus.textContent = isAskDirectly
+            ? "Guidance ready. Your answer has not been changed."
+            : "Recommendation ready. Review it before using it.";
         } catch (error) {
           fieldStatus.textContent = `${error.message} Your current answer has not been changed.`;
         }
       });
       help.querySelector("[data-use-ai-field]").addEventListener("click", async () => {
+        if (isAskDirectly) return;
         const answer = String(suggestion.dataset.proposedAnswer || suggestionText.textContent || "").trim();
         if (!answer) {
           fieldStatus.textContent = "The suggestion is no longer available. Select Help me answer this to create it again.";

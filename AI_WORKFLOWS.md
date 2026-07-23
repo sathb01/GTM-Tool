@@ -1,10 +1,12 @@
 # GTM Tool AI Workflows
 
-Last updated: 2026-07-16
+Last updated: 2026-07-23
 
 ## Current AI Position
 
 Contextual intake and recommendation help is available through the explicit `Find or ask` assistant. Reviewed public-company research is also available from `Research Company`; it proposes sourced answers but never writes them without user selection.
+
+High-friction intake questions also provide point-of-answer assistance. Each supported field is classified in `tool/intake-schema.js` with an answer mode, context dependencies, evidence restriction, follow-up rules, and task-specific prompt.
 
 ## Reviewed Company Research
 
@@ -36,8 +38,11 @@ Behavior:
 
 - Runs only after the user selects `Ask AI`; local section search does not call AI.
 - Uses the current saved company and visible section to recommend answers, explain questions or recommendations, review gaps, and suggest a next action.
+- Field assistance sends only the company identifier, tool mode, and context dependencies declared for that field rather than the full intake.
 - Distinguishes saved evidence from recommendations and does not invent customer evidence.
 - Never silently writes an AI answer into the intake or plan.
+- Shows `Use this answer` only for reviewable recommendations. Questions about unpublished facts use explanation-only help without AI write-back.
+- Select fields require the model to return exactly one available option.
 - Keeps `OPENAI_API_KEY` on the server and defaults to `gpt-4.1-mini` unless `OPENAI_MODEL` is set.
 - Excludes contact and credential fields, caps context and output size, and applies an hourly per-network request limit.
 
@@ -134,19 +139,17 @@ If `OPENAI_API_KEY` is not configured, the endpoint returns 501 with:
 AI Research is not configured yet.
 ```
 
-## Disabled Browser API Layer
+## Browser AI Layers
 
-`tool/ai-research.js` is intentionally disabled. It contains only a comment and no active research behavior. This prevents the old API override script from calling `/api/research`.
+`tool/ai-research.js` contains only a compatibility note. Reviewed company research and field assistance are handled by `tool/ai-intake-assist.js`; general workspace questions are handled by `tool/assistant-ui.js`.
 
-## Cost-Control Decision
+## Alpha Cost Controls
 
-The current product decision is:
-
-- Do not run automated app-side AI research for now.
-- Provide a high-quality research prompt that the user can run in ChatGPT.
-- Avoid API calls unless a future explicit workflow is approved.
-
-This is important because direct API web research can become expensive if used across many companies, fields, and URLs.
+- AI calls happen only after an explicit user action.
+- Company research is limited to five runs per network per day.
+- Assistant and field help share an hourly per-network request limit.
+- Field help sends a small dependency-scoped context and uses the configured compact model by default.
+- No AI recommendation is written until the user selects `Use this answer`.
 
 ## Good Future AI Workflow Options
 

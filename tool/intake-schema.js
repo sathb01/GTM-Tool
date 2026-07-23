@@ -819,6 +819,85 @@ const GTM_INTAKE_SCHEMA = {
     "budget",
     "teamCapacity"
   ],
+  aiAssistance: {
+    customerContextStarter: {
+      mode: "adaptive_coaching",
+      contextDependencies: ["companyName", "primaryOfferName", "industryLabel", "businessTypeLabel", "quickBestFitCustomer", "quickBuyerProblem"],
+      evidenceRestriction: "Recommend a customer hypothesis from this company's saved context. Do not present it as customer evidence.",
+      followUpRules: ["Ask for observable traits when the description is broad.", "Ask for a use case only when the answer refers to a specific use case without defining it."],
+      prompt: "Draft a specific, findable customer description with situation, goal, current difficulty, and observable traits."
+    },
+    quickBestFitCustomer: {
+      mode: "recommend_from_existing_answers",
+      contextDependencies: ["customerContextStarter", "primaryOfferName", "industryLabel", "businessTypeLabel", "companyStage"],
+      evidenceRestriction: "Present one focused customer hypothesis as a recommendation, not a validated ICP.",
+      followUpRules: ["Ask for size, geography, category, or operating traits only when they would make the group findable."],
+      prompt: "Recommend one focused best-fit customer group that can be researched and reached."
+    },
+    quickBuyerProblem: {
+      mode: "recommend_from_existing_answers",
+      contextDependencies: ["quickBestFitCustomer", "customerContextStarter", "primaryOfferName", "quickOfferPromise"],
+      evidenceRestriction: "Do not claim the problem is confirmed unless saved customer evidence says so.",
+      followUpRules: ["Make the problem specific to the selected customer and what the offer helps solve."],
+      prompt: "Recommend the most specific buyer problem supported by the saved company and customer context."
+    },
+    quickUrgencyNow: {
+      mode: "adaptive_coaching",
+      contextDependencies: ["quickBestFitCustomer", "quickBuyerProblem", "bestFitTrigger", "companyStage"],
+      evidenceRestriction: "Separate a plausible urgency hypothesis from a confirmed trigger.",
+      followUpRules: ["Ask what changed, what deadline exists, or what cost grows if the buyer waits."],
+      prompt: "Recommend a concrete why-now hypothesis with an observable trigger or consequence of delay."
+    },
+    quickOfferPromise: {
+      mode: "recommend_from_existing_answers",
+      contextDependencies: ["primaryOfferName", "quickBestFitCustomer", "quickBuyerProblem", "quickPrimaryOutcome", "quickSuccessMeasure"],
+      evidenceRestriction: "Do not add outcomes, guarantees, or proof that are not saved.",
+      followUpRules: ["Require a named customer, problem, and measurable outcome before treating the promise as complete."],
+      prompt: "Synthesize a concise offer promise from the selected customer, problem, offer, and measurable outcome."
+    },
+    quickSuccessMeasure: {
+      mode: "recommend_from_existing_answers",
+      contextDependencies: ["quickBuyerProblem", "quickPrimaryOutcome", "quickOfferPromise", "primaryOfferName"],
+      evidenceRestriction: "Recommend a measurement method, not an invented baseline or result.",
+      followUpRules: ["Ask for a unit, source, and time period when the proposed measure is vague."],
+      prompt: "Recommend how the buyer should measure whether the promised outcome occurred."
+    },
+    quickStopAvoid: {
+      mode: "recommend_from_existing_answers",
+      contextDependencies: ["quickBestFitCustomer", "quickBiggestConstraint", "quickPrimaryRevenueSource", "quickCurrentSalesMotion"],
+      evidenceRestriction: "Frame this as a focus recommendation, not a claim about past performance.",
+      followUpRules: ["Keep the recommendation to the few distractions most likely to dilute the current test."],
+      prompt: "Recommend what the company should deliberately stop or avoid during the current GTM cycle."
+    },
+    preHypothesisNotes: {
+      mode: "recommend_from_existing_answers",
+      contextDependencies: ["customerContextStarter", "preRevenueRouteToMarket", "preValidationFocus", "preValidationChannel"],
+      evidenceRestriction: "Label the rationale as a hypothesis unless direct evidence is saved.",
+      followUpRules: ["Distinguish reachability, urgency, economic value, and evidence confidence."],
+      prompt: "Explain why the selected first-win segment is worth testing before alternatives."
+    },
+    preFounderBackground: {
+      mode: "ask_directly",
+      contextDependencies: [],
+      evidenceRestriction: "Only the respondent can supply unpublished founder or team experience. Explain the question but do not invent an answer.",
+      followUpRules: ["Ask for relevant experience, relationships, credibility, or access only."],
+      prompt: "Explain what relevant founder or team background belongs here without proposing private facts."
+    },
+    quickPrimaryRevenueSource: {
+      mode: "recommend_from_existing_answers",
+      contextDependencies: ["quickBestFitCustomer", "quickCurrentSalesMotion", "primarySalesMotion", "customerContextStarter"],
+      evidenceRestriction: "Recommend a channel to test. Do not claim it is proven unless results are saved.",
+      followUpRules: ["Explain why the source can reach the selected customer and fit available capacity."],
+      prompt: "Recommend one primary opportunity source for the current focused GTM test."
+    },
+    quickCurrentSalesMotion: {
+      mode: "recommend_from_existing_answers",
+      contextDependencies: ["quickBestFitCustomer", "quickPrimaryRevenueSource", "primarySalesMotion", "companyStage", "teamSize"],
+      evidenceRestriction: "Recommend an operating motion, not a channel, and do not imply it is already working.",
+      followUpRules: ["Clarify who performs the selling and how the buyer moves toward purchase."],
+      prompt: "Recommend one sales motion that is distinct from the selected channel and realistic for the team."
+    }
+  },
   sections: [
     {
       id: "company",

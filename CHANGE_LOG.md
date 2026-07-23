@@ -42,6 +42,18 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Replaced visible internal `Rule used` wording with plain-language recommendation rationale.
 - Added release checks for metric separation, conflict resolution, and visible internal diagnostic labels.
 
+## 2026-07-23 Phase 2 Point-of-Answer AI Foundation
+
+- Added schema-owned AI assistance metadata for the highest-friction customer, problem, urgency, offer, measurement, focus, channel, motion, and pre-revenue questions.
+- Classified each supported field as recommend from existing answers, adaptive coaching, or ask directly.
+- Added field-specific context dependencies, evidence restrictions, follow-up rules, and prompts.
+- Replaced generic help labels with `Get our recommendation`, `Get our customer recommendation`, or `Explain this question`.
+- Added AI recommendations to select controls and required exact available-option responses.
+- Limited field-assist context to the dependencies declared for that question.
+- Kept private founder and team background explanation-only with no AI write-back.
+- Preserved explicit `Use this answer` review before any recommendation changes the intake.
+- Added a 19-check regression gate for classification, context scope, recommendation display, option support, and private-fact safety.
+
 ## 2026-07-20 First-Win Segment Question Cleanup
 
 - Reset `New` company navigation to Company Information and clear inherited section, improvement, refresh, and pending-autosave state before the blank intake opens.
