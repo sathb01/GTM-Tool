@@ -1,10 +1,10 @@
-# GTM Tool Current State Analysis
+# GTM Intelligence OS Current State Analysis
 
 Last updated: 2026-06-18
 
 ## Product Overview
 
-The GTM Tool is a browser-based GTM readiness intake and reporting application. It helps a company capture baseline company information, prioritize the best-fit customer focus, clarify the offer, define buyer personas, identify buying triggers, inspect proof and traction, map revenue motions, and generate a GTM readiness report.
+GTM Intelligence OS is a browser-based GTM readiness intake, planning, and execution application. It helps a company capture baseline company information, prioritize the best-fit customer focus, clarify the offer, define buyer personas, identify buying triggers, inspect proof and traction, map revenue motions, and generate an actionable GTM plan.
 
 The product currently supports two report paths:
 
@@ -240,4 +240,3 @@ The app uses both browser local storage and a lightweight server JSON store:
 - The overall readiness score depends on manual 1-5 ratings, so it is only as reliable as the user's self-assessment.
 - Detailed readiness snapshots are heuristic, not statistically validated scoring models.
 - The local browser verification in Codex has recently been unreliable due to a Windows sandbox launch error, so syntax and HTTP checks have been used as fallback verification.
-

@@ -828,7 +828,7 @@ const GTM_INTAKE_SCHEMA = {
       fields: [
         { id: "companyName", label: "Company name", type: "text", required: true, quick: true },
         { id: "website", label: "Primary website URL", type: "url", placeholder: "https://example.com", quick: true },
-        { id: "toolMode", label: "Which version of GTM OS should this use?", type: "select", options: ["GTM Readiness", "Pre-Revenue Validation"], hint: "Use Pre-Revenue Validation when the company is still testing customer, problem, offer, and channel hypotheses before repeatable revenue." },
+        { id: "toolMode", label: "Which version of GTM Intelligence OS should this use?", type: "select", options: ["GTM Readiness", "Pre-Revenue Validation"], hint: "Use Pre-Revenue Validation when the company is still testing customer, problem, offer, and channel hypotheses before repeatable revenue." },
         { id: "preparedBy", label: "Your Name", type: "text" },
         { id: "respondentRole", label: "Role / title", type: "text" },
         { id: "reviewPeriod", label: "Report Time Period", type: "select", options: ["Last 90 days", "Last 6 months", "Last 12 months", "Current quarter", "Current fiscal year", "Current Calendar Year", "Custom Date Range"] },

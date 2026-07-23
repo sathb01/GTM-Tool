@@ -1,10 +1,14 @@
-# GTM Tool Project Context
+# GTM Intelligence OS Project Context
 
 Last verified: 2026-06-11
 
 ## Purpose
 
 This file is the project continuity note for future ChatGPT/Codex sessions. If chat history is missing or incomplete, read this file first before making changes.
+
+Official user-facing product name: `GTM Intelligence OS`.
+
+The repository and local folder retain the historical `GTM-Tool` name to avoid breaking deployment and workspace paths.
 
 ## Current Project Location
 

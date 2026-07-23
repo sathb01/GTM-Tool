@@ -156,7 +156,7 @@
         body: JSON.stringify({
           question: text,
           recordId: recordId(),
-          workspace: isIntake() ? "GTM OS Intake" : "GTM OS Action Plan",
+          workspace: isIntake() ? "GTM Intelligence OS Intake" : "GTM Intelligence OS Action Plan",
           section: currentSection(),
           pageContext: pageContext()
         })

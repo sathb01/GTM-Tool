@@ -216,7 +216,7 @@
                 ? "Create a specific plain-language description of the customer, user, or buyer this company should reach first. Use only this active company's saved context. Include who they are, their situation, what they are trying to accomplish, what is difficult today, and observable details that would help find more of them. Never reuse an example from another company."
                 : "Suggest the strongest honest answer for this intake field. Use only supported context and state uncertainty inside the answer when needed.",
               recordId: currentRecordId(),
-              workspace: "GTM OS Intake",
+              workspace: "GTM Intelligence OS Intake",
               section: document.querySelector("#sections h2")?.textContent?.trim() || "Current intake section",
               pageContext: JSON.stringify(Object.fromEntries(Object.entries(currentData()).filter(([, value]) => String(value || "").trim()).slice(0, 80))).slice(0, 8000),
               field: { id: fieldId, label: wrapper.dataset.fieldLabel, currentValue: control.value, options }

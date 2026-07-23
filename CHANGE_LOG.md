@@ -4,6 +4,13 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-23 Product Rename
+
+- Renamed the user-facing product from `GTM OS` and `GTM Tool` to `GTM Intelligence OS`.
+- Updated the login page, intake, facilitation flows, reports, assets, AI workspace context, recommendation labels, and server startup message.
+- Preserved existing storage keys and record identifiers so saved company data remains compatible.
+- Added compatibility handling for the legacy `GTM OS is the source of truth` pipeline setting.
+
 ## 2026-07-20 First-Win Segment Question Cleanup
 
 - Reset `New` company navigation to Company Information and clear inherited section, improvement, refresh, and pending-autosave state before the blank intake opens.

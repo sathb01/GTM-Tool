@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GTM OS Facilitation</title>
+  <title>GTM Intelligence OS | Facilitation</title>
   <style>
     :root {
       --bg: #eef3f8;
@@ -85,7 +85,7 @@
   <main>
     <header>
       <h1 id="flowTitle">Guided Facilitation</h1>
-      <p class="muted" id="flowSubtitle">Answer the prompts, save the output, then regenerate the GTM OS report.</p>
+      <p class="muted" id="flowSubtitle">Answer the prompts, save the output, then regenerate the GTM Intelligence OS report.</p>
       <div class="actions">
         <a class="secondary" id="backLink" href="results.html">Return Without Saving</a>
         <a class="secondary" id="reportLink" href="results.html" hidden>Back to Report</a>
@@ -94,7 +94,7 @@
 
     <section id="flowPickerSection" hidden>
       <h2>Choose a facilitation flow</h2>
-      <p class="muted" id="flowPickerHelp">This page works best when opened from a GTM OS action button, but you can start a flow directly here.</p>
+      <p class="muted" id="flowPickerHelp">This page works best when opened from a GTM Intelligence OS action button, but you can start a flow directly here.</p>
       <div class="flow-picker" id="flowPicker"></div>
     </section>
 
@@ -129,7 +129,7 @@
       <pre class="draft-section" id="draftOutput"></pre>
       <div class="actions">
         <button type="button" id="saveButton">Save Changes and Return</button>
-        <button type="button" id="regenerateButton" hidden>Regenerate GTM OS Report</button>
+        <button type="button" id="regenerateButton" hidden>Regenerate GTM Intelligence OS Report</button>
         <a class="secondary" id="backLinkBottom" href="results.html">Return Without Saving</a>
         <a class="secondary" id="reportLinkBottom" href="results.html" hidden>Back to Report</a>
       </div>
@@ -138,7 +138,7 @@
   </main>
 
   <script src="gtm-taxonomy.js?v=20260617-revenue-motions"></script>
-  <script src="intake-schema.js?v=20260617-revenue-motions"></script>
+  <script src="intake-schema.js?v=20260723-brand-rename-1"></script>
   <script>
     const schema = window.GTM_INTAKE_SCHEMA;
     const STORAGE_KEY = schema.storageKey;
@@ -198,7 +198,7 @@
       },
       revenueMotion: {
         title: "Revenue Motion Facilitation",
-        why: "A specific 30-day motion turns the GTM OS into a test the team can run and review, but first the available channels and motion options need to be made explicit.",
+        why: "A specific 30-day motion turns GTM Intelligence OS into a test the team can run and review, but first the available channels and motion options need to be made explicit.",
         current: [["Revenue motion labels found", "$revenueMotions"], ["Channels already mentioned", "$channels"], ["Customer groups already mentioned", "$customerGroups"], ["Offers on the table", "$offers"], ["Sales motions already mentioned", "$salesMotions"], ["Weekly activity target", "weeklyRevenueHours"], ["Revenue owner", "primaryRevenueOwner"], ["CRM data quality", "revenueDataQuality"], ["90-day goal", ["goal90", "quick90DayGoal"]]],
         questions: ["Which channels or sources currently create, or could create, opportunities? A channel/source is where opportunities come from, not the full revenue motion.", "For each selected channel/source, is it active and working, active but inconsistent, planned, or just an idea?", "For each selected channel/source, how do buyers usually evaluate the offer?", "Build candidate revenue motions by combining one customer group, one offer, one channel/source, one primary sales motion, and the evidence behind it.", "Which candidate motion has the strongest evidence or lowest uncertainty?", "Which candidate motion should be tested or improved first for the next 30 days?", "Who owns that motion?", "What is the primary weekly activity target for this motion?", "What qualifies as a real opportunity?", "What review cadence will be used for this motion?", "What will be reviewed at that cadence?", "What outcome would tell you to keep using this motion?", "Which results would tell you this motion needs to be revised? Select all that apply.", "What would you revise first?", "What result means stop or pause this motion?"],
         example: "Possible motions include founder-led referrals, LinkedIn outbound to the priority segment, and customer expansion. The first 30-day test is founder-led referrals because it has the strongest evidence, clearest owner, and fastest path to qualified conversations.",
@@ -1558,7 +1558,7 @@
       section.hidden = false;
       help.textContent = requestedFlowType && !flows[requestedFlowType]
         ? `The requested facilitation type "${requestedFlowType}" is not available. Choose one of the Sprint 10 flows below.`
-        : "This page was opened directly. Choose a Sprint 10 flow below, or go back to the GTM OS report and use an action button for more specific context.";
+        : "This page was opened directly. Choose a Sprint 10 flow below, or go back to the GTM Intelligence OS report and use an action button for more specific context.";
 
       Object.entries(flows).forEach(([type, flow]) => {
         const link = document.createElement("a");
@@ -1636,7 +1636,7 @@
       const reportUrl = `results.html?${reportParams.toString()}`;
       document.getElementById("flowTitle").textContent = flow.title;
       document.getElementById("flowSubtitle").textContent = requestedFlowType
-        ? "Answer the prompts, save the output, then regenerate the GTM OS report."
+        ? "Answer the prompts, save the output, then regenerate the GTM Intelligence OS report."
         : "Choose a Sprint 10 facilitation flow or continue with the Customer Priority Framework.";
       document.getElementById("whyText").textContent = flow.why;
       document.getElementById("saveBehaviorNotice").textContent = flowType === "revenueMotion"
