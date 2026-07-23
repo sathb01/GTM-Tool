@@ -103,3 +103,8 @@ These are not yet all confirmed defects. They have been separated from harness a
 - Semantic answer-quality gate: 66 passed, 0 failed.
 - Full local intake, report, and asset rendering sweep: 78 passed, 0 failed.
 - Summary claim dependency gate: 9 passed, 0 failed.
+- Render release commit: `a015641`.
+- Authenticated Render ranked-priority provenance gate: 11 passed, 0 failed.
+- Authenticated Render guided save, recalculation, and return gate: 14 passed, 0 failed.
+- Authenticated Render summary claim dependency gate: 9 passed, 0 failed.
+- The live round-trip check used an intercepted synthetic copy and did not change the persisted QA company record.
