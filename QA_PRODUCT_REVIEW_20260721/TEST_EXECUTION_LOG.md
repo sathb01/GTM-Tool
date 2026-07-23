@@ -122,3 +122,6 @@ These are not yet all confirmed defects. They have been separated from harness a
 - Semantic answer-quality gate: 66 passed, 0 failed.
 - Post-revenue section deep-link gate: 9 passed, 0 failed.
 - The route and rendering sweep now fails if raw source keys or internal diagnostic labels appear visibly.
+- Phase 1 completion release commit: `31fc7eb`.
+- Authenticated Render focused Phase 1 gates: 60 passed, 0 failed.
+- Authenticated Render four-company route and asset sweep: 78 passed, 0 failed.
