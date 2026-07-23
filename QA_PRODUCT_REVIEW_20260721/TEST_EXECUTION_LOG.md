@@ -167,4 +167,9 @@ These are not yet all confirmed defects. They have been separated from harness a
 - Profile quality gate: 210 passed, 0 failed locally.
 - Semantic answer-quality gate: 66 passed, 0 failed locally.
 - Post-revenue section deep-link gate: 9 passed, 0 failed locally.
-- Live authenticated checks remain pending deployment.
+- Phase 2 answer-review release commit: `42466b7`.
+- Authenticated Render Phase 2 workflow gate: 43 passed, 0 failed.
+- Authenticated Render four-company AI context-isolation gate: 8 passed, 0 failed.
+- Authenticated Render four-company route and asset sweep: 78 passed, 0 failed.
+- A read-only request to the real deployed AI endpoint returned both a review assessment and a proposed answer from the configured model.
+- The live review request did not write or change a saved record.
