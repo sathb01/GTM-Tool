@@ -46,8 +46,9 @@ try {
           && JSON.stringify(preRevenue.active.actions.map((item) => item.output)) === JSON.stringify(expectedActions),
         validationModeIsExplicit: preRevenue.canonical.mode.id === "validation"
           && preRevenue.active.mode?.id === "validation"
-          && preRevenue.overview.includes("Plan Mode")
-          && preRevenue.overview.includes("Validation"),
+          && preRevenue.overview.includes("Why this plan")
+          && preRevenue.overview.includes("buyer evidence")
+          && !preRevenue.overview.includes("Plan Mode"),
         decisionSequenceEndsWithEvidenceReview: preRevenue.canonical.topActions[2].role === "execution-evidence"
       };
       results.push({
@@ -102,7 +103,8 @@ try {
       modeIsExplicitAndConsistent: profile.expectedMode.includes(report.canonical.mode.id)
         && report.modeText.includes(`${report.canonical.mode.label} plan`)
         && active.mode?.id === report.canonical.mode.id
-        && active.overview.includes("Plan Mode"),
+        && active.overview.includes("Why this plan")
+        && !active.overview.includes("Plan Mode"),
       alternativesDoNotReplacePrimary: !report.canonical.alternativeCustomers.includes(report.canonical.primaryCustomer)
     };
     results.push({

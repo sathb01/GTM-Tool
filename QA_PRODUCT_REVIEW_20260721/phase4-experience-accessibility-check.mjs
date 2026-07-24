@@ -219,7 +219,7 @@ try {
       noHorizontalPageOverflow: !responsive.horizontalPageOverflow,
       noClippedVisibleText: responsive.clippedText === 0,
       actionControlsDoNotOverlap: !responsive.overlappingControls,
-      sectionNavigationRemainsAvailable: responsive.currentSectionNavVisible,
+      redundantSamePageNavigationRemoved: !responsive.currentSectionNavVisible,
       noDuplicateIds: responsive.duplicateIds === 0,
       visibleControlsHaveNames: responsive.unnamedControls === 0
     };

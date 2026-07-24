@@ -880,9 +880,42 @@
       margin-bottom: 6px;
     }
 
+    .active-plan-action.is-highlighted {
+      box-shadow: 0 0 0 3px rgba(255, 122, 89, 0.2);
+    }
+
     .active-plan-action-copy {
       display: grid;
       gap: 8px;
+    }
+
+    .active-plan-task-guidance {
+      background: var(--soft);
+      border-left: 3px solid var(--accent);
+      margin: 2px 0;
+      padding: 10px 12px;
+    }
+
+    .active-plan-task-guidance strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .active-plan-task-guidance ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .active-plan-task-guidance li + li {
+      margin-top: 4px;
+    }
+
+    .active-plan-evidence-help {
+      color: var(--muted);
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin: 2px 0 5px;
     }
 
     .active-plan-label {
@@ -1068,6 +1101,21 @@
       font-weight: 700;
     }
 
+    .weekly-close-prompt {
+      align-items: center;
+      background: #fff7f3;
+      border-left: 4px solid var(--accent);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      justify-content: space-between;
+      padding: 11px 14px;
+    }
+
+    .weekly-close-prompt p {
+      margin: 0;
+    }
+
     .weekly-close-summary {
       border-left: 4px solid var(--accent);
       padding: 10px 14px;
@@ -1126,8 +1174,14 @@
     }
 
     .weekly-rollover-row.is-complete label {
-      opacity: 0.45;
-      pointer-events: none;
+      display: none;
+    }
+
+    .weekly-complete-note {
+      color: var(--strong);
+      font-size: 13px;
+      font-weight: 800;
+      grid-column: 2 / -1;
     }
 
     .action-runner-steps {
@@ -12076,7 +12130,7 @@
 
       const sections = Array.from(document.querySelectorAll("main > section[data-toc]"))
         .filter((section) => !section.hidden && !section.classList.contains("removed-section"));
-      if (sectionNav) sectionNav.hidden = sections.length <= 1;
+      if (sectionNav) sectionNav.hidden = true;
       toc.innerHTML = "";
       sectionToc.innerHTML = "";
       let currentGroup = "";
@@ -12173,10 +12227,6 @@
           section.appendChild(details);
         }
 
-        addSectionNavItem(label, `#${id}`, () => {
-          const details = section.querySelector(":scope > details.section-details");
-          if (details) details.open = true;
-        });
       });
 
       toggle.onclick = () => {
@@ -12186,7 +12236,6 @@
         toggle.textContent = shouldOpen ? "Collapse all" : "Expand all";
       };
 
-      const links = Array.from(sectionToc.querySelectorAll("a"));
       const navigationParams = new URLSearchParams(window.location.search);
       const requestedAsset = navigationParams.get("asset") || "";
       const requestedAssetId = requestedAsset === "validation"
@@ -12203,16 +12252,6 @@
         window.setTimeout(() => {
           requestedSection?.scrollIntoView({ block: "start" });
         }, 50);
-      }
-      if ("IntersectionObserver" in window) {
-        const observer = new IntersectionObserver((entries) => {
-          const visible = entries
-            .filter((entry) => entry.isIntersecting)
-            .sort((first, second) => first.boundingClientRect.top - second.boundingClientRect.top)[0];
-          if (!visible) return;
-          links.forEach((link) => link.classList.toggle("active", link.getAttribute("href") === `#${visible.target.id}`));
-        }, { rootMargin: "-20% 0px -65% 0px", threshold: 0.01 });
-        sections.forEach((section) => observer.observe(section));
       }
       applyStandardActionIcons();
       setupActiveActionRoundTripLinks();
@@ -12471,7 +12510,7 @@
       return `<!doctype html>
 <html>
 <head>
-  <meta name="gtm-release" content="20260723-revenue-motion-buyer-roles-1">
+  <meta name="gtm-release" content="20260723-active-plan-simplification-1">
   <meta charset="utf-8">
   <title>${escapedTitle}</title>
   <style>
@@ -15054,13 +15093,15 @@
       saved.currentWeek = Math.max(1, Math.min(4, Number(saved.currentWeek) || 1));
       saved.history = Array.isArray(saved.history) ? saved.history : [];
       if (!Array.isArray(saved.currentPriorities) || !saved.currentPriorities.length) {
-        saved.currentPriorities = plan.actions.slice(0, 5).map((action, index) => ({
+        saved.currentPriorities = plan.actions.slice(0, 3).map((action, index) => ({
           id: `week-${saved.currentWeek}-action-${index + 1}`,
           sourceIndex: index,
           title: action.title,
           why: action.why,
           output: action.output,
           decision: action.decision,
+          completionRule: action.completionRule,
+          evidenceRequired: action.evidenceRequired,
           status: cleanText(data[activePlanField(index, "status")]) || "Not started",
           owner: cleanText(data[activePlanField(index, "owner")]) || plan.owner,
           evidence: cleanText(data[activePlanField(index, "evidence")]),
@@ -15076,6 +15117,8 @@
           priority.why = currentAction.why;
           priority.output = currentAction.output;
           priority.decision = currentAction.decision;
+          priority.completionRule = currentAction.completionRule;
+          priority.evidenceRequired = currentAction.evidenceRequired;
           priority.owner = priority.owner || plan.owner;
         });
       }
@@ -15100,6 +15143,8 @@
         why: "This is the next focused step in the 30-day plan.",
         output: title,
         decision: plan.decision,
+        completionRule: `The planned Week ${weekNumber} output is complete and its result is recorded.`,
+        evidenceRequired: "A short result note showing what changed, what was observed, and what remains.",
         status: "Not started",
         owner: plan.owner,
         evidence: "",
@@ -15112,6 +15157,69 @@
       return ["Not started", "In progress", "Waiting", "Complete", "Blocked"]
         .map((option) => `<option${selected === option ? " selected" : ""}>${option}</option>`)
         .join("");
+    }
+
+    function activePlanPriorityGuidance(action, data) {
+      const text = `${action.title || ""} ${action.output || ""}`.toLowerCase();
+      if (/crm|data quality|source attribution|loss reason/.test(text)) {
+        const system = cleanText(data.revenueTrackingSystem) || "the CRM";
+        return {
+          steps: [
+            `Make the required field changes in ${system}.`,
+            "Audit the current open opportunities and correct missing values.",
+            "Record how many records were reviewed, how many were corrected, and what remains."
+          ],
+          placeholder: `Example: Made Loss reason and Original source required in ${system}. Reviewed 24 open opportunities; corrected 22. Two records still need owner follow-up.`
+        };
+      }
+      if (/target list|target account|icp/.test(text)) {
+        return {
+          steps: [
+            "Apply the saved ICP criteria to the list source or CRM.",
+            "Remove accounts that do not meet the must-have fit rules.",
+            "Record the final list size and any criterion that was hard to verify."
+          ],
+          placeholder: "Example: Reviewed 31 accounts against the ICP criteria. Kept 25 Tier A accounts; six lacked the required operating trigger."
+        };
+      }
+      if (/proof|case study|testimonial|business case/.test(text)) {
+        return {
+          steps: [
+            "Choose the buyer claim or objection this proof must support.",
+            "Package the strongest available evidence into one usable asset.",
+            "Record what proof was used and what evidence is still missing."
+          ],
+          placeholder: "Example: Completed a one-page throughput case story using the 18% improvement result. Customer permission for the quote is still pending."
+        };
+      }
+      if (/message|outreach|conversation/.test(text)) {
+        return {
+          steps: [
+            "Use one audience, one message version, and one clear next-step ask.",
+            "Run the planned activity without changing several variables at once.",
+            "Record attempts, responses, meaningful next steps, and repeated objections."
+          ],
+          placeholder: "Example: Sent the message to 10 target buyers. Four replied, two booked diagnostics, and three questioned implementation effort."
+        };
+      }
+      if (/motion|pipeline|conversion|stage/.test(text)) {
+        return {
+          steps: [
+            "Confirm the current motion, owner, target, and review cadence.",
+            "Complete the named operating or conversion improvement.",
+            "Record the before-and-after measure or the evidence that the change is working."
+          ],
+          placeholder: "Example: Added stage entry and exit rules for five pipeline stages. All 12 open opportunities now have an owner and next action."
+        };
+      }
+      return {
+        steps: [
+          `Complete the stated output: ${action.output}`,
+          "Keep the work focused on this priority rather than adding another initiative.",
+          "Record the concrete result, supporting evidence, and anything still blocked."
+        ],
+        placeholder: "Briefly state what changed, the evidence that proves it, and what remains."
+      };
     }
 
     async function persistActivePlanData(data, statusElement) {
@@ -15154,6 +15262,7 @@
           type: "validation",
           title: "30-Day Validation Plan",
           mode: canonical.mode,
+          cyclePurpose: "Replace the most important assumptions about the first-win customer and problem with real buyer evidence before scaling.",
           objective: `Create enough real buyer evidence to decide whether ${target} is the right first-win market to pursue next.`,
           focus: `Test whether ${target} experience ${problem.toLowerCase()} as a meaningful problem and will take a measurable next step.`,
           owner,
@@ -15194,8 +15303,11 @@
         type: "gtm",
         title: "30-Day GTM Action Plan",
         mode: canonical.mode,
+        cyclePurpose: canonical.mode?.label === "Optimization"
+          ? "The core GTM choices are defined. This cycle improves the weakest measured conversion or execution constraint before adding volume."
+          : "This cycle completes the most important missing GTM foundation before the company adds volume.",
         objective: canonical.objective,
-        focus: `Focus on ${model.priorityGroup?.values?.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer || "the selected priority customer group"} with ${model.primaryOffer?.values?.offerName || data.primaryOfferName || "the primary offer"}.`,
+        focus: `Customer: ${model.priorityGroup?.values?.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer || "the selected priority customer group"}. Offer: ${model.primaryOffer?.values?.offerName || data.primaryOfferName || "the primary offer"}. Revenue motion: ${readableRevenueMotion(model)}.`,
         owner,
         cadence: cleanText(data.revenueReportingCadence) || "Weekly",
         evidence: "Target quality, buyer conversations, next steps, opportunities, conversion, objections, and stalled reasons.",
@@ -15567,9 +15679,15 @@
       window.GTM_ACTIVE_PLAN_DEFINITION = plan;
       const weeklyWorkspace = activePlanWeeklyWorkspace(data, plan);
       const requestedAction = Number(new URLSearchParams(window.location.search).get("action")) - 1;
-      if (Number.isInteger(requestedAction) && requestedAction >= 0 && requestedAction < plan.actions.length) {
+      if (plan.type === "validation" && Number.isInteger(requestedAction) && requestedAction >= 0 && requestedAction < plan.actions.length) {
         renderActivePlanActionRunner(data, plan, requestedAction);
         return;
+      }
+      if (plan.type === "gtm" && Number.isInteger(requestedAction) && requestedAction >= 0) {
+        const cleanUrl = new URL(window.location.href);
+        ["action", "actionReturnTo", "actionReturnLabel", "workingOn"].forEach((key) => cleanUrl.searchParams.delete(key));
+        cleanUrl.hash = "active-plan-this-week";
+        window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
       }
       main.querySelectorAll("section").forEach((section) => section.remove());
       document.body.dataset.hasIcpAsset = isPreRevenueReport(data)
@@ -15584,38 +15702,71 @@
       const objective = document.createElement("section");
       objective.id = "active-plan-objective";
       objective.dataset.toc = "30-Day Objective";
-      const planMode = plan.mode || { label: plan.type === "validation" ? "Validation" : "Foundation", explanation: plan.type === "validation" ? "Replace the most important assumptions with evidence before scaling." : "Complete the operating foundation before adding volume." };
-      objective.innerHTML = `<div class="active-plan-header"><h2>${escapeHtml(plan.title)}</h2><p>${escapeHtml(plan.objective)}</p></div><ul class="active-plan-overview-list"><li><strong>Plan Mode</strong>${escapeHtml(`${planMode.label}: ${planMode.explanation}`)}</li><li><strong>Current Focus</strong>${escapeHtml(plan.focus)}</li><li><strong>Evidence That Matters</strong>${escapeHtml(plan.evidence)}</li><li><strong>Decision at the End of This Cycle</strong>${escapeHtml(plan.decision)}</li><li><strong>Review Rhythm</strong>${escapeHtml(`${plan.cadence} review led by ${plan.owner}.`)}</li></ul>`;
+      objective.innerHTML = `<div class="active-plan-header"><h2>${escapeHtml(plan.title)}</h2><p>${escapeHtml(plan.objective)}</p></div><ul class="active-plan-overview-list"><li><strong>Why this plan</strong>${escapeHtml(plan.cyclePurpose || plan.objective)}</li><li><strong>Current focus</strong>${escapeHtml(plan.focus)}</li><li><strong>Evidence to review</strong>${escapeHtml(plan.evidence)}</li><li><strong>Decision at the end of 30 days</strong>${escapeHtml(plan.decision)}</li><li><strong>Weekly owner and rhythm</strong>${escapeHtml(`${plan.cadence} review led by ${plan.owner}.`)}</li></ul>`;
       main.appendChild(objective);
 
       const actions = document.createElement("section");
       actions.id = "active-plan-this-week";
       actions.dataset.toc = "This Week";
-      actions.innerHTML = `<h2>Week ${weeklyWorkspace.currentWeek} Priorities</h2><p class="muted">Complete the work that creates evidence for the next decision. A completed priority needs a short result so the next week can respond to what actually happened.</p><div class="active-plan-actions"></div><div class="active-plan-save-row"><button type="button" id="saveWeeklyProgressButton">Save Weekly Progress</button><span class="active-plan-save-status" id="weeklyProgressSaveStatus"></span></div>`;
+      actions.innerHTML = `<h2>Week ${weeklyWorkspace.currentWeek} Priorities</h2><p class="muted">This is the working area for the week. Complete and document each priority here; there is no separate action page.</p><div class="active-plan-actions"></div><div class="active-plan-save-row"><button type="button" id="saveWeeklyProgressButton">Save Weekly Progress</button><span class="active-plan-save-status" id="weeklyProgressSaveStatus"></span></div><div class="weekly-close-prompt" id="weeklyClosePrompt" hidden><p><strong>Week ${weeklyWorkspace.currentWeek} is ready to close.</strong> All priorities are complete and have a result note.</p><button type="button" id="reviewCloseWeekButton">Review and Close Week ${weeklyWorkspace.currentWeek}</button></div>`;
       const actionList = actions.querySelector(".active-plan-actions");
       weeklyWorkspace.currentPriorities.forEach((action, index) => {
         const card = document.createElement("article");
+        const guidance = activePlanPriorityGuidance(action, data);
         card.className = "active-plan-action";
+        if (action.sourceIndex === requestedAction) card.classList.add("is-highlighted");
         card.dataset.weeklyPriority = String(index);
-        card.innerHTML = `<div class="active-plan-action-copy"><div class="active-plan-label">Priority ${index + 1}</div><h3>${escapeHtml(action.title)}</h3><p><strong>Why it matters:</strong> ${escapeHtml(action.why)}</p><p><strong>This week's output:</strong> ${escapeHtml(action.output)}</p><p><strong>Decision it supports:</strong> ${escapeHtml(action.decision)}</p><label class="wide">Result or evidence<textarea rows="3" data-weekly-priority-field="evidence" placeholder="What was completed, produced, observed, or learned?">${escapeHtml(action.evidence || "")}</textarea></label><div class="active-plan-link-row">${Number.isInteger(action.sourceIndex) ? `<a href="${escapeHtml(activePlanActionUrl(action.sourceIndex))}">Work on this action</a>` : ""}<a href="${escapeHtml(plan.planLink)}">${escapeHtml(plan.planLinkLabel)}</a></div></div><div class="active-plan-controls"><label>Status<select data-weekly-priority-field="status">${activePlanWeeklyStatusOptions(action.status)}</select></label><label>Owner<input data-weekly-priority-field="owner" value="${escapeHtml(action.owner || plan.owner)}"></label></div>`;
+        card.innerHTML = `<div class="active-plan-action-copy"><div class="active-plan-label">Priority ${index + 1}</div><h3>${escapeHtml(action.title)}</h3><p><strong>Why it matters:</strong> ${escapeHtml(action.why)}</p><p><strong>This week's output:</strong> ${escapeHtml(action.output)}</p><p><strong>Complete when:</strong> ${escapeHtml(action.completionRule || "The stated output is complete and its result is recorded.")}</p><p><strong>Evidence to save:</strong> ${escapeHtml(action.evidenceRequired || "A short result note showing what changed, what was observed, and what remains.")}</p><div class="active-plan-task-guidance"><strong>How to complete this priority</strong><ul>${guidance.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ul></div><label class="wide">Result and evidence<span class="active-plan-evidence-help">Use a short outcome note: what changed, how much, and what remains.</span><textarea rows="3" data-weekly-priority-field="evidence" placeholder="${escapeHtml(guidance.placeholder)}">${escapeHtml(action.evidence || "")}</textarea></label></div><div class="active-plan-controls"><label>Status<select data-weekly-priority-field="status">${activePlanWeeklyStatusOptions(action.status)}</select></label><label>Owner<input data-weekly-priority-field="owner" value="${escapeHtml(action.owner || plan.owner)}"></label></div>`;
         actionList.appendChild(card);
       });
-      actions.querySelector("#saveWeeklyProgressButton").addEventListener("click", async (event) => {
-        const status = actions.querySelector("#weeklyProgressSaveStatus");
-        let missingEvidence = false;
+      const syncWeeklyPriorityCards = () => {
         actions.querySelectorAll("[data-weekly-priority]").forEach((card, index) => {
           card.querySelectorAll("[data-weekly-priority-field]").forEach((control) => {
             weeklyWorkspace.currentPriorities[index][control.dataset.weeklyPriorityField] = control.value.trim();
           });
-          if (weeklyWorkspace.currentPriorities[index].status === "Complete" && !weeklyWorkspace.currentPriorities[index].evidence) missingEvidence = true;
+        });
+      };
+      const refreshWeeklyClosePrompt = () => {
+        syncWeeklyPriorityCards();
+        const ready = weeklyWorkspace.currentPriorities.length > 0
+          && weeklyWorkspace.currentPriorities.every((priority) => priority.status === "Complete" && cleanText(priority.evidence));
+        actions.querySelector("#weeklyClosePrompt").hidden = !ready;
+      };
+      actions.querySelectorAll("[data-weekly-priority-field]").forEach((control) => {
+        control.addEventListener(control.tagName === "TEXTAREA" || control.tagName === "INPUT" ? "input" : "change", refreshWeeklyClosePrompt);
+      });
+      actions.querySelector("#reviewCloseWeekButton").addEventListener("click", () => {
+        const reviewSection = document.getElementById("active-plan-review");
+        const details = reviewSection?.querySelector(":scope > details.section-details");
+        if (details) details.open = true;
+        reviewSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      actions.querySelector("#saveWeeklyProgressButton").addEventListener("click", async (event) => {
+        const button = event.currentTarget;
+        const status = actions.querySelector("#weeklyProgressSaveStatus");
+        let missingEvidence = false;
+        syncWeeklyPriorityCards();
+        weeklyWorkspace.currentPriorities.forEach((priority) => {
+          if (priority.status === "Complete" && !priority.evidence) missingEvidence = true;
         });
         syncActivePlanWeeklyPriorityFields(data, weeklyWorkspace);
-        event.currentTarget.disabled = true;
+        button.disabled = true;
         const saved = await persistActivePlanData(data, status);
-        event.currentTarget.disabled = false;
-        if (saved && missingEvidence) status.textContent = "Progress saved. Add a result note to each completed priority before closing the week.";
+        button.disabled = false;
+        refreshWeeklyClosePrompt();
+        if (saved && missingEvidence) {
+          status.textContent = "Progress saved. Add a result note to each completed priority before closing the week.";
+        } else if (saved && weeklyWorkspace.currentPriorities.every((priority) => priority.status === "Complete")) {
+          status.textContent = `Week ${weeklyWorkspace.currentWeek} is complete. Review and close the week below.`;
+        }
       });
+      refreshWeeklyClosePrompt();
       main.appendChild(actions);
+      if (plan.type === "gtm" && Number.isInteger(requestedAction) && requestedAction >= 0) {
+        window.setTimeout(() => {
+          actions.querySelector(".active-plan-action.is-highlighted")?.scrollIntoView({ block: "center" });
+        }, 50);
+      }
 
       const weeks = document.createElement("section");
       weeks.id = "active-plan-weeks";
@@ -15636,30 +15787,38 @@
       review.dataset.toc = "Close the Week";
       const rolloverRows = weeklyWorkspace.currentPriorities.map((priority, index) => {
         const recommended = index < 2 ? "Carry forward" : "Drop";
-        const selected = priority.disposition || recommended;
-        return `<div class="weekly-rollover-row" data-rollover-index="${index}"><div><strong>${escapeHtml(priority.title)}</strong><span data-rollover-status>${escapeHtml(priority.status)}</span></div><label>What should happen?<select data-rollover-field="disposition">${["Carry forward", "Revise", "Drop", "Blocked"].map((option) => `<option${selected === option ? " selected" : ""}>${option}</option>`).join("")}</select></label><label>Revised task or unblock action<input data-rollover-field="revisedTask" value="${escapeHtml(priority.revisedTask || "")}" placeholder="Rewrite the priority or name the unblock step"></label></div>`;
+        const selected = priority.status === "Complete" ? "Drop" : (priority.disposition || recommended);
+        return `<div class="weekly-rollover-row${priority.status === "Complete" ? " is-complete" : ""}" data-rollover-index="${index}"><div><strong>${escapeHtml(priority.title)}</strong><span data-rollover-status>${escapeHtml(priority.status)}</span></div><span class="weekly-complete-note"${priority.status === "Complete" ? "" : " hidden"}>Complete - closes with this week. Nothing carries forward.</span><label>What should happen?<select data-rollover-field="disposition">${["Carry forward", "Revise", "Drop", "Blocked"].map((option) => `<option${selected === option ? " selected" : ""}>${option}</option>`).join("")}</select></label><label>Revised task or unblock action<input data-rollover-field="revisedTask" value="${escapeHtml(priority.revisedTask || "")}" placeholder="Rewrite the priority or name the unblock step"></label></div>`;
       }).join("");
-      review.innerHTML = `<h2>Close Week ${weeklyWorkspace.currentWeek}</h2><p class="muted">Review the results, decide what happens to unfinished work, and create the next week. The next week is limited to three priorities.</p><div class="active-plan-review"><div class="weekly-close-summary"><strong>Rollover recommendation</strong><p>Carry forward two or fewer unfinished priorities when possible so the plan can advance. If all three are necessary, the next week becomes a completion week and no new planned work is added. Blocked work stays recorded without consuming a priority unless you name an actionable unblock step.</p></div><label>What did we learn?<textarea id="activeWeekLearning" rows="4" placeholder="What evidence changed your confidence, and why?">${escapeHtml(data.activePlan__weeklyReview__learning || "")}</textarea></label><div class="grid"><label>Decision<select id="activeWeekDecision">${["Continue", "Revise", "Pause", "Need more evidence"].map((option) => `<option${(data.activePlan__weeklyReview__decision || "Continue") === option ? " selected" : ""}>${option}</option>`).join("")}</select></label><label>One focused change for next week<input id="activeWeekNextChange" value="${escapeHtml(data.activePlan__weeklyReview__nextChange || "")}" placeholder="Leave blank if the current approach should stay constant"></label></div><h3>Decide What Happens to Each Priority</h3><div class="weekly-rollover-list">${rolloverRows}</div><label class="weekly-capacity-confirm" id="weeklyFullRolloverConfirm" hidden><input type="checkbox" id="confirmFullRollover"><span><strong>Carry all three and defer new work.</strong><br>The next week will be used entirely to finish these priorities.</span></label><div class="active-plan-save-row"><button type="button" id="closeActivePlanWeek">${weeklyWorkspace.currentWeek === 4 ? "Close Week 4 and Start Next Cycle" : `Close Week ${weeklyWorkspace.currentWeek} and Build Week ${weeklyWorkspace.currentWeek + 1}`}</button><span class="active-plan-save-status" id="activeWeekCloseStatus"></span></div></div>`;
+      review.innerHTML = `<h2>Close Week ${weeklyWorkspace.currentWeek}</h2><p class="muted">Review the results, decide what happens to unfinished work, and create the next week. Completed priorities close automatically and cannot carry forward.</p><div class="active-plan-review"><div class="weekly-close-summary"><strong>What moves to next week</strong><p id="weeklyRolloverSummary">Carry forward two or fewer unfinished priorities when possible so the plan can advance. If all three unfinished priorities are necessary, the next week becomes a completion week and no new planned work is added.</p></div><label>What did we learn?<textarea id="activeWeekLearning" rows="4" placeholder="Summarize the evidence across this week's completed work. What increased or reduced confidence?">${escapeHtml(data.activePlan__weeklyReview__learning || "")}</textarea></label><div class="grid"><label>Decision<select id="activeWeekDecision">${["Continue", "Revise", "Pause", "Need more evidence"].map((option) => `<option${(data.activePlan__weeklyReview__decision || "Continue") === option ? " selected" : ""}>${option}</option>`).join("")}</select></label><label>One focused change for next week<input id="activeWeekNextChange" value="${escapeHtml(data.activePlan__weeklyReview__nextChange || "")}" placeholder="Leave blank if the current approach should stay constant"></label></div><h3>Decide What Happens to Unfinished Priorities</h3><div class="weekly-rollover-list">${rolloverRows}</div><label class="weekly-capacity-confirm" id="weeklyFullRolloverConfirm" hidden><input type="checkbox" id="confirmFullRollover"><span><strong>Carry all three unfinished priorities and defer new work.</strong><br>The next week will be used entirely to finish these priorities.</span></label><div class="active-plan-save-row"><button type="button" id="closeActivePlanWeek">${weeklyWorkspace.currentWeek === 4 ? "Close Week 4 and Start Next Cycle" : `Close Week ${weeklyWorkspace.currentWeek} and Build Week ${weeklyWorkspace.currentWeek + 1}`}</button><span class="active-plan-save-status" id="activeWeekCloseStatus"></span></div></div>`;
       const syncWeeklyCards = () => {
-        actions.querySelectorAll("[data-weekly-priority]").forEach((card, index) => {
-          card.querySelectorAll("[data-weekly-priority-field]").forEach((control) => {
-            weeklyWorkspace.currentPriorities[index][control.dataset.weeklyPriorityField] = control.value.trim();
-          });
-        });
+        syncWeeklyPriorityCards();
       };
       const refreshRolloverRows = () => {
         syncWeeklyCards();
         review.querySelectorAll("[data-rollover-index]").forEach((row) => {
           const priority = weeklyWorkspace.currentPriorities[Number(row.dataset.rolloverIndex)];
-          row.classList.toggle("is-complete", priority.status === "Complete");
-          row.querySelector("[data-rollover-status]").textContent = priority.status === "Complete" ? "Complete - no rollover needed" : priority.status;
+          const complete = priority.status === "Complete";
+          row.classList.toggle("is-complete", complete);
+          row.querySelector("[data-rollover-status]").textContent = complete ? "Complete" : priority.status;
+          row.querySelector(".weekly-complete-note").hidden = !complete;
+          if (complete) {
+            row.querySelector('[data-rollover-field="disposition"]').value = "Drop";
+            row.querySelector('[data-rollover-field="revisedTask"]').value = "";
+            priority.disposition = "Drop";
+            priority.revisedTask = "";
+          }
         });
+        const unfinishedCount = weeklyWorkspace.currentPriorities.filter((priority) => priority.status !== "Complete").length;
         const activeRolloverCount = Array.from(review.querySelectorAll("[data-rollover-index]")).filter((row) => {
           const priority = weeklyWorkspace.currentPriorities[Number(row.dataset.rolloverIndex)];
           const disposition = row.querySelector('[data-rollover-field="disposition"]').value;
           const unblockAction = row.querySelector('[data-rollover-field="revisedTask"]').value.trim();
           return priority.status !== "Complete" && (disposition === "Carry forward" || disposition === "Revise" || (disposition === "Blocked" && unblockAction));
         }).length;
+        review.querySelector("#weeklyRolloverSummary").textContent = unfinishedCount === 0
+          ? "All priorities are complete. Nothing will carry forward; the next week will begin with the next planned work."
+          : `${unfinishedCount} unfinished ${unfinishedCount === 1 ? "priority needs" : "priorities need"} a decision. Carry forward only work that still matters to the current 30-day goal.`;
         review.querySelector("#weeklyFullRolloverConfirm").hidden = activeRolloverCount !== 3;
         if (activeRolloverCount !== 3) review.querySelector("#confirmFullRollover").checked = false;
       };

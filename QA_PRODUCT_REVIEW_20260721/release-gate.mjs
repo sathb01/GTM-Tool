@@ -36,6 +36,7 @@ const browserSuites = [
   ["Adaptive AI control safety", "phase2-ai-classification-check.mjs", "ai"],
   ["Four-company AI context isolation", "phase2-four-company-ai-context-check.mjs", "ai"],
   ["Canonical plan integrity", "phase3-canonical-plan-check.mjs", "plans"],
+  ["Active plan weekly workflow", "phase3-active-plan-workflow-check.mjs", "plans"],
   ["Asset contracts and exports", "phase3-asset-contract-export-check.mjs", "assets"],
   ["Experience and accessibility", "phase4-experience-accessibility-check.mjs", "responsive"],
   ["Post-revenue section deep links", "post-section-deep-link-check.mjs", "routes"],
