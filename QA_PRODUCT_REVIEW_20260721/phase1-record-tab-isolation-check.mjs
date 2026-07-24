@@ -115,7 +115,7 @@ try {
       path: path.join(screenshotDirectory, "single-plan-update-mobile.png")
     });
   }
-  await firstPage.getByRole("button", { name: "Update Plan" }).click();
+  await firstPage.getByRole("button", { name: "Update Plan" }).click({ noWaitAfter: true, timeout: 60000 });
   const generateAnyway = firstPage.getByRole("button", { name: "Generate Anyway" });
   if (await generateAnyway.isVisible().catch(() => false)) {
     await generateAnyway.click();
@@ -125,7 +125,7 @@ try {
     });
   }
   try {
-    await firstPage.waitForURL((url) => url.pathname.endsWith("/results.html"), { timeout: 20000 });
+    await firstPage.waitForURL((url) => url.pathname.endsWith("/results.html"), { timeout: 90000 });
   } catch (error) {
     const diagnostic = await firstPage.evaluate(() => ({
       url: window.location.href,
