@@ -993,6 +993,23 @@ function updateDynamicOptionFields() {
     }
   });
 
+  document.querySelectorAll("[data-multi-select-dropdown][data-dynamic-options-from='revenueBuyerRoles']").forEach((control) => {
+    if (typeof control.refreshOptions === "function") {
+      control.refreshOptions(collectRevenueBuyerRoleOptions(data));
+    }
+  });
+
+  document.querySelectorAll("select[data-dynamic-options-from='revenueBuyerRoles']").forEach((select) => {
+    const selectedValue = select.value;
+    const values = collectRevenueBuyerRoleOptions(data);
+    select.innerHTML = "";
+    select.appendChild(createOption("", "Select one"));
+    values.forEach((value) => select.appendChild(createOption(value)));
+    if (values.includes(selectedValue)) {
+      select.value = selectedValue;
+    }
+  });
+
   document.querySelectorAll("select[data-dynamic-options-from='revenueMotionPortfolio']").forEach((select) => {
     const selectedValue = select.value;
     const motions = getRevenueMotionRows(data);
@@ -1957,6 +1974,8 @@ function createCardField(field, name) {
   const input = createInput(inputField, name);
 
   wrapper.className = field.full ? "full" : "";
+  wrapper.dataset.fieldId = name;
+  wrapper.dataset.fieldLabel = field.label;
   if (field.showWhen) {
     const parts = name.split("__");
     parts[parts.length - 1] = field.showWhen.field;
@@ -3779,6 +3798,7 @@ function renderOfferAssessmentPanels() {
   setFormData(data);
   updateConditionalFields();
   updateOfferReadinessSummary();
+  mountCurrentImprovementAnswerFields();
 }
 
 const signalSourceFallbackOptions = [
@@ -4104,6 +4124,7 @@ function renderSignalPlayAssessmentPanels() {
   setFormData(data);
   updateConditionalFields();
   updateSignalReadinessSummary();
+  mountCurrentImprovementAnswerFields();
 }
 
 const revenueChannelOptions = [
@@ -4127,6 +4148,35 @@ const revenueChannelOptions = [
   "Product usage / product-led",
   "Retail / field / local selling",
   "Other"
+];
+
+const revenueBuyerRoleOptions = [
+  "CEO / Founder / Owner",
+  "COO",
+  "CFO",
+  "CRO",
+  "CMO",
+  "CTO / CIO",
+  "VP Sales / Head of Sales",
+  "VP Marketing / Head of Marketing",
+  "VP Operations / Head of Operations",
+  "VP Finance / Finance Director",
+  "VP Customer Success / Head of Customer Success",
+  "Revenue Operations / Sales Operations",
+  "Procurement / Purchasing",
+  "IT / Security",
+  "Legal / Compliance",
+  "Department Manager",
+  "Store / Category Buyer",
+  "Distributor / Channel Partner",
+  "End User / Practitioner",
+  "Economic Buyer",
+  "Executive Sponsor",
+  "Champion",
+  "Implementation Owner",
+  "Likely Blocker",
+  "Other",
+  "Not sure yet"
 ];
 
 function getRevenueMotionRows(data = getFormData()) {
@@ -4182,6 +4232,37 @@ function collectRevenueOfferOptions(data = getFormData()) {
     "Create a new offer for this motion",
     "Not sure yet"
   ].filter(Boolean))];
+}
+
+function collectRevenueBuyerRoleOptions(data = getFormData()) {
+  const savedRoles = [
+    data.bestFitDecisionMaker,
+    data.bestFitChampion,
+    data.conversationStarter,
+    data.budgetOwner,
+    data.painOwner,
+    data.dealBlocker,
+    data.primaryBuyerForOffer,
+    data.primaryBuyer,
+    data.signalPrimaryBuyer,
+    ...offerPortfolioRows(data).flatMap((row) => [row.values.primaryBuyer, row.values.buyingCommitteeRoles]),
+    ...tableRowsFromData(data, "signalPlayPortfolio").flatMap((row) => [row.values.primaryBuyerPersona, row.values.buyingCommitteeRoles]),
+    ...getRevenueMotionRows(data).flatMap((row) => [row.values.primaryBuyer, row.values.buyingCommitteeRoles]),
+    ...tableRowsFromData(data, "buyerRoleCards")
+      .filter((row) => row.values.involved !== "No")
+      .map((row) => row.values.commonTitles)
+  ]
+    .flatMap((value) => String(value || "").split(/[;,|\n]+/))
+    .map((value) => value.trim())
+    .filter((value) => value && value.length <= 80 && !/^(not sure(?: yet)?|other)$/i.test(value));
+
+  const seen = new Set();
+  return [...savedRoles, ...revenueBuyerRoleOptions].filter((value) => {
+    const key = String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function motionStageRows(data, motionRowId) {
@@ -4424,6 +4505,7 @@ function renderRevenueMotionAssessmentPanels() {
   setFormData(data);
   updateConditionalFields();
   updateRevenueMotionSummary();
+  mountCurrentImprovementAnswerFields();
 }
 
 function createRevenueMotionSummaryCard() {
@@ -4939,6 +5021,16 @@ function mountImprovementAnswerFields(card, sectionEl) {
       heading?.remove();
     }
   });
+}
+
+function mountCurrentImprovementAnswerFields() {
+  const focus = currentImprovementFocus();
+  if (!focus?.sectionId) return;
+  const sectionEl = document.getElementById(focus.sectionId);
+  const card = sectionEl?.querySelector(".improvement-focus");
+  if (card && sectionEl) {
+    mountImprovementAnswerFields(card, sectionEl);
+  }
 }
 
 function createBottomImprovementActions(focus) {

@@ -3035,7 +3035,7 @@
     })();
   </script>
   <script src="gtm-taxonomy.js?v=20260617-revenue-motions"></script>
-  <script src="intake-schema.js?v=20260723-brand-rename-1"></script>
+  <script src="intake-schema.js?v=20260723-revenue-motion-buyer-roles-1"></script>
   <script>
     const schema = window.GTM_INTAKE_SCHEMA;
     const STORAGE_KEY = schema.storageKey;
@@ -6219,7 +6219,8 @@
       const {
         status,
         dynamicSummary,
-        topPriority,
+        opportunityPriority,
+        riskPriority,
         nextAction,
         topRisk
       } = context;
@@ -6233,9 +6234,9 @@
           ...(item.countedEvidence || []).flatMap((evidence) => evidence.fields || [])
         ]
       }));
-      const opportunityTopic = immediateActionTopic(`${topPriority?.category || ""} ${dynamicSummary.opportunity}`);
-      const actionTopic = immediateActionTopic(`${topPriority?.category || ""} ${nextAction}`);
-      const riskTopic = immediateActionTopic(`risk ${topRisk}`);
+      const opportunityTopic = immediateActionTopic(`${opportunityPriority?.category || ""} ${dynamicSummary.opportunity}`);
+      const actionTopic = immediateActionTopic(`${opportunityPriority?.category || ""} ${nextAction}`);
+      const riskTopic = immediateActionTopic(`${riskPriority?.category || ""} ${topRisk}`);
       const blockedTitles = dynamicSummary.blocked.map((item) => cleanText(item.title || item.output)).filter(Boolean);
 
       return {
@@ -6262,11 +6263,11 @@
           label: "Top Opportunity",
           value: dynamicSummary.opportunity,
           status: "Recommendation",
-          confidence: topPriority?.confidence || (dynamicSummary.feedback.sufficientTest ? "High" : "Medium"),
+          confidence: opportunityPriority?.confidence || (dynamicSummary.feedback.sufficientTest ? "High" : "Medium"),
           sources: [
-            topPriority ? {
-              label: "Highest-ranked action priority",
-              detail: `${topPriority.priority}: ${topPriority.drivers}`,
+            opportunityPriority ? {
+              label: "Opportunity priority",
+              detail: `${opportunityPriority.priority}: ${opportunityPriority.drivers}`,
               fields: summaryClaimSourceFields(opportunityTopic, model)
             } : null,
             dynamicSummary.feedback.hasEvidence ? {
@@ -6282,16 +6283,16 @@
           label: "Next Best Action",
           value: nextAction,
           status: dynamicSummary.nextPriority ? "Saved input" : "Recommendation",
-          confidence: dynamicSummary.nextPriority ? "High" : (topPriority?.confidence || "Medium"),
+          confidence: dynamicSummary.nextPriority ? "High" : (opportunityPriority?.confidence || "Medium"),
           sources: [
             dynamicSummary.nextPriority ? {
               label: "Current-week active plan",
               detail: `${cleanText(dynamicSummary.nextPriority.title || dynamicSummary.nextPriority.output)}; status: ${cleanText(dynamicSummary.nextPriority.status) || "Not started"}.`,
               fields: ["activePlanWeeklyWorkspace"]
             } : null,
-            !dynamicSummary.nextPriority && topPriority ? {
-              label: "Highest-ranked action priority",
-              detail: `${topPriority.priority}: ${topPriority.recommendedAction}`,
+            !dynamicSummary.nextPriority && opportunityPriority ? {
+              label: "Opportunity priority",
+              detail: `${opportunityPriority.priority}: ${opportunityPriority.recommendedAction}`,
               fields: summaryClaimSourceFields(actionTopic, model)
             } : null
           ].filter(Boolean),
@@ -6312,6 +6313,10 @@
             !blockedTitles.length && riskInsight ? {
               label: "Current strategic evidence",
               detail: riskInsight.observation || riskInsight.title,
+              fields: summaryClaimSourceFields(riskTopic, model)
+            } : !blockedTitles.length && riskPriority ? {
+              label: "Risk-related action priority",
+              detail: `${riskPriority.priority}: ${riskPriority.drivers}`,
               fields: summaryClaimSourceFields(riskTopic, model)
             } : null,
             !blockedTitles.length && !riskInsight ? {
@@ -6358,6 +6363,33 @@
       const strategicEvidence = buildStrategicInsights(model).slice(0, 3);
       const canonical = canonicalPlanFor(model);
       const topPriority = canonical.rankedPriorities[0];
+      const targetListOpportunity = /target list|customer|icp|segment/i.test(dynamicSummary.opportunity)
+        ? canonical.rankedPriorities.find((priority) => /icp|customer priority/i.test(`${priority.category || ""} ${priority.priority || ""}`)) || {
+            category: "ICP Focus",
+            priority: "Focused target list",
+            whyItMatters: "A focused target list turns the current customer hypothesis into a practical market test.",
+            drivers: model.priorityGroup?.values.groupName
+              ? `The current priority customer group is ${model.priorityGroup.values.groupName}.`
+              : "The plan recommends testing one priority customer group before adding adjacent segments.",
+            recommendedAction: dynamicSummary.opportunity,
+            confidence: "High"
+          }
+        : null;
+      const opportunityPriority = dynamicSummary.feedback.state === "Supported"
+        ? canonical.rankedPriorities.find((priority) => /revenue motion optimization|optimize the proven revenue motion/i.test(`${priority.category || ""} ${priority.priority || ""}`)) || topPriority
+        : targetListOpportunity || topPriority;
+      const riskContext = `${topRisk} ${strategicEvidence.map((item) => `${item.title || ""} ${item.observation || ""}`).join(" ")}`;
+      const riskPriority = /crm|data quality|source attribution|loss reason/i.test(topRisk)
+        ? canonical.rankedPriorities.find((priority) => /crm|data quality/i.test(`${priority.category || ""} ${priority.priority || ""}`))
+        : /conversion|funnel|stage|motion|sales process/i.test(topRisk)
+          ? canonical.rankedPriorities.find((priority) => /revenue motion|conversion/i.test(`${priority.category || ""} ${priority.priority || ""}`))
+          : /proof|business case|case study|buyer evidence/i.test(topRisk)
+          ? canonical.rankedPriorities.find((priority) => /proof/i.test(`${priority.category || ""} ${priority.priority || ""}`))
+          : /crm|data quality|source attribution|loss reason/i.test(riskContext)
+            ? canonical.rankedPriorities.find((priority) => /crm|data quality/i.test(`${priority.category || ""} ${priority.priority || ""}`))
+            : /proof|business case|case study|buyer evidence/i.test(riskContext)
+              ? canonical.rankedPriorities.find((priority) => /proof/i.test(`${priority.category || ""} ${priority.priority || ""}`))
+            : topPriority;
       const scorePercent = Math.max(0, Math.min(100, Number(model.readinessScore) || 0));
       const owner = model.data.primaryRevenueOwner
         || model.data.pipelineReviewOwner
@@ -6366,7 +6398,8 @@
       const claims = buildSummaryClaims(model, {
         status,
         dynamicSummary,
-        topPriority,
+        opportunityPriority,
+        riskPriority,
         nextAction,
         topRisk
       });
@@ -6395,7 +6428,7 @@
       });
       renderMetricCard(cards, {
         label: "Top Opportunity",
-        value: topPriority?.priority || model.lowestCategory?.name || "Best leverage point",
+        value: opportunityPriority?.priority || model.lowestCategory?.name || "Best leverage point",
         copy: dynamicSummary.opportunity,
         badge: { label: "Opportunity", className: "medium" },
         tone: "opportunity",
@@ -6438,12 +6471,13 @@
         tone: "opportunity",
         title: "Top Opportunity",
         subtitle: "Understand what it is, why it was selected, and which inputs affect it.",
-        content: `<h3>Recommended opportunity</h3><p>${escapeHtml(dynamicSummary.opportunity)}</p>${claimTraceMarkup(claims.opportunity)}${dynamicSummary.feedback.state === "Supported" ? `<h3>Conversion point to improve</h3><p>${dynamicSummary.feedback.weakestConversionPoint ? `<strong>${escapeHtml(dynamicSummary.feedback.weakestConversionPoint)}</strong> is the saved answer for Biggest funnel drop-off in Revenue Motion.` : "No biggest funnel drop-off has been defined yet. Compare the conversion between each sales stage before choosing where to improve."}</p>` : ""}<h3>Recommended direction</h3>${summaryBulletList(decisionContent.decisionRequired, true)}<h3>Why this is prioritized</h3><ul><li>${escapeHtml(opportunityEvidence?.observation || topPriority?.drivers || executiveInsightMeaning(model))}</li><li>${escapeHtml(topPriority?.recommendedAction || "It is the clearest available leverage point for improving focused execution.")}</li></ul><h3>Recommended 90-Day Focus</h3><ul>${decisionContent.recommendedFocusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+        content: `<h3>Recommended opportunity</h3><p>${escapeHtml(dynamicSummary.opportunity)}</p>${claimTraceMarkup(claims.opportunity)}${dynamicSummary.feedback.state === "Supported" ? `<h3>Conversion point to improve</h3><p>${dynamicSummary.feedback.weakestConversionPoint ? `<strong>${escapeHtml(dynamicSummary.feedback.weakestConversionPoint)}</strong> is the saved answer for Biggest funnel drop-off in Revenue Motion.` : "No biggest funnel drop-off has been defined yet. Compare the conversion between each sales stage before choosing where to improve."}</p>` : ""}<h3>Recommended direction</h3>${summaryBulletList(decisionContent.decisionRequired, true)}<h3>Why this is prioritized</h3><ul><li>${escapeHtml(opportunityPriority?.drivers || opportunityEvidence?.observation || executiveInsightMeaning(model))}</li><li>${escapeHtml(opportunityPriority?.recommendedAction || "It is the clearest available leverage point for improving focused execution.")}</li></ul><h3>Recommended 90-Day Focus</h3><ul>${decisionContent.recommendedFocusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
       });
       appendReviewLink(opportunityPanel.querySelector(".summary-support-content"), "Improve This Section", claims.opportunity.improvementTopic, {
         sameTab: true,
         returnSectionId: "summary-opportunity-details",
-        claim: claims.opportunity
+        claim: claims.opportunity,
+        focus: opportunityPriority ? priorityImprovementFocus(opportunityPriority, model) : undefined
       });
       recommendation.appendChild(opportunityPanel);
 
@@ -6461,12 +6495,13 @@
         tone: "risk",
         title: "Biggest Risk",
         subtitle: "See why the risk matters and which inputs can reduce it.",
-        content: `<h3>Current risk</h3><p>${escapeHtml(topRisk)}</p>${claimTraceMarkup(claims.risk)}<h3>What to do about it</h3><p>${escapeHtml(model.readinessDiagnostic?.improvements?.[0]?.action || "Confirm the source inputs, assign an owner, and resolve the risk before expanding activity.")}</p>${strategicEvidence.length ? `<h3>Related evidence</h3><ul>${strategicEvidence.slice(0, 2).map((insight) => `<li>${escapeHtml(insight.observation)}</li>`).join("")}</ul>` : ""}`
+        content: `<h3>Current risk</h3><p>${escapeHtml(topRisk)}</p>${claimTraceMarkup(claims.risk)}<h3>What to do about it</h3><p>${escapeHtml(riskPriority?.recommendedAction || model.readinessDiagnostic?.improvements?.[0]?.action || "Confirm the source inputs, assign an owner, and resolve the risk before expanding activity.")}</p>${strategicEvidence.length ? `<h3>Related evidence</h3><ul>${strategicEvidence.slice(0, 2).map((insight) => `<li>${escapeHtml(insight.observation)}</li>`).join("")}</ul>` : ""}`
       });
       appendReviewLink(riskPanel.querySelector(".summary-support-content"), "Improve This Section", claims.risk.improvementTopic, {
         sameTab: true,
         returnSectionId: "summary-risk-details",
-        claim: claims.risk
+        claim: claims.risk,
+        focus: riskPriority ? priorityImprovementFocus(riskPriority, model) : undefined
       });
       recommendation.appendChild(riskPanel);
     }
@@ -6668,12 +6703,12 @@
       const link = document.createElement("a");
       const sectionId = intakeSectionForTopic(topic);
       const baseFocus = options.focus || reviewFocusForTopic(topic);
+      const explicitFields = Array.isArray(baseFocus.fieldIds) ? baseFocus.fieldIds.filter(Boolean) : [];
       const focus = {
         ...baseFocus,
-        fieldIds: [...new Set([
-          ...(baseFocus.fieldIds || []),
-          ...(options.claim?.sourceFields || [])
-        ])]
+        fieldIds: [...new Set(baseFocus.fieldMode === "replace"
+          ? explicitFields
+          : [...explicitFields, ...(options.claim?.sourceFields || [])])]
       };
       const reviewOptions = options.sameTab
         ? {
@@ -7826,9 +7861,70 @@
     }
 
     function priorityImprovementFocus(priority, model) {
+      const motionRowId = model?.revenueMotion?.rowId || primaryRevenueMotionRowId(model?.data || {});
+      const motionPrefix = motionRowId ? `revenueMotionPortfolio__${motionRowId}__` : "";
+      const motionDefinitionFields = motionPrefix
+        ? [
+            `${motionPrefix}playName`,
+            `${motionPrefix}customerGroup`,
+            `${motionPrefix}offer`,
+            `${motionPrefix}channelSource`,
+            `${motionPrefix}salesMotionType`,
+            `${motionPrefix}primaryBuyer`,
+            `${motionPrefix}buyingCommitteeRoles`,
+            `${motionPrefix}playGoal`
+          ]
+        : [];
+      const motionTestFields = motionRowId
+        ? [
+            revenueScopedField(motionRowId, "nextExperiment", "successMetric"),
+            revenueScopedField(motionRowId, "nextExperiment", "owner"),
+            revenueScopedField(motionRowId, "nextExperiment", "reviewCadence"),
+            revenueScopedField(motionRowId, "nextExperiment", "continueRule"),
+            revenueScopedField(motionRowId, "nextExperiment", "reviseRule"),
+            revenueScopedField(motionRowId, "nextExperiment", "stopRule")
+          ]
+        : [];
+      if (/icp|customer priority/i.test(`${priority.category || ""} ${priority.priority || ""}`)) {
+        const customerGroupRowId = model?.priorityGroup?.rowId || "";
+        const groupPrefix = customerGroupRowId ? `possibleCustomerGroups__${customerGroupRowId}__` : "";
+        return {
+          area: priority.priority,
+          fieldMode: "replace",
+          why: priority.whyItMatters,
+          missing: priority.missingInputs?.length
+            ? priority.missingInputs
+            : ["A measurable priority segment", "The buyer problem and urgency", "Evidence supporting the customer hypothesis"],
+          questionsHeading: "What to do here",
+          questions: [
+            "Review the priority customer group, problem, urgency, and evidence directly below.",
+            "Make the customer definition specific enough to identify real accounts or buyers.",
+            "Save the changes and return. The plan will automatically recalculate this priority."
+          ],
+          answerHeading: "Update the customer-priority source answers",
+          answerIntro: "These are the intake answers used to define the ICP-related opportunity and ranked priority.",
+          example: priority.recommendedAction,
+          fieldIds: [
+            "customerContextStarter",
+            "bestFitCustomerGroup",
+            "bestFitPrimaryPain",
+            "bestFitTrigger",
+            "bestFitEvidence",
+            ...(groupPrefix
+              ? [
+                  `${groupPrefix}groupName`,
+                  `${groupPrefix}problem`,
+                  `${groupPrefix}whyNow`,
+                  `${groupPrefix}notesEvidence`
+                ]
+              : [])
+          ]
+        };
+      }
       if (/proof/i.test(`${priority.category || ""} ${priority.priority || ""}`)) {
         return {
           area: priority.priority,
+          fieldMode: "replace",
           why: priority.whyItMatters,
           missing: [
             "The primary offer this proof must support",
@@ -7871,6 +7967,7 @@
         }
         return {
           area: priority.priority,
+          fieldMode: "replace",
           why: priority.whyItMatters,
           missing: missing.length ? missing : [priority.drivers],
           questionsHeading: "What to do here",
@@ -7899,6 +7996,7 @@
         const needsStages = missing.some((item) => /stage/i.test(item));
         return {
           area: priority.priority,
+          fieldMode: "replace",
           why: priority.whyItMatters,
           missing,
           questionsHeading: "What to do here",
@@ -7910,14 +8008,23 @@
             "Save the changes and return. The plan will automatically recalculate this priority."
           ],
           answerHeading: "Confirm the revenue motion and shared operating inputs",
-          answerIntro: "Motion-specific pipeline and stage controls remain together in the selected motion's assessment immediately below this improvement card.",
+          answerIntro: "The selected motion's customer, offer, channel, sales motion, first buyer, goal, owner, review cadence, and decision rules are editable here. Use the detailed assessment below only when the missing item is a conversion stage.",
           example: priority.recommendedAction,
-          fieldIds: ["primaryRevenueMotion", "revenueTrackingSystem", "revenueReportingCadence", "primaryRevenueOwner", "pipelineReviewOwner"]
+          fieldIds: [
+            "primaryRevenueMotion",
+            ...motionDefinitionFields,
+            ...motionTestFields,
+            "revenueTrackingSystem",
+            "revenueReportingCadence",
+            "primaryRevenueOwner",
+            "pipelineReviewOwner"
+          ]
         };
       }
       if (/revenue motion optimization|optimize the proven revenue motion/i.test(`${priority.category || ""} ${priority.priority || ""}`)) {
         return {
           area: priority.priority,
+          fieldMode: "replace",
           why: priority.whyItMatters,
           missing: ["The weakest measured conversion point in the selected revenue motion"],
           questionsHeading: "What to do here",
@@ -7928,14 +8035,22 @@
             "Save the changes and return. The plan will automatically update the optimization priority."
           ],
           answerHeading: "Confirm the motion being optimized",
-          answerIntro: "The conversion evidence belongs to the selected revenue motion. Confirm that context here, then update Pipeline Metrics and Conversion Stages immediately below.",
+          answerIntro: "Confirm the complete motion and its measurable test here, then update Pipeline Metrics and Conversion Stages immediately below when conversion evidence is the remaining gap.",
           example: priority.recommendedAction,
-          fieldIds: ["primaryRevenueMotion", "revenueReportingCadence", "primaryRevenueOwner", "pipelineReviewOwner"]
+          fieldIds: [
+            "primaryRevenueMotion",
+            ...motionDefinitionFields,
+            ...motionTestFields,
+            "revenueReportingCadence",
+            "primaryRevenueOwner",
+            "pipelineReviewOwner"
+          ]
         };
       }
       if (/conversion assumptions|revenue operating assumptions/i.test(`${priority.category || ""} ${priority.priority || ""}`)) {
         return {
           area: priority.priority,
+          fieldMode: "replace",
           why: priority.whyItMatters,
           missing: priority.missingOperatingElements?.length
             ? priority.missingOperatingElements.map((item) => item.label)
@@ -12356,7 +12471,7 @@
       return `<!doctype html>
 <html>
 <head>
-  <meta name="gtm-release" content="20260723-improvement-route-audit-2">
+  <meta name="gtm-release" content="20260723-revenue-motion-buyer-roles-1">
   <meta charset="utf-8">
   <title>${escapedTitle}</title>
   <style>

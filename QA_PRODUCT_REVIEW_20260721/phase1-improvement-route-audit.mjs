@@ -39,6 +39,8 @@ async function improvementRoutes(profile) {
       label: link.textContent.trim(),
       href: link.getAttribute("href") || "",
       claimId: link.closest("[data-claim-id]")?.dataset.claimId || "",
+      supportPanelId: link.closest(".summary-support-panel")?.id || "",
+      supportPanelText: (link.closest(".summary-support-panel")?.textContent || "").replace(/\s+/g, " ").trim().slice(0, 1600),
       sectionId: link.closest("section")?.id || ""
     })));
   await context.close();
@@ -96,7 +98,35 @@ try {
               ? /Pipeline Metrics/i.test(state.text) && /Conversion Stages/i.test(state.text)
               : route.claimId === "ranked-crm-data-quality"
                 ? /six CRM source answers/i.test(state.text)
-                : true,
+              : true,
+        summaryRecommendationAligned: profile.key !== "forgeline" || route.supportPanelId === ""
+          ? true
+          : route.supportPanelId === "summary-opportunity-details"
+            ? /Opportunity priority:\s*Optimize the proven revenue motion/i.test(route.supportPanelText)
+              && /Target to first response/i.test(route.supportPanelText)
+              && !/CRM data quality:/i.test(route.supportPanelText)
+            : route.supportPanelId === "summary-risk-details"
+              ? /Standardize required loss reasons and source attribution/i.test(route.supportPanelText)
+                && !/Focus on one primary revenue source/i.test(route.supportPanelText)
+              : true,
+        summaryImprovementFieldsAligned: profile.key !== "forgeline" || route.supportPanelId === ""
+          ? true
+          : route.supportPanelId === "summary-opportunity-details"
+            ? /Revenue Motion/i.test(state.heading)
+              && state.mountedFields.some((field) => /__primaryBuyer$/.test(field))
+              && state.mountedFields.some((field) => /nextExperiment__successMetric$/.test(field))
+              && state.mountedFields.some((field) => /nextExperiment__continueRule$/.test(field))
+            : route.supportPanelId === "summary-risk-details"
+              ? /CRM data quality/i.test(state.heading)
+                && [
+                  "revenueTrackingSystem",
+                  "revenueDataQuality",
+                  "revenueReportingCadence",
+                  "revenueInfrastructureNotes",
+                  "primaryRevenueOwner",
+                  "pipelineReviewOwner"
+                ].every((field) => state.mountedFields.includes(field))
+              : true,
         saveAndReturnVisible: state.saveAndReturn,
         returnWithoutSavingVisible: state.returnWithoutSaving,
         noPageErrors: errors.length === 0
@@ -126,6 +156,10 @@ try {
     results: results.map((result) => ({
       profile: result.profile,
       route: result.route.claimId || result.route.sectionId,
+      supportPanelId: result.route.supportPanelId,
+      ...(result.route.supportPanelId
+        ? { supportPanelText: result.route.supportPanelText }
+        : {}),
       activeSection: result.state.activeSection,
       mountedFields: result.state.mountedFields,
       failures: result.failures

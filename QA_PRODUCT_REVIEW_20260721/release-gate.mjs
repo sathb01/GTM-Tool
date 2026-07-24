@@ -32,6 +32,7 @@ const browserSuites = [
   ["Conflict resolution", "phase1-conflict-resolution-check.mjs", "content"],
   ["Ranked recommendation provenance", "phase1-ranked-provenance-check.mjs", "content"],
   ["Improvement route usability", "phase1-improvement-route-audit.mjs", "routes"],
+  ["Revenue buyer role options", "phase1-revenue-buyer-role-check.mjs", "schema"],
   ["Adaptive AI control safety", "phase2-ai-classification-check.mjs", "ai"],
   ["Four-company AI context isolation", "phase2-four-company-ai-context-check.mjs", "ai"],
   ["Canonical plan integrity", "phase3-canonical-plan-check.mjs", "plans"],
