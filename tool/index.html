@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta name="gtm-release" content="20260724-visual-closeout-1">
+  <meta name="gtm-release" content="20260724-single-update-notice-1">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GTM Intelligence OS | Readiness Intake</title>
@@ -1142,33 +1142,34 @@
       padding: 18px;
     }
 
-    .plan-stale-warning {
-      align-items: center;
+    .nav-plan-update {
       background: #fff7e1;
       border: 1px solid #e3bd5b;
       border-left: 4px solid #d6a100;
-      border-radius: 8px;
+      border-radius: 6px;
+      color: var(--text);
       display: grid;
-      gap: 14px;
-      grid-template-columns: minmax(0, 1fr) auto;
-      margin: 0 0 18px;
-      padding: 16px 18px;
+      gap: 7px;
+      margin: 4px 8px 10px;
+      padding: 10px;
     }
 
-    .plan-stale-warning[hidden] {
-      display: none;
-    }
-
-    .plan-stale-warning strong,
-    .plan-stale-warning p {
+    .nav-plan-update strong,
+    .nav-plan-update p {
       display: block;
       margin: 0;
     }
 
-    .plan-stale-warning p {
+    .nav-plan-update p {
       color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .nav-plan-update button {
       font-size: 13px;
-      margin-top: 4px;
+      justify-self: start;
+      padding: 8px 10px;
     }
 
     .data-quality-review[hidden] {
@@ -1755,11 +1756,6 @@
         grid-template-columns: 1fr;
       }
 
-      .plan-stale-warning {
-        align-items: stretch;
-        grid-template-columns: 1fr;
-      }
-
       .data-quality-conflict-choices {
         grid-template-columns: 1fr;
       }
@@ -1818,13 +1814,6 @@
     <div class="layout">
       <nav id="sectionNav" aria-label="Intake sections"></nav>
       <form id="intakeForm">
-        <section class="plan-stale-warning" id="planStaleWarning" role="status" hidden>
-          <div>
-            <strong>The intake has changed since this plan was generated.</strong>
-            <p>Generate an updated plan so its recommendations reflect the latest answers.</p>
-          </div>
-          <button type="button" id="regenerateStalePlanButton">Generate Updated Plan</button>
-        </section>
         <div id="sections"></div>
         <section class="data-quality-review" id="dataQualityReview" aria-live="polite" hidden></section>
         <div class="action-bar" id="mainDetailedActions" hidden>

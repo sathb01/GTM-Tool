@@ -5230,6 +5230,28 @@ function renderSectionNavigation(sectionsToShow, nav) {
     assets.append(summary, assetLinksContainer);
     assets.addEventListener("toggle", () => localStorage.setItem(`${STORAGE_KEY}:assetsNavOpen`, String(assets.open)));
 
+    const updateNotice = document.createElement("div");
+    const updateTitle = document.createElement("strong");
+    const updateCopy = document.createElement("p");
+    const updateButton = document.createElement("button");
+    const planNeedsUpdate = planUpdateIsNeeded(navData);
+    updateNotice.id = "planStaleWarning";
+    updateNotice.className = "nav-plan-update";
+    updateNotice.dataset.planUpdateNotice = "true";
+    updateNotice.setAttribute("role", "status");
+    updateNotice.hidden = !planNeedsUpdate;
+    updateTitle.textContent = "Plan update available";
+    updateCopy.textContent = "Intake answers changed. Update once to refresh all plan assets.";
+    updateButton.id = "regenerateStalePlanButton";
+    updateButton.type = "button";
+    updateButton.textContent = "Update Plan";
+    updateButton.addEventListener("click", () => {
+      submitIntake(isPreRevenueMode() ? "preRevenue" : "detailed", isPreRevenueMode() ? "gtm" : "");
+    });
+    updateNotice.append(updateTitle, updateCopy, updateButton);
+    assetLinksContainer.appendChild(updateNotice);
+    summary.textContent = planNeedsUpdate ? "Assets - 1 update" : "Assets";
+
     const assetLinks = isPreRevenueMode()
       ? [
         ["GTM Plan Summary", "gtm"],
@@ -8817,14 +8839,20 @@ function intakePlanSignature(data = getFormData()) {
   return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
-function updatePlanStaleWarning(data = getFormData()) {
-  const warning = document.getElementById("planStaleWarning");
-  if (!warning) {
-    return false;
-  }
+function planUpdateIsNeeded(data = getFormData()) {
   const generatedSignature = String(data.lastPlanInputSignature || formStateData.lastPlanInputSignature || "").trim();
-  const isStale = Boolean(generatedSignature && intakePlanSignature(data) !== generatedSignature);
-  warning.hidden = !isStale;
+  return Boolean(generatedSignature && intakePlanSignature(data) !== generatedSignature);
+}
+
+function updatePlanStaleWarning(data = getFormData()) {
+  const isStale = planUpdateIsNeeded(data);
+  document.querySelectorAll("[data-plan-update-notice]").forEach((warning) => {
+    warning.hidden = !isStale;
+  });
+  const summary = document.querySelector(".nav-assets-box > summary");
+  if (summary) {
+    summary.textContent = isStale ? "Assets - 1 update" : "Assets";
+  }
   return isStale;
 }
 
@@ -9835,9 +9863,6 @@ async function initializeIntake() {
   if (topResearchButton) {
     topResearchButton.addEventListener("click", startCompanyResearch);
   }
-  document.getElementById("regenerateStalePlanButton").addEventListener("click", () => {
-    submitIntake(isPreRevenueMode() ? "preRevenue" : "detailed", isPreRevenueMode() ? "gtm" : "");
-  });
   ["viewResultsLink", "topResultsLink"].forEach((id) => {
     const link = document.getElementById(id);
     if (!link) return;

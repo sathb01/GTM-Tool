@@ -1,4 +1,6 @@
 import { createRequire } from "node:module";
+import fs from "node:fs";
+import path from "node:path";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require("C:/Users/sathb/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright");
@@ -85,11 +87,35 @@ try {
   await secondPage.goto(`${baseUrl}/index.html?recordId=${records[1].id}`, { waitUntil: "load" });
   await secondPage.waitForSelector("#regenerateStalePlanButton");
 
+  await firstPage.evaluate(() => {
+    const nextSection = visibleSections().find((section) => section.id !== activeSectionId);
+    if (nextSection) switchActiveSection(nextSection.id);
+  });
   const firstTabState = await firstPage.evaluate(() => ({
     recordId: loadedRecordId,
-    companyName: formStateData.companyName || ""
+    companyName: formStateData.companyName || "",
+    updateNoticeCount: document.querySelectorAll("[data-plan-update-notice]").length,
+    updateNoticeInAssets: Boolean(document.querySelector(".nav-assets-box [data-plan-update-notice]")),
+    updateSummary: document.querySelector(".nav-assets-box > summary")?.textContent.trim() || "",
+    updateCopy: document.querySelector("[data-plan-update-notice]")?.innerText || "",
+    contentUpdateWarnings: document.querySelectorAll("#intakeForm > .plan-stale-warning, #sections .plan-stale-warning").length
   }));
-  await firstPage.getByRole("button", { name: "Generate Updated Plan" }).click();
+  const screenshotDirectory = String(process.env.GTM_QA_SCREENSHOT_DIR || "").trim();
+  if (screenshotDirectory) {
+    fs.mkdirSync(screenshotDirectory, { recursive: true });
+    await firstPage.locator(".nav-assets-box").screenshot({
+      path: path.join(screenshotDirectory, "single-plan-update-desktop.png")
+    });
+    await firstPage.setViewportSize({ width: 390, height: 844 });
+    await firstPage.evaluate(() => {
+      const assets = document.querySelector(".nav-assets-box");
+      if (assets) assets.open = true;
+    });
+    await firstPage.locator(".nav-assets-box").screenshot({
+      path: path.join(screenshotDirectory, "single-plan-update-mobile.png")
+    });
+  }
+  await firstPage.getByRole("button", { name: "Update Plan" }).click();
   const generateAnyway = firstPage.getByRole("button", { name: "Generate Anyway" });
   if (await generateAnyway.isVisible().catch(() => false)) {
     await generateAnyway.click();
@@ -118,6 +144,11 @@ try {
   const checks = {
     firstTabStillDisplaysFirstCompany: firstTabState.companyName === records[0].data.companyName,
     firstTabKeepsItsLoadedRecord: firstTabState.recordId === records[0].id,
+    oneCentralUpdateNotice: firstTabState.updateNoticeCount === 1
+      && firstTabState.updateNoticeInAssets
+      && firstTabState.contentUpdateWarnings === 0,
+    oneUpdateRefreshesAllAssets: /1 update/i.test(firstTabState.updateSummary)
+      && /refresh all plan assets/i.test(firstTabState.updateCopy),
     generatedPlanUsesVisibleCompany: generatedRecordId === records[0].id,
     saveTargetsVisibleCompany: putIds.includes(records[0].id),
     otherTabRecordNotOverwritten: secondSaved.companyName === records[1].data.companyName,
