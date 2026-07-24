@@ -38,6 +38,10 @@
       box-sizing: border-box;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
     body {
       margin: 0;
       background: var(--app-bg);
@@ -1140,6 +1144,11 @@
       padding: 11px 12px;
     }
 
+    .weekly-capacity-confirm[hidden],
+    .weekly-rollover-decision[hidden] {
+      display: none;
+    }
+
     .weekly-capacity-confirm input {
       margin-top: 3px;
       width: auto;
@@ -1174,7 +1183,7 @@
     }
 
     .weekly-rollover-row.is-complete {
-      background: #f4f5f3;
+      display: none;
     }
 
     .weekly-rollover-row.is-complete label {
@@ -2784,12 +2793,35 @@
       }
 
       .app-top-nav {
+        position: static;
         grid-template-columns: 1fr;
         gap: 8px;
+        padding: 10px;
       }
 
       .top-account {
         justify-self: start;
+      }
+
+      .app-search,
+      .top-account {
+        display: none;
+      }
+
+      .top-actions {
+        flex-wrap: wrap;
+        width: 100%;
+      }
+
+      .top-actions a,
+      .top-actions button {
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+
+      .top-actions .workbook-action {
+        flex: 1 1 100%;
+        justify-content: center;
       }
 
       .action-panel {
@@ -12514,7 +12546,7 @@
       return `<!doctype html>
 <html>
 <head>
-  <meta name="gtm-release" content="20260724-qa3-full-cycle-1">
+  <meta name="gtm-release" content="20260724-visual-closeout-1">
   <meta charset="utf-8">
   <title>${escapedTitle}</title>
   <style>
@@ -15794,7 +15826,7 @@
         const selected = priority.status === "Complete" ? "Drop" : (priority.disposition || recommended);
         return `<div class="weekly-rollover-row${priority.status === "Complete" ? " is-complete" : ""}" data-rollover-index="${index}"><div><strong>${escapeHtml(priority.title)}</strong><span data-rollover-status>${escapeHtml(priority.status)}</span></div><span class="weekly-complete-note"${priority.status === "Complete" ? "" : " hidden"}>Complete - closes with this week. Nothing carries forward.</span><label>What should happen?<select data-rollover-field="disposition">${["Carry forward", "Revise", "Drop", "Blocked"].map((option) => `<option${selected === option ? " selected" : ""}>${option}</option>`).join("")}</select></label><label>Revised task or unblock action<input data-rollover-field="revisedTask" value="${escapeHtml(priority.revisedTask || "")}" placeholder="Rewrite the priority or name the unblock step"></label></div>`;
       }).join("");
-      review.innerHTML = `<h2>Close Week ${weeklyWorkspace.currentWeek}</h2><p class="muted">Review the results, decide what happens to unfinished work, and create the next week. Completed priorities close automatically and cannot carry forward.</p><div class="active-plan-review"><div class="weekly-close-summary"><strong>What moves to next week</strong><p id="weeklyRolloverSummary">Carry forward two or fewer unfinished priorities when possible so the plan can advance. If all three unfinished priorities are necessary, the next week becomes a completion week and no new planned work is added.</p></div><label>What did we learn?<textarea id="activeWeekLearning" rows="4" placeholder="Summarize the evidence across this week's completed work. What increased or reduced confidence?">${escapeHtml(data.activePlan__weeklyReview__learning || "")}</textarea></label><div class="grid"><label>Decision<select id="activeWeekDecision">${["Continue", "Revise", "Pause", "Need more evidence"].map((option) => `<option${(data.activePlan__weeklyReview__decision || "Continue") === option ? " selected" : ""}>${option}</option>`).join("")}</select></label><label>One focused change for next week<input id="activeWeekNextChange" value="${escapeHtml(data.activePlan__weeklyReview__nextChange || "")}" placeholder="Leave blank if the current approach should stay constant"></label></div><h3>Decide What Happens to Unfinished Priorities</h3><div class="weekly-rollover-list">${rolloverRows}</div><label class="weekly-capacity-confirm" id="weeklyFullRolloverConfirm" hidden><input type="checkbox" id="confirmFullRollover"><span><strong>Carry all three unfinished priorities and defer new work.</strong><br>The next week will be used entirely to finish these priorities.</span></label><div class="active-plan-save-row"><button type="button" id="closeActivePlanWeek">${weeklyWorkspace.currentWeek === 4 ? "Close Week 4 and Start Next Cycle" : `Close Week ${weeklyWorkspace.currentWeek} and Build Week ${weeklyWorkspace.currentWeek + 1}`}</button><span class="active-plan-save-status" id="activeWeekCloseStatus"></span></div></div>`;
+      review.innerHTML = `<h2>Close Week ${weeklyWorkspace.currentWeek}</h2><p class="muted">Review the results, decide what happens to unfinished work, and create the next week. Completed priorities close automatically and cannot carry forward.</p><div class="active-plan-review"><div class="weekly-close-summary"><strong>What moves to next week</strong><p id="weeklyRolloverSummary">Carry forward two or fewer unfinished priorities when possible so the plan can advance. If all three unfinished priorities are necessary, the next week becomes a completion week and no new planned work is added.</p></div><label>What did we learn?<textarea id="activeWeekLearning" rows="4" placeholder="Summarize the evidence across this week's completed work. What increased or reduced confidence?">${escapeHtml(data.activePlan__weeklyReview__learning || "")}</textarea></label><div class="grid"><label>Decision<select id="activeWeekDecision">${["Continue", "Revise", "Pause", "Need more evidence"].map((option) => `<option${(data.activePlan__weeklyReview__decision || "Continue") === option ? " selected" : ""}>${option}</option>`).join("")}</select></label><label>One focused change for next week<input id="activeWeekNextChange" value="${escapeHtml(data.activePlan__weeklyReview__nextChange || "")}" placeholder="Leave blank if the current approach should stay constant"></label></div><div class="weekly-rollover-decision" id="weeklyRolloverDecision"><h3>Decide What Happens to Unfinished Priorities</h3><div class="weekly-rollover-list">${rolloverRows}</div></div><label class="weekly-capacity-confirm" id="weeklyFullRolloverConfirm" hidden><input type="checkbox" id="confirmFullRollover"><span><strong>Carry all three unfinished priorities and defer new work.</strong><br>The next week will be used entirely to finish these priorities.</span></label><div class="active-plan-save-row"><button type="button" id="closeActivePlanWeek">${weeklyWorkspace.currentWeek === 4 ? "Close Week 4 and Start Next Cycle" : `Close Week ${weeklyWorkspace.currentWeek} and Build Week ${weeklyWorkspace.currentWeek + 1}`}</button><span class="active-plan-save-status" id="activeWeekCloseStatus"></span></div></div>`;
       const syncWeeklyCards = () => {
         syncWeeklyPriorityCards();
       };
@@ -15823,6 +15855,7 @@
         review.querySelector("#weeklyRolloverSummary").textContent = unfinishedCount === 0
           ? "All priorities are complete. Nothing will carry forward; the next week will begin with the next planned work."
           : `${unfinishedCount} unfinished ${unfinishedCount === 1 ? "priority needs" : "priorities need"} a decision. Carry forward only work that still matters to the current 30-day goal.`;
+        review.querySelector("#weeklyRolloverDecision").hidden = unfinishedCount === 0;
         review.querySelector("#weeklyFullRolloverConfirm").hidden = activeRolloverCount !== 3;
         if (activeRolloverCount !== 3) review.querySelector("#confirmFullRollover").checked = false;
       };

@@ -70,6 +70,10 @@ async function inspectPage(page, expectedSelector, expectedCompany, expectedReco
     }));
     const mainText = document.querySelector("main")?.innerText || document.body.innerText || "";
     const companyInputValue = document.querySelector('[name="companyName"]')?.value || "";
+    const forcedVisibleHiddenElements = Array.from(document.querySelectorAll("[hidden]"))
+      .filter(visible)
+      .map((element) => element.id || element.className || element.tagName)
+      .slice(0, 20);
     return {
       expectedVisible: visible(document.querySelector(expectedSelector)),
       companyVisible: mainText.includes(expectedCompany) || companyInputValue === expectedCompany,
@@ -81,7 +85,8 @@ async function inspectPage(page, expectedSelector, expectedCompany, expectedReco
       accent: getComputedStyle(document.documentElement).getPropertyValue("--accent").trim(),
       font: getComputedStyle(document.body).fontFamily,
       activeSection: document.querySelector("#sections > section")?.id || "",
-      overlaps: [...new Set(overlaps)].slice(0, 10)
+      overlaps: [...new Set(overlaps)].slice(0, 10),
+      forcedVisibleHiddenElements
     };
   }, { expectedSelector, expectedCompany, expectedRecordId });
 }
@@ -106,7 +111,7 @@ try {
       const state = await inspectPage(page, `#${section}`, profile.name, profile.id);
       if (sectionWaitError) errors.push(sectionWaitError);
       const url = new URL(page.url());
-      const passed = response?.status() === 200 && state.expectedVisible && state.recordCorrect && state.mainTextLength > 300 && !state.blankOrFailed && !state.internalLogicVisible && state.overlaps.length === 0 && errors.length === 0 && (url.searchParams.get("section") === section || url.hash === `#${section}`);
+      const passed = response?.status() === 200 && state.expectedVisible && state.recordCorrect && state.mainTextLength > 300 && !state.blankOrFailed && !state.internalLogicVisible && state.overlaps.length === 0 && state.forcedVisibleHiddenElements.length === 0 && errors.length === 0 && (url.searchParams.get("section") === section || url.hash === `#${section}`);
       checks.push({ profile: profile.key, type: "intake", section, passed, status: response?.status(), ...state, errors });
       await context.close();
     }
@@ -127,7 +132,7 @@ try {
         { timeout: 15000 }
       );
       const state = await inspectPage(page, selector, profile.name, profile.id);
-      const passed = response?.status() === 200 && state.expectedVisible && state.companyVisible && state.mainTextLength > 300 && !state.blankOrFailed && !state.internalLogicVisible && state.overlaps.length === 0 && errors.length === 0 && state.accent === "#ff7a59" && /Source Sans|Segoe UI|Inter/i.test(state.font);
+      const passed = response?.status() === 200 && state.expectedVisible && state.companyVisible && state.mainTextLength > 300 && !state.blankOrFailed && !state.internalLogicVisible && state.overlaps.length === 0 && state.forcedVisibleHiddenElements.length === 0 && errors.length === 0 && state.accent === "#ff7a59" && /Source Sans|Segoe UI|Inter/i.test(state.font);
       checks.push({ profile: profile.key, type: "asset", asset, passed, status: response?.status(), ...state, errors });
       await context.close();
     }

@@ -103,7 +103,14 @@ try {
         const rows = Array.from(document.querySelectorAll(".weekly-rollover-row.is-complete"));
         const visibleControls = rows.flatMap((row) => Array.from(row.querySelectorAll("[data-rollover-field]")))
           .filter((control) => control.offsetParent !== null);
-        return rows.length === expected && visibleControls.length === 0;
+        const visibleRows = rows.filter((row) => row.offsetParent !== null);
+        const decisionVisible = Boolean(document.getElementById("weeklyRolloverDecision")?.offsetParent);
+        const fullRolloverVisible = Boolean(document.getElementById("weeklyFullRolloverConfirm")?.offsetParent);
+        return rows.length === expected
+          && visibleRows.length === 0
+          && visibleControls.length === 0
+          && !decisionVisible
+          && !fullRolloverVisible;
       }, week1.length);
       await closeWeek(page, 1, {
         learning: "The first week created the required operating foundation and all three outputs met their completion rules."

@@ -206,13 +206,22 @@ try {
             || element.title
             || element.textContent.trim());
         });
+      const forcedVisibleHiddenElements = Array.from(document.querySelectorAll("[hidden]"))
+        .filter((element) => {
+          const style = getComputedStyle(element);
+          const rect = element.getBoundingClientRect();
+          return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+        })
+        .map((element) => element.id || element.className || element.tagName)
+        .slice(0, 20);
       return {
         horizontalPageOverflow: document.documentElement.scrollWidth > viewportWidth + 2,
         clippedText: clippedText.length,
         overlappingControls: overlap,
         currentSectionNavVisible: getComputedStyle(document.getElementById("currentSectionNav")).display !== "none",
         duplicateIds: new Set(duplicateIds).size,
-        unnamedControls: unnamedControls.length
+        unnamedControls: unnamedControls.length,
+        forcedVisibleHiddenElements
       };
     });
     const checks = {
@@ -221,9 +230,16 @@ try {
       actionControlsDoNotOverlap: !responsive.overlappingControls,
       redundantSamePageNavigationRemoved: !responsive.currentSectionNavVisible,
       noDuplicateIds: responsive.duplicateIds === 0,
-      visibleControlsHaveNames: responsive.unnamedControls === 0
+      visibleControlsHaveNames: responsive.unnamedControls === 0,
+      hiddenElementsStayHidden: responsive.forcedVisibleHiddenElements.length === 0
     };
-    results.push({ profile: profile.id, area: "narrow-plan", checks, failures: failuresFor(checks) });
+    results.push({
+      profile: profile.id,
+      area: "narrow-plan",
+      checks,
+      visualDetails: responsive,
+      failures: failuresFor(checks)
+    });
   }
 
   const failures = results.flatMap((result) => result.failures.map((failure) => `${result.profile} / ${result.area}: ${failure}`));
