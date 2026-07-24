@@ -709,4 +709,5 @@ https://gtm-tool-1mib.onrender.com/login
 - Fixed the week-close prompt so it remains hidden until every current priority is complete and has evidence.
 - Removed remaining ForgeLine-specific dependencies from the permanent regression suite.
 - Added a two-company, four-week Active Plan cycle test covering partial completion, carry-forward, weekly history, and next-cycle creation.
+- Standardized the fixture generator on the release gate's `GTM_QA_BASE_URL` environment variable so remote seeding cannot silently fall back to localhost.
 - Passed the local blocking release gate with 1,192 of 1,192 checks and the focused Active Plan cycle test with 26 of 26 checks.

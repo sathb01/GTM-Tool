@@ -1,0 +1,36 @@
+{
+  "generatedAt": "2026-07-24T06:10:00.000Z",
+  "environment": "render",
+  "baseUrl": "https://gtm-tool-1mib.onrender.com",
+  "checks": 26,
+  "passed": 26,
+  "failed": 0,
+  "records": [
+    {
+      "id": "qa3-post-mixed-trailpour-20260724",
+      "name": "QA3 - TrailPour Pantry",
+      "history": [
+        { "cycle": 1, "week": 1, "complete": 3, "total": 3 },
+        { "cycle": 1, "week": 2, "complete": 1, "total": 2 },
+        { "cycle": 1, "week": 3, "complete": 3, "total": 3 },
+        { "cycle": 1, "week": 4, "complete": 3, "total": 3 }
+      ],
+      "nextCycle": { "cycle": 2, "week": 1, "priorities": 2 },
+      "partialWeekPromptHidden": true,
+      "pageErrors": []
+    },
+    {
+      "id": "qa3-post-saas-clientrenew-20260724",
+      "name": "QA3 - ClientRenew OS",
+      "history": [
+        { "cycle": 1, "week": 1, "complete": 3, "total": 3 },
+        { "cycle": 1, "week": 2, "complete": 1, "total": 2 },
+        { "cycle": 1, "week": 3, "complete": 3, "total": 3 },
+        { "cycle": 1, "week": 4, "complete": 3, "total": 3 }
+      ],
+      "nextCycle": { "cycle": 2, "week": 1, "priorities": 2 },
+      "partialWeekPromptHidden": true,
+      "pageErrors": []
+    }
+  ]
+}

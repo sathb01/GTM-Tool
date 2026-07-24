@@ -43,6 +43,8 @@ This review replaced the legacy QA records with four new, fully populated compan
    - Fix: wait for a saved status before evaluating the close prompt.
 5. Hidden improvement controls could not be activated by the CRM roundtrip test.
    - Fix: exercise the generated route directly while still validating the destination, mounted source fields, saved changes, and reranking.
+6. The fixture generator did not share the release gate's base-URL environment variable.
+   - Fix: accept `GTM_QA_BASE_URL` as the standard fallback so an authenticated Render seed cannot silently target localhost.
 
 ## Full Active Plan Runs
 
@@ -83,4 +85,10 @@ Covered:
 
 ## Result
 
-No known blocking local issue remains after this QA cycle. Render verification and deployed record replacement are recorded in the final release-gate archive after deployment.
+The authenticated Render release gate passed 1,170 of 1,170 checks.
+
+The deployed full-cycle test passed 26 of 26 checks across `QA3 - TrailPour Pantry` and `QA3 - ClientRenew OS`. Both records retain four saved Week 1-4 history entries and begin Cycle 2 at Week 1.
+
+The deployed record store contains the four QA3 companies and five preserved non-QA records. No legacy QA record remains.
+
+No known blocking issue remains after this QA cycle.

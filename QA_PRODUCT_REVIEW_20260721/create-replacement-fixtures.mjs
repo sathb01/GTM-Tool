@@ -4,7 +4,7 @@ import vm from "node:vm";
 import { qaProfiles } from "./company-profiles.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
-const apiBase = process.env.GTM_QA_API || "http://127.0.0.1:8787";
+const apiBase = process.env.GTM_QA_API || process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787";
 const requestHeaders = {
   "Content-Type": "application/json",
   ...(process.env.GTM_QA_COOKIE ? { Cookie: process.env.GTM_QA_COOKIE } : {})
