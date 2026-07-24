@@ -213,4 +213,17 @@ These are not yet all confirmed defects. They have been separated from harness a
 - AI classification and write-safety gate: 43 passed, 0 failed locally.
 - Guided ranked-priority roundtrip gate: 14 passed, 0 failed locally.
 - Post-revenue deep-link gate: 9 passed, 0 failed locally.
-- Authenticated Render checks remain pending deployment.
+- Phase 4 release commit: `a80b871`.
+- Authenticated Render experience and accessibility gate: 80 passed, 0 failed.
+- Authenticated Render full four-company report gate: 78 passed, 0 failed.
+
+## July 23 Phase 5: Permanent Release Gate
+
+- Added one blocking release command: `npm run qa:release`.
+- Local release gate: 1,034 passed, 0 failed.
+- The gate spans syntax, schema, persistence, scoring, content, AI, plans, assets, responsive behavior, accessibility, routes, and full rendering.
+- Local runs include the guided write-and-return roundtrip; Render runs remain read-only or intercept writes.
+- Render runs fail immediately when `GTM_RELEASE_MARKER` is missing or does not match the deployed HTML.
+- Machine-readable and human-readable results are archived by timestamp without real customer data.
+- First local archive: `QA_PRODUCT_REVIEW_20260721/releases/2026-07-24T00-05-16-936Z`.
+- Authenticated Render gate remains pending deployment of the release runner and marker.

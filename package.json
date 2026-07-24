@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server/server.js"
+    "start": "node server/server.js",
+    "qa:release": "node QA_PRODUCT_REVIEW_20260721/release-gate.mjs"
   }
 }

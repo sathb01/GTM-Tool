@@ -166,6 +166,9 @@
 - A hidden header status panel no longer leaves an empty card in the intake.
 - The four-company experience, accessibility, narrow-layout, navigation, and state gate passes 80 checks locally.
 - Broader report, visible-field, AI-control, guided-roundtrip, and deep-link gates also pass locally.
+- Phase 4 release commit: `a80b871`.
+- Authenticated Render experience and accessibility gate: 80 passed, 0 failed.
+- Authenticated Render full report gate after the Phase 4 release: 78 passed, 0 failed.
 
 ## Phase 5: Release Quality System
 
@@ -185,3 +188,13 @@
 3. Bump frontend asset markers before deployed validation.
 4. Verify the deployed marker before running Render tests.
 5. Archive results by date without storing real customer data.
+
+### Implementation Status
+
+- `npm run qa:release` now runs the permanent release gate.
+- The gate covers syntax, synthetic fixture quality, semantics, field binding, persistence, scoring, conflict handling, provenance, AI write safety, context isolation, canonical plans, assets, exports, accessibility, responsive layouts, routes, and full report rendering.
+- Local runs include the write-based guided roundtrip against a synthetic test record.
+- Render runs require a unique deployed marker and exclude the write-based roundtrip.
+- Every run archives a machine-readable `release-gate.json` and a human `RELEASE_SUMMARY.md` under a timestamped folder.
+- The process exits with a failure code when any required gate fails.
+- The first complete local gate passed 1,034 checks with 0 failures.

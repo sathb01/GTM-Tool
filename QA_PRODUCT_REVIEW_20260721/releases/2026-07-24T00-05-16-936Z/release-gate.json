@@ -1,0 +1,258 @@
+{
+  "version": 1,
+  "status": "passed",
+  "environment": "local",
+  "baseUrl": "http://127.0.0.1:8787",
+  "releaseMarker": "",
+  "commit": "a80b871",
+  "startedAt": "2026-07-24T00:05:16.936Z",
+  "finishedAt": "2026-07-24T00:06:43.782Z",
+  "totals": {
+    "checks": 1034,
+    "passed": 1034,
+    "failed": 0
+  },
+  "suites": [
+    {
+      "name": "Deployment marker",
+      "category": "deployment",
+      "status": "skipped",
+      "checks": 0,
+      "passed": 0,
+      "failed": 0,
+      "durationMs": 0,
+      "detail": "Local release gate does not require a deployed marker."
+    },
+    {
+      "name": "Syntax: intake application",
+      "category": "syntax",
+      "status": "passed",
+      "checks": 1,
+      "passed": 1,
+      "failed": 0,
+      "durationMs": 112,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Syntax: intake schema",
+      "category": "syntax",
+      "status": "passed",
+      "checks": 1,
+      "passed": 1,
+      "failed": 0,
+      "durationMs": 109,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Syntax: server",
+      "category": "syntax",
+      "status": "passed",
+      "checks": 1,
+      "passed": 1,
+      "failed": 0,
+      "durationMs": 102,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Syntax: AI intake assistance",
+      "category": "syntax",
+      "status": "passed",
+      "checks": 1,
+      "passed": 1,
+      "failed": 0,
+      "durationMs": 105,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Syntax: shared feedback",
+      "category": "syntax",
+      "status": "passed",
+      "checks": 1,
+      "passed": 1,
+      "failed": 0,
+      "durationMs": 103,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Synthetic profile quality",
+      "category": "content",
+      "status": "passed",
+      "checks": 210,
+      "passed": 210,
+      "failed": 0,
+      "durationMs": 128,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Semantic answer quality",
+      "category": "content",
+      "status": "passed",
+      "checks": 66,
+      "passed": 66,
+      "failed": 0,
+      "durationMs": 158,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Intake startup and section persistence",
+      "category": "persistence",
+      "status": "passed",
+      "checks": 3,
+      "passed": 3,
+      "failed": 0,
+      "durationMs": 3642,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Visible field binding",
+      "category": "schema",
+      "status": "passed",
+      "checks": 2,
+      "passed": 2,
+      "failed": 0,
+      "durationMs": 2737,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Score and evidence separation",
+      "category": "scoring",
+      "status": "passed",
+      "checks": 14,
+      "passed": 14,
+      "failed": 0,
+      "durationMs": 1935,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Claim dependency integrity",
+      "category": "scoring",
+      "status": "passed",
+      "checks": 9,
+      "passed": 9,
+      "failed": 0,
+      "durationMs": 2123,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Conflict resolution",
+      "category": "content",
+      "status": "passed",
+      "checks": 12,
+      "passed": 12,
+      "failed": 0,
+      "durationMs": 1485,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Ranked recommendation provenance",
+      "category": "content",
+      "status": "passed",
+      "checks": 11,
+      "passed": 11,
+      "failed": 0,
+      "durationMs": 1868,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Guided ranked-priority roundtrip",
+      "category": "persistence",
+      "status": "passed",
+      "checks": 14,
+      "passed": 14,
+      "failed": 0,
+      "durationMs": 4910,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Adaptive AI control safety",
+      "category": "ai",
+      "status": "passed",
+      "checks": 43,
+      "passed": 43,
+      "failed": 0,
+      "durationMs": 6637,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Four-company AI context isolation",
+      "category": "ai",
+      "status": "passed",
+      "checks": 8,
+      "passed": 8,
+      "failed": 0,
+      "durationMs": 3612,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Canonical plan integrity",
+      "category": "plans",
+      "status": "passed",
+      "checks": 30,
+      "passed": 30,
+      "failed": 0,
+      "durationMs": 2030,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Asset contracts and exports",
+      "category": "assets",
+      "status": "passed",
+      "checks": 440,
+      "passed": 440,
+      "failed": 0,
+      "durationMs": 5524,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Experience and accessibility",
+      "category": "responsive",
+      "status": "passed",
+      "checks": 80,
+      "passed": 80,
+      "failed": 0,
+      "durationMs": 10194,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Post-revenue section deep links",
+      "category": "routes",
+      "status": "passed",
+      "checks": 9,
+      "passed": 9,
+      "failed": 0,
+      "durationMs": 7287,
+      "failures": [],
+      "note": ""
+    },
+    {
+      "name": "Four-company intake and output sweep",
+      "category": "render",
+      "status": "passed",
+      "checks": 78,
+      "passed": 78,
+      "failed": 0,
+      "durationMs": 31915,
+      "failures": [],
+      "note": ""
+    }
+  ]
+}

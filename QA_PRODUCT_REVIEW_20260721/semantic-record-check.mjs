@@ -117,6 +117,8 @@ const result = {
 };
 
 const outputPath = path.join(import.meta.dirname, "semantic-record-results.json");
-fs.writeFileSync(outputPath, `${JSON.stringify(result, null, 2)}\n`);
+if (process.env.GTM_QA_WRITE_RESULTS === "1") {
+  fs.writeFileSync(outputPath, `${JSON.stringify(result, null, 2)}\n`);
+}
 console.log(JSON.stringify(result, null, 2));
 if (failures.length) process.exitCode = 1;
