@@ -6440,7 +6440,11 @@
         subtitle: "Understand what it is, why it was selected, and which inputs affect it.",
         content: `<h3>Recommended opportunity</h3><p>${escapeHtml(dynamicSummary.opportunity)}</p>${claimTraceMarkup(claims.opportunity)}${dynamicSummary.feedback.state === "Supported" ? `<h3>Conversion point to improve</h3><p>${dynamicSummary.feedback.weakestConversionPoint ? `<strong>${escapeHtml(dynamicSummary.feedback.weakestConversionPoint)}</strong> is the saved answer for Biggest funnel drop-off in Revenue Motion.` : "No biggest funnel drop-off has been defined yet. Compare the conversion between each sales stage before choosing where to improve."}</p>` : ""}<h3>Recommended direction</h3>${summaryBulletList(decisionContent.decisionRequired, true)}<h3>Why this is prioritized</h3><ul><li>${escapeHtml(opportunityEvidence?.observation || topPriority?.drivers || executiveInsightMeaning(model))}</li><li>${escapeHtml(topPriority?.recommendedAction || "It is the clearest available leverage point for improving focused execution.")}</li></ul><h3>Recommended 90-Day Focus</h3><ul>${decisionContent.recommendedFocusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
       });
-      appendReviewLink(opportunityPanel.querySelector(".summary-support-content"), "Improve This Section", claims.opportunity.improvementTopic, { sameTab: true, returnSectionId: "summary-opportunity-details" });
+      appendReviewLink(opportunityPanel.querySelector(".summary-support-content"), "Improve This Section", claims.opportunity.improvementTopic, {
+        sameTab: true,
+        returnSectionId: "summary-opportunity-details",
+        claim: claims.opportunity
+      });
       recommendation.appendChild(opportunityPanel);
 
       const actionDetails = summarySupportPanel({
@@ -6459,7 +6463,11 @@
         subtitle: "See why the risk matters and which inputs can reduce it.",
         content: `<h3>Current risk</h3><p>${escapeHtml(topRisk)}</p>${claimTraceMarkup(claims.risk)}<h3>What to do about it</h3><p>${escapeHtml(model.readinessDiagnostic?.improvements?.[0]?.action || "Confirm the source inputs, assign an owner, and resolve the risk before expanding activity.")}</p>${strategicEvidence.length ? `<h3>Related evidence</h3><ul>${strategicEvidence.slice(0, 2).map((insight) => `<li>${escapeHtml(insight.observation)}</li>`).join("")}</ul>` : ""}`
       });
-      appendReviewLink(riskPanel.querySelector(".summary-support-content"), "Improve This Section", claims.risk.improvementTopic, { sameTab: true, returnSectionId: "summary-risk-details" });
+      appendReviewLink(riskPanel.querySelector(".summary-support-content"), "Improve This Section", claims.risk.improvementTopic, {
+        sameTab: true,
+        returnSectionId: "summary-risk-details",
+        claim: claims.risk
+      });
       recommendation.appendChild(riskPanel);
     }
 
@@ -6613,6 +6621,23 @@
           example: "Trigger: new product launch. Source: website, job posts, trade show list. Action: add to target list and lead with launch-risk message."
         };
       }
+      if (/customer|icp|segment|priority/.test(text)) {
+        return {
+          area: "Customer priority and ICP answers",
+          why: "The plan needs one observable customer segment with a clear problem, reason to act, and evidence that supports prioritizing it.",
+          missing: ["Priority customer group", "Buyer problem", "Reason to act now", "Evidence", "Observable fit and disqualification criteria"],
+          questionsHeading: "What to do here",
+          questions: [
+            "Review the customer-priority source answers directly below.",
+            "Make the segment, problem, urgency, and evidence specific enough to guide targeting and execution.",
+            "Save the changes and return. The plan will automatically recalculate the opportunity and ranked priorities."
+          ],
+          answerHeading: "Update the customer-priority source answers",
+          answerIntro: "These intake answers are used to define the Top Opportunity and ICP-related priorities.",
+          example: "Specialty manufacturers with 75-400 employees, urgent throughput constraints, and a documented backlog that is affecting delivery performance or margin.",
+          fieldIds: ["customerContextStarter", "bestFitCustomerGroup", "bestFitPrimaryPain", "bestFitTrigger", "bestFitEvidence"]
+        };
+      }
       if (/motion|pipeline|crm|revenue|activity|conversion|capacity|goal/.test(text)) {
         return {
           area: "Revenue motion and CRM answers",
@@ -6642,7 +6667,14 @@
     function createReviewLink(label, topic, options = {}) {
       const link = document.createElement("a");
       const sectionId = intakeSectionForTopic(topic);
-      const focus = options.focus || reviewFocusForTopic(topic);
+      const baseFocus = options.focus || reviewFocusForTopic(topic);
+      const focus = {
+        ...baseFocus,
+        fieldIds: [...new Set([
+          ...(baseFocus.fieldIds || []),
+          ...(options.claim?.sourceFields || [])
+        ])]
+      };
       const reviewOptions = options.sameTab
         ? {
             returnToCurrentReport: true,
@@ -6719,8 +6751,8 @@
 
     function immediateActionTopic(area) {
       const text = String(area || "").toLowerCase();
-      if (/customer|icp|priority|segment/.test(text)) return "customer icp priority";
       if (/offer|proof/.test(text)) return "offer proof";
+      if (/customer|icp|segment/.test(text)) return "customer icp priority";
       if (/signal|trigger/.test(text)) return "signals triggers";
       if (/motion|execution|revenue|crm|confidence/.test(text)) return "revenue motion crm";
       return "score";
@@ -7794,6 +7826,28 @@
     }
 
     function priorityImprovementFocus(priority, model) {
+      if (/proof/i.test(`${priority.category || ""} ${priority.priority || ""}`)) {
+        return {
+          area: priority.priority,
+          why: priority.whyItMatters,
+          missing: [
+            "The primary offer this proof must support",
+            "The buyer claim or objection the proof must address",
+            "The evidence source, strength, and permission status",
+            "The specific proof asset to create or improve"
+          ],
+          questionsHeading: "What to do here",
+          questions: [
+            "Confirm the primary offer in the dropdown directly below.",
+            "In that offer's Full Readiness Analysis below this guidance, update Proof Readiness with the claim, evidence source, strength, permission status, and asset gap.",
+            "Save the changes and return. The plan will automatically recalculate the Proof Assets priority."
+          ],
+          answerHeading: "Confirm the offer this proof supports",
+          answerIntro: "Proof is evaluated inside the selected offer. Confirm the offer here, then use its Proof Readiness controls immediately below this improvement card.",
+          example: priority.recommendedAction,
+          fieldIds: ["primaryGtmOffer"]
+        };
+      }
       if (/crm|data quality/i.test(`${priority.category || ""} ${priority.priority || ""}`)) {
         const data = model?.data || {};
         const missing = [];
@@ -7836,6 +7890,49 @@
             "primaryRevenueOwner",
             "pipelineReviewOwner"
           ]
+        };
+      }
+      if (/revenue motion discipline/i.test(`${priority.category || ""} ${priority.priority || ""}`)) {
+        const missing = priority.missingOperatingElements?.length
+          ? priority.missingOperatingElements.map((item) => item.label)
+          : ["The weakest operating detail in the selected revenue motion"];
+        const needsStages = missing.some((item) => /stage/i.test(item));
+        return {
+          area: priority.priority,
+          why: priority.whyItMatters,
+          missing,
+          questionsHeading: "What to do here",
+          questions: [
+            "Confirm the primary revenue motion and shared owner, tracking, and review cadence directly below.",
+            needsStages
+              ? "In the selected motion's Full Revenue Motion Play Assessment below this card, open Conversion Stages and define each stage's name, entry criteria, exit criteria, owner, and current conversion."
+              : "In the selected motion's Full Revenue Motion Play Assessment below this card, complete the operating detail named above.",
+            "Save the changes and return. The plan will automatically recalculate this priority."
+          ],
+          answerHeading: "Confirm the revenue motion and shared operating inputs",
+          answerIntro: "Motion-specific pipeline and stage controls remain together in the selected motion's assessment immediately below this improvement card.",
+          example: priority.recommendedAction,
+          fieldIds: ["primaryRevenueMotion", "revenueTrackingSystem", "revenueReportingCadence", "primaryRevenueOwner", "pipelineReviewOwner"]
+        };
+      }
+      if (/conversion assumptions|revenue operating assumptions/i.test(`${priority.category || ""} ${priority.priority || ""}`)) {
+        return {
+          area: priority.priority,
+          why: priority.whyItMatters,
+          missing: priority.missingOperatingElements?.length
+            ? priority.missingOperatingElements.map((item) => item.label)
+            : (priority.missingInputs?.length ? priority.missingInputs : ["Actual conversion rates"]),
+          questionsHeading: "What to do here",
+          questions: [
+            "Confirm the primary revenue motion and current selling capacity directly below.",
+            "In that motion's Full Revenue Motion Play Assessment below this card, use Pipeline Metrics for deal-size and funnel assumptions and Conversion Stages for current stage-by-stage conversion rates.",
+            "Use actual CRM evidence when available. If a number is still an estimate, identify it as an assumption in the motion notes.",
+            "Save the changes and return. The plan will automatically recalculate the operating assumptions priority."
+          ],
+          answerHeading: "Confirm the motion and capacity behind the assumptions",
+          answerIntro: "The numeric assumptions belong to the selected revenue motion. Confirm that context here, then update Pipeline Metrics and Conversion Stages immediately below.",
+          example: priority.recommendedAction,
+          fieldIds: ["primaryRevenueMotion", "sellingCapacity", "weeklyRevenueHours"]
         };
       }
       const missing = priority.missingOperatingElements?.length
@@ -12241,7 +12338,7 @@
       return `<!doctype html>
 <html>
 <head>
-  <meta name="gtm-release" content="20260723-crm-guided-improvement-1">
+  <meta name="gtm-release" content="20260723-improvement-route-audit-1">
   <meta charset="utf-8">
   <title>${escapedTitle}</title>
   <style>

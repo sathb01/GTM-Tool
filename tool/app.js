@@ -4663,6 +4663,21 @@ function improvementFocusFromUrl() {
       example: "Trigger: new product launch. Source: website, job posts, trade show list. Action: add to target list and lead with launch-risk message.",
       fieldIds: ["primarySignalPlay"]
     },
+    customer: {
+      area: "Customer priority and ICP answers",
+      why: "Review the customer evidence that defines the Top Opportunity and ICP-related priorities.",
+      missing: ["Priority customer group", "Buyer problem", "Reason to act now", "Evidence", "Observable fit and disqualification criteria"],
+      questionsHeading: "What to do here",
+      questions: [
+        "Review the customer-priority source answers directly below.",
+        "Make the segment, problem, urgency, and evidence specific enough to guide targeting and execution.",
+        "Save the changes and return. The plan will automatically recalculate the opportunity and ranked priorities."
+      ],
+      answerHeading: "Update the customer-priority source answers",
+      answerIntro: "These intake answers are used to define the Top Opportunity and ICP-related priorities.",
+      example: "Specialty manufacturers with 75-400 employees, urgent throughput constraints, and a documented backlog that is affecting delivery performance or margin.",
+      fieldIds: ["customerContextStarter", "bestFitCustomerGroup", "bestFitPrimaryPain", "bestFitTrigger", "bestFitEvidence"]
+    },
     revenue: {
       area: "Revenue motion and CRM answers",
       why: "Review the answers that define the motion, owner, weekly target, and review rhythm.",
