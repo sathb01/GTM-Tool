@@ -17,6 +17,9 @@ let formStateData = {};
 let activeDataQualityReview = null;
 let preferIntakeStartOnInitialLoad = false;
 let multiSelectDropdownId = 0;
+// Pin this tab to the record it loaded. localStorage is shared across tabs, so
+// reading the active record from it on every action can update the wrong company.
+let loadedRecordId = localStorage.getItem(ACTIVE_RECORD_KEY) || "";
 
 const carryForwardRules = [
   {
@@ -5558,10 +5561,12 @@ async function saveRecordToBackend(record) {
 }
 
 function activeRecordId() {
-  return localStorage.getItem(ACTIVE_RECORD_KEY) || "";
+  return loadedRecordId;
 }
 
 function setActiveRecordId(id) {
+  loadedRecordId = String(id || "");
+
   if (id) {
     localStorage.setItem(ACTIVE_RECORD_KEY, id);
   } else {

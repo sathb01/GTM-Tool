@@ -26,6 +26,7 @@ const browserSuites = [
   ["Synthetic profile quality", "profile-quality-check.mjs", "content"],
   ["Semantic answer quality", "semantic-record-check.mjs", "content"],
   ["Intake startup and section persistence", "intake-startup-navigation-check.mjs", "persistence"],
+  ["Cross-tab company isolation", "phase1-record-tab-isolation-check.mjs", "persistence"],
   ["Visible field binding", "visible-field-binding-check.mjs", "schema"],
   ["Score and evidence separation", "phase1-score-separation-check.mjs", "scoring"],
   ["Claim dependency integrity", "phase1-claim-dependency-check.mjs", "scoring"],
