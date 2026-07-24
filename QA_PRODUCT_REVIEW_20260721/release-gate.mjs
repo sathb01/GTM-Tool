@@ -52,6 +52,12 @@ if (!isLive) {
     args: [path.join("QA_PRODUCT_REVIEW_20260721", "phase1-ranked-roundtrip-check.mjs")],
     category: "persistence"
   });
+  browserSuites.splice(9, 0, {
+    name: "CRM priority guided roundtrip",
+    command: node,
+    args: [path.join("QA_PRODUCT_REVIEW_20260721", "phase1-crm-priority-roundtrip-check.mjs")],
+    category: "persistence"
+  });
 }
 
 function parsedSummary(stdout) {

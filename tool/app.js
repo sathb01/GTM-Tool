@@ -4738,6 +4738,8 @@ function renderImprovementFocusCard(sectionId) {
   const missingList = document.createElement("ul");
   const questionsHeading = document.createElement("h4");
   const questionsList = document.createElement("ol");
+  const answerHeading = document.createElement("h4");
+  const answerIntro = document.createElement("p");
   const exampleHeading = document.createElement("h4");
   const example = document.createElement("p");
   const actions = document.createElement("div");
@@ -4765,7 +4767,7 @@ function renderImprovementFocusCard(sectionId) {
     li.textContent = item;
     missingList.appendChild(li);
   });
-  questionsHeading.textContent = "Questions to answer";
+  questionsHeading.textContent = focus.questionsHeading || "Questions to answer";
   (focus.questions || []).forEach((item) => {
     const li = document.createElement("li");
     li.textContent = item;
@@ -4773,6 +4775,8 @@ function renderImprovementFocusCard(sectionId) {
   });
   exampleHeading.textContent = "Example of a stronger answer";
   example.textContent = focus.example || "";
+  answerHeading.textContent = focus.answerHeading || "Update the source answers";
+  answerIntro.textContent = focus.answerIntro || "Edit the intake answers below. These fields are the source information used by the plan.";
   actions.className = "action-bar";
   saveAnswers.type = "button";
   saveAnswers.className = "secondary";
@@ -4875,6 +4879,8 @@ function renderImprovementFocusCard(sectionId) {
     card.appendChild(questionsList);
   }
   if (Array.isArray(focus.fieldIds) && focus.fieldIds.length) {
+    card.appendChild(answerHeading);
+    card.appendChild(answerIntro);
     card.appendChild(answerFields);
   }
   if (example.textContent) {

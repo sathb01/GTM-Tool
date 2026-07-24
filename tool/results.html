@@ -6663,7 +6663,10 @@
           sectionId,
           why: focus.why,
           missing: focus.missing,
+          questionsHeading: focus.questionsHeading,
           questions: focus.questions,
+          answerHeading: focus.answerHeading,
+          answerIntro: focus.answerIntro,
           example: focus.example,
           fieldIds: focus.fieldIds,
           createdAt: new Date().toISOString()
@@ -7790,7 +7793,51 @@
       });
     }
 
-    function priorityImprovementFocus(priority) {
+    function priorityImprovementFocus(priority, model) {
+      if (/crm|data quality/i.test(`${priority.category || ""} ${priority.priority || ""}`)) {
+        const data = model?.data || {};
+        const missing = [];
+        if (!cleanText(data.revenueTrackingSystem) || /none/i.test(data.revenueTrackingSystem)) {
+          missing.push("The CRM or revenue tracking system is not confirmed.");
+        }
+        if (!cleanText(data.revenueDataQuality) || /low|not sure/i.test(data.revenueDataQuality)) {
+          missing.push(`Revenue data quality is ${cleanText(data.revenueDataQuality) || "not rated"}.`);
+        }
+        if (!cleanText(data.revenueReportingCadence) || /ad hoc|not defined/i.test(data.revenueReportingCadence)) {
+          missing.push("A consistent pipeline reporting cadence is not confirmed.");
+        }
+        if (!cleanText(data.primaryRevenueOwner)) {
+          missing.push("The primary revenue owner is not named.");
+        }
+        if (!cleanText(data.pipelineReviewOwner)) {
+          missing.push("The person responsible for reviewing pipeline and next steps is not named.");
+        }
+        if (!cleanText(data.revenueInfrastructureNotes)) {
+          missing.push("The specific CRM fields or data-quality problems are not described.");
+        }
+        return {
+          area: priority.priority,
+          why: priority.whyItMatters,
+          missing: missing.length ? missing : [priority.drivers],
+          questionsHeading: "What to do here",
+          questions: [
+            "Review the six CRM source answers directly below.",
+            "In Revenue infrastructure notes, name the exact fields or practices that are incomplete or inconsistent.",
+            "Save the changes and return. The plan will automatically remove, retain, or rerank this priority from the revised answers."
+          ],
+          answerHeading: "Update the CRM source answers",
+          answerIntro: "These are the intake answers used to create the CRM Data Quality priority. Edit them here; there is no separate place to answer the guidance above.",
+          example: "HubSpot is the source of truth. Pipeline is reviewed weekly by the Revenue Operations Manager. Source attribution and loss reasons are currently inconsistent, so both fields will be required before an opportunity can be closed.",
+          fieldIds: [
+            "revenueTrackingSystem",
+            "revenueDataQuality",
+            "revenueReportingCadence",
+            "revenueInfrastructureNotes",
+            "primaryRevenueOwner",
+            "pipelineReviewOwner"
+          ]
+        };
+      }
       const missing = priority.missingOperatingElements?.length
         ? priority.missingOperatingElements.map((item) => item.label)
         : priority.missingInputs?.length
@@ -8494,7 +8541,7 @@
               sameTab: true,
               returnSectionId: item.id,
               task: `Complete ${element.label}`,
-              focus: priorityImprovementFocus(priority),
+              focus: priorityImprovementFocus(priority, model),
               claim: priority.claim
             }));
             missingList.appendChild(missingItem);
@@ -8538,7 +8585,7 @@
             sameTab: true,
             returnSectionId: item.id,
             task: `Improve ${priority.priority}`,
-            focus: priorityImprovementFocus(priority),
+            focus: priorityImprovementFocus(priority, model),
             claim: priority.claim
           });
         }
@@ -12194,7 +12241,7 @@
       return `<!doctype html>
 <html>
 <head>
-  <meta name="gtm-release" content="20260723-readiness-component-clarity-1">
+  <meta name="gtm-release" content="20260723-crm-guided-improvement-1">
   <meta charset="utf-8">
   <title>${escapedTitle}</title>
   <style>
