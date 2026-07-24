@@ -24,10 +24,10 @@ await page.route("**/api/records/**", async (route) => {
 });
 
 const profiles = [
-  { id: "qa2-pre-dtc-nesttrail-20260721", section: "preRevenueContext" },
-  { id: "qa2-pre-saas-queuepilot-20260721", section: "preRevenueContext" },
-  { id: "qa2-post-mixed-fieldsip-20260721", section: "offer" },
-  { id: "qa2-post-saas-renewalgrid-20260721", section: "offer" }
+  { id: "qa3-pre-dtc-roamready-20260724", section: "preRevenueContext" },
+  { id: "qa3-pre-saas-referralpath-20260724", section: "preRevenueContext" },
+  { id: "qa3-post-mixed-trailpour-20260724", section: "offer" },
+  { id: "qa3-post-saas-clientrenew-20260724", section: "offer" }
 ];
 const results = [];
 

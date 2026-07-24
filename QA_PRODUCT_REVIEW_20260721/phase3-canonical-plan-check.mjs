@@ -17,10 +17,10 @@ const errors = [];
 page.on("pageerror", (error) => errors.push(error.message));
 
 const profiles = [
-  { id: "qa2-pre-dtc-nesttrail-20260721", expectedMode: ["validation"], preRevenue: true },
-  { id: "qa2-pre-saas-queuepilot-20260721", expectedMode: ["validation"], preRevenue: true },
-  { id: "qa2-post-mixed-fieldsip-20260721", expectedMode: ["foundation", "optimization"] },
-  { id: "qa2-post-saas-renewalgrid-20260721", expectedMode: ["foundation", "optimization"] }
+  { id: "qa3-pre-dtc-roamready-20260724", expectedMode: ["validation"], preRevenue: true },
+  { id: "qa3-pre-saas-referralpath-20260724", expectedMode: ["validation"], preRevenue: true },
+  { id: "qa3-post-mixed-trailpour-20260724", expectedMode: ["foundation", "optimization"] },
+  { id: "qa3-post-saas-clientrenew-20260724", expectedMode: ["foundation", "optimization"] }
 ];
 const results = [];
 

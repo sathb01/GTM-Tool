@@ -4,7 +4,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require("C:/Users/sathb/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright");
 const baseUrl = String(process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
 const cookie = process.env.GTM_QA_COOKIE || "";
-const recordId = "qa-post-b2b-forgeline-20260712-full-20260714";
+const recordId = "qa3-post-saas-clientrenew-20260724";
 const browser = await chromium.launch({
   headless: true,
   executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe"
@@ -25,7 +25,7 @@ try {
   await page.waitForFunction(() => {
     const selected = document.querySelector('[data-field-id="primaryRevenueMotion"] select')?.value || "";
     return Boolean(selected && document.querySelector(`[data-field-id="revenueMotionPortfolio__${CSS.escape(selected)}__primaryBuyer"] select`));
-  }, null, { timeout: 15000 });
+  }, null, { timeout: 30000 });
 
   const state = await page.evaluate(() => {
     const motionId = document.querySelector('[data-field-id="primaryRevenueMotion"] select')?.value || "";

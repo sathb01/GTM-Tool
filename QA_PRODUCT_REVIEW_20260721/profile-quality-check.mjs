@@ -84,19 +84,19 @@ for (const profile of qaProfiles) {
   check(`${profile.key}: stop rule is explicit`, /(pause|stop)/i.test(profile.outcome.stop), profile.outcome.stop);
 }
 
-const nestTrail = qaProfiles.find((profile) => profile.key === "nesttrail");
-const queuePilot = qaProfiles.find((profile) => profile.key === "queuepilot");
-const fieldSip = qaProfiles.find((profile) => profile.key === "fieldsip");
-const renewalGrid = qaProfiles.find((profile) => profile.key === "renewalgrid");
+const roamReady = qaProfiles.find((profile) => profile.key === "roamready");
+const referralPath = qaProfiles.find((profile) => profile.key === "referralpath");
+const trailPour = qaProfiles.find((profile) => profile.key === "trailpour");
+const clientRenew = qaProfiles.find((profile) => profile.key === "clientrenew");
 
-check("NestTrail is D2C-first", /direct to consumer/i.test(nestTrail.route.primary));
-check("NestTrail does not use B2B approval as the primary path", !/procurement|practice administrator|retail buyer/i.test(nestTrail.customer.buyer));
-check("QueuePilot includes a multi-role B2B buying path", present(queuePilot.customer.blocker) && present(queuePilot.customer.approver));
-check("QueuePilot does not claim security is proven", queuePilot.evidence.missing.some((item) => /security/i.test(item)));
-check("FieldSip separates primary retail and secondary D2C segments", present(fieldSip.customer.primarySegment) && present(fieldSip.customer.secondarySegment));
-check("FieldSip uses retailer economics for its primary decision", /sell-through|margin|reorder/i.test(fieldSip.outcome.measure));
-check("RenewalGrid preserves the assumed segment separately", present(renewalGrid.customer.assumedSegment));
-check("RenewalGrid recommendation is grounded in historical wins", /six of ten fastest wins/i.test(renewalGrid.evidence.known.join(" ")));
+check("RoamReady is D2C-first", /direct to consumer/i.test(roamReady.route.primary));
+check("RoamReady does not use B2B approval as the primary path", !/procurement|practice administrator|retail buyer/i.test(roamReady.customer.buyer));
+check("ReferralPath includes a multi-role B2B buying path", present(referralPath.customer.blocker) && present(referralPath.customer.approver));
+check("ReferralPath does not claim security is proven", referralPath.evidence.missing.some((item) => /security/i.test(item)));
+check("TrailPour separates primary retail and secondary D2C segments", present(trailPour.customer.primarySegment) && present(trailPour.customer.secondarySegment));
+check("TrailPour uses retailer economics for its primary decision", /sell-through|margin|reorder/i.test(trailPour.outcome.measure));
+check("ClientRenew preserves the assumed segment separately", present(clientRenew.customer.assumedSegment));
+check("ClientRenew recommendation is grounded in historical wins", /six of ten fastest wins/i.test(clientRenew.evidence.known.join(" ")));
 
 const forbiddenLegacyPhrases = [
   "pawpath",
@@ -106,7 +106,11 @@ const forbiddenLegacyPhrases = [
   "fishing shorts",
   "blacksmith",
   "mission belt",
-  "grounded brand"
+  "grounded brand",
+  "nesttrail",
+  "queuepilot",
+  "fieldsip",
+  "renewalgrid"
 ];
 for (const profile of qaProfiles) {
   forbiddenLegacyPhrases.forEach((phrase) => {
@@ -124,4 +128,3 @@ const result = {
 
 console.log(JSON.stringify(result, null, 2));
 if (failures.length) process.exitCode = 1;
-

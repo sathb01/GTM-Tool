@@ -74,7 +74,7 @@ function profileFlags(profile) {
     dtc: /dtc-consumer/.test(profile.archetype),
     mixed: /mixed-consumer/.test(profile.archetype),
     saas: /saas/.test(profile.archetype),
-    healthcare: /queuepilot/.test(profile.key)
+    healthcare: /referralpath/.test(profile.key)
   };
 }
 
@@ -125,8 +125,8 @@ function baseData(profile) {
     bestFitCustomerGroup: profile.customer.primarySegment,
     bestFitPrimaryPain: profile.problem.primary,
     bestFitDecisionMaker: profile.customer.buyer,
-    primaryGtmOffer: profile.product.primary,
-    primaryRevenueMotion: profile.route.motion
+    primaryGtmOffer: "offer-1",
+    primaryRevenueMotion: "motion-1"
   };
 }
 
@@ -542,7 +542,7 @@ function textAnswer(definition, profile, key, rowLabel = "", tableId = "") {
   const structured = structuredTableText(definition, profile, key, rowLabel, tableId);
   if (filled(structured)) return structured;
 
-  if (/email/.test(label)) return `qa2+${profile.key}@example.invalid`;
+  if (/email/.test(label)) return `qa3+${profile.key}@example.invalid`;
   if (/phone/.test(label)) return "555-0200";
   if (/website|url/.test(label)) return profile.company.website;
   if (tableId === "gtmSystems" && /tool/.test(label)) {
@@ -715,7 +715,7 @@ function buildRecord(profile) {
   const unresolved = [];
   const sections = applicableSections(profile);
   for (let pass = 0; pass < 3; pass += 1) sections.forEach((section) => walkNode(section, profile, data, unresolved, new Set()));
-  data.qaProfileVersion = "2026-07-21-semantic-v1";
+  data.qaProfileVersion = "2026-07-24-semantic-v2";
   data.qaEvidenceBoundary = JSON.stringify(profile.provenance);
   data.savedAt = new Date().toISOString();
   const uniqueUnresolved = [...new Map(unresolved.filter((item) => !filled(data[item.key])).map((item) => [item.key, item])).values()];
@@ -764,7 +764,8 @@ function selectAnswerById(definition, profile, rowId, label) {
   if (id === "mainGrowthConstraint") return findOption(definition, flags.pre ? [/unclear product-market fit/i, /under capitalization/i] : flags.mixed ? [/lack of strategic planning/i, /process scalability/i] : [/unclear product-market fit/i, /intense competition/i], rowId);
   if (id === "prePrimaryHypothesis") return profile.customer.primarySegment;
   if (id === "segmentName") return findOption(definition, rowId.endsWith("2") ? [/problem-aware buyers/i] : flags.dtc ? [/end users with a specific use case/i] : [/small businesses or teams/i], rowId);
-  if (id === "primarySignalPlay") return "Primary targeting strategy";
+  if (id === "primarySignalPlay") return "play-1";
+  if (id === "linkedSignalPlay") return rowId.endsWith("2") ? "play-2" : "play-1";
   if (id === "bestFitChampion") return profile.customer.user;
   if (id === "bestFitExpectedSalesCycle") return findOption(definition, flags.mixed ? [/30-60|31-60|1-2 month/i] : [/60-90|61-90|2-3 month/i, /30-60/i], rowId);
   if (id === "bestFitBudgetCategory") return findOption(definition, flags.mixed ? [/merchandising|inventory|category|marketing/i] : [/operations|software|technology|department/i], rowId);

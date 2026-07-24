@@ -77,11 +77,11 @@ async function inspect(url, selector) {
 }
 
 try {
-  const post = await inspect("/index.html?section=executiveQuickReview&recordId=qa2-post-mixed-fieldsip-20260721#executiveQuickReview", "#executiveQuickReview");
-  const preContext = await inspect("/index.html?section=preRevenueContext&recordId=qa2-pre-dtc-nesttrail-20260721#preRevenueContext", "#preRevenueContext");
-  const preHypothesis = await inspect("/index.html?section=preRevenueHypotheses&recordId=qa2-pre-dtc-nesttrail-20260721#preRevenueHypotheses", "#preRevenueHypotheses");
-  const preMotion = await inspect("/index.html?section=preRevenueValidationMotion&recordId=qa2-pre-dtc-nesttrail-20260721#preRevenueValidationMotion", '[data-field-id="preMessageProofPoint"]');
-  await page.goto(`${baseUrl}/index.html?section=executiveQuickReview&recordId=qa2-post-mixed-fieldsip-20260721#executiveQuickReview`, { waitUntil: "load" });
+  const post = await inspect("/index.html?section=executiveQuickReview&recordId=qa3-post-mixed-trailpour-20260724#executiveQuickReview", "#executiveQuickReview");
+  const preContext = await inspect("/index.html?section=preRevenueContext&recordId=qa3-pre-dtc-roamready-20260724#preRevenueContext", "#preRevenueContext");
+  const preHypothesis = await inspect("/index.html?section=preRevenueHypotheses&recordId=qa3-pre-dtc-roamready-20260724#preRevenueHypotheses", "#preRevenueHypotheses");
+  const preMotion = await inspect("/index.html?section=preRevenueValidationMotion&recordId=qa3-pre-dtc-roamready-20260724#preRevenueValidationMotion", '[data-field-id="preMessageProofPoint"]');
+  await page.goto(`${baseUrl}/index.html?section=executiveQuickReview&recordId=qa3-post-mixed-trailpour-20260724#executiveQuickReview`, { waitUntil: "load" });
   await page.waitForFunction(() => Boolean(document.querySelector('[name="quickPrimaryRevenueSource"]')?.value), null, { timeout: 15000 });
   const buyerProblem = page.locator('[data-field-id="quickBuyerProblem"]');
   const originalBuyerProblem = await buyerProblem.locator('[name="quickBuyerProblem"]').inputValue();
@@ -98,7 +98,7 @@ try {
   await buyerProblem.locator("[data-use-ai-field]").click();
   await page.waitForFunction(() => document.querySelector('[name="quickBuyerProblem"]')?.value.includes("Specialty retailers struggle"), null, { timeout: 15000 });
   const reviewedBuyerProblemValue = await buyerProblem.locator('[name="quickBuyerProblem"]').inputValue();
-  await page.goto(`${baseUrl}/index.html?section=traction&recordId=qa2-post-mixed-fieldsip-20260721#traction`, { waitUntil: "load" });
+  await page.goto(`${baseUrl}/index.html?section=traction&recordId=qa3-post-mixed-trailpour-20260724#traction`, { waitUntil: "load" });
   await page.waitForFunction(() => typeof showDetailedSections === "function" && typeof switchActiveSection === "function", null, { timeout: 15000 });
   await page.evaluate(() => {
     showDetailedSections();
@@ -115,7 +115,7 @@ try {
   await page.waitForFunction(() => document.querySelector('[data-field-id="provenCustomerOutcomes"] [data-multi-select-dropdown="true"]')?.value === "Increase margin", null, { timeout: 15000 });
   const reviewedProofValue = await proofOutcomes.locator('[data-multi-select-dropdown="true"]').evaluate((control) => control.value);
   const proofReviewRequest = assistantRequests.find((request) => request.field?.id === "provenCustomerOutcomes" && request.field?.requestType === "review");
-  await page.goto(`${baseUrl}/index.html?section=executiveQuickReview&recordId=qa2-post-mixed-fieldsip-20260721#executiveQuickReview`, { waitUntil: "load" });
+  await page.goto(`${baseUrl}/index.html?section=executiveQuickReview&recordId=qa3-post-mixed-trailpour-20260724#executiveQuickReview`, { waitUntil: "load" });
   await page.waitForFunction(() => Boolean(document.querySelector('[name="quickPrimaryRevenueSource"]')?.value), null, { timeout: 15000 });
   const revenueSource = page.locator('[data-field-id="quickPrimaryRevenueSource"]');
   const originalRevenueSource = await revenueSource.locator('[name="quickPrimaryRevenueSource"]').inputValue();
@@ -126,7 +126,7 @@ try {
     valueBeforeUse: await revenueSource.locator('[name="quickPrimaryRevenueSource"]').inputValue(),
     useVisible: await revenueSource.locator("[data-use-ai-field]").isVisible()
   };
-  await page.goto(`${baseUrl}/index.html?section=preRevenueContext&recordId=qa2-pre-dtc-nesttrail-20260721#preRevenueContext`, { waitUntil: "load" });
+  await page.goto(`${baseUrl}/index.html?section=preRevenueContext&recordId=qa3-pre-dtc-roamready-20260724#preRevenueContext`, { waitUntil: "load" });
   await page.waitForFunction(() => Boolean(document.querySelector('[name="preFounderBackground"]')?.value), null, { timeout: 15000 });
   const founderBackground = page.locator('[data-field-id="preFounderBackground"]');
   const originalBackground = await founderBackground.locator('[name="preFounderBackground"]').inputValue();
@@ -139,7 +139,7 @@ try {
   const recommendationRequest = assistantRequests.find((request) => request.field?.id === "quickPrimaryRevenueSource");
   const explanationRequest = assistantRequests.find((request) => request.field?.id === "preFounderBackground");
   const recommendationContext = JSON.parse(recommendationRequest?.pageContext || "{}");
-  await page.goto(`${baseUrl}/index.html?section=preRevenueHypotheses&recordId=qa2-pre-dtc-nesttrail-20260721#preRevenueHypotheses`, { waitUntil: "load" });
+  await page.goto(`${baseUrl}/index.html?section=preRevenueHypotheses&recordId=qa3-pre-dtc-roamready-20260724#preRevenueHypotheses`, { waitUntil: "load" });
   const customerContext = page.locator('[data-field-id="customerContextStarter"]');
   const requestsBeforeCustomerCoaching = assistantRequests.length;
   await customerContext.locator(".ai-field-help-button:not([data-review-ai-field])").click();
@@ -152,7 +152,7 @@ try {
   await customerContext.locator(".ai-field-suggestion").waitFor({ state: "visible" });
   const customerRequest = assistantRequests.find((request) => request.field?.id === "customerContextStarter");
   const customerContextPayload = JSON.parse(customerRequest?.pageContext || "{}");
-  await page.goto(`${baseUrl}/index.html?section=executiveQuickReview&recordId=qa2-post-mixed-fieldsip-20260721#executiveQuickReview`, { waitUntil: "load" });
+  await page.goto(`${baseUrl}/index.html?section=executiveQuickReview&recordId=qa3-post-mixed-trailpour-20260724#executiveQuickReview`, { waitUntil: "load" });
   await page.waitForFunction(() => Boolean(document.querySelector('[name="quick90DayGoal"]')?.value), null, { timeout: 15000 });
   const goal = page.locator('[data-field-id="quick90DayGoal"]');
   await goal.locator('[name="quick90DayGoal"]').selectOption({ label: "Not sure yet" });

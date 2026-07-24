@@ -302,6 +302,22 @@ async function handleRecords(request, response, url) {
     return true;
   }
 
+  if (match && request.method === "DELETE") {
+    const id = decodeURIComponent(match[1]);
+    const records = await readRecords();
+    const existingIndex = records.findIndex((record) => record.id === id);
+
+    if (existingIndex < 0) {
+      sendJson(response, 404, { error: "Record not found" });
+      return true;
+    }
+
+    const [deletedRecord] = records.splice(existingIndex, 1);
+    await writeRecords(records);
+    sendJson(response, 200, { deleted: publicRecord(deletedRecord) });
+    return true;
+  }
+
   return false;
 }
 

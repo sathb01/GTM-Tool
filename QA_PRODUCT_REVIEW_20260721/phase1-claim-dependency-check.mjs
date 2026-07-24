@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { chromium } = require("C:/Users/sathb/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright");
 const baseUrl = String(process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
-const recordId = process.env.GTM_QA_RECORD_ID || "qa2-post-mixed-fieldsip-20260721";
+const recordId = process.env.GTM_QA_RECORD_ID || "qa3-post-mixed-trailpour-20260724";
 const cookie = process.env.GTM_QA_COOKIE || "";
 const scoreFields = [
   "marketUrgency",

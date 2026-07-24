@@ -32,7 +32,7 @@ function has(value, pattern) {
   return pattern.test(String(value || ""));
 }
 
-const legacyPhrases = /pawpath|brightnest|forgeline|relaymetrics|fishing shorts|blacksmith|mission belt|grounded brand/i;
+const legacyPhrases = /pawpath|brightnest|forgeline|relaymetrics|nesttrail|queuepilot|fieldsip|renewalgrid|fishing shorts|blacksmith|mission belt|grounded brand/i;
 const placeholders = /ai please|ai recommendation|not captured yet|completed answer for|undefined|null|\[object object\]/i;
 
 for (const profile of qaProfiles) {
@@ -43,7 +43,7 @@ for (const profile of qaProfiles) {
   const values = textValues(data);
   const allText = values.map(([, value]) => value).join(" | ");
 
-  check(`${profile.key}: semantic fixture version`, field(data, "qaProfileVersion") === "2026-07-21-semantic-v1");
+  check(`${profile.key}: semantic fixture version`, field(data, "qaProfileVersion") === "2026-07-24-semantic-v2");
   check(`${profile.key}: company name`, field(data, "companyName") === profile.name, field(data, "companyName"));
   check(`${profile.key}: customer context`, field(data, "customerContextStarter") === profile.customer.plainLanguage);
   check(`${profile.key}: primary segment`, field(data, "quickBestFitCustomer") === profile.customer.primarySegment);
@@ -53,6 +53,15 @@ for (const profile of qaProfiles) {
   check(`${profile.key}: no bare Other`, !values.some(([, value]) => value.trim() === "Other"));
   check(`${profile.key}: no legacy company leakage`, !legacyPhrases.test(allText));
   check(`${profile.key}: evidence boundary saved`, field(data, "qaEvidenceBoundary") === JSON.stringify(profile.provenance));
+  if (profile.mode === "postRevenue") {
+    check(`${profile.key}: primary offer relationship uses a row ID`, field(data, "primaryGtmOffer") === "offer-1", field(data, "primaryGtmOffer"));
+    check(`${profile.key}: primary targeting strategy relationship uses a row ID`, field(data, "primarySignalPlay") === "play-1", field(data, "primarySignalPlay"));
+    check(`${profile.key}: primary revenue motion relationship uses a row ID`, field(data, "primaryRevenueMotion") === "motion-1", field(data, "primaryRevenueMotion"));
+    check(`${profile.key}: linked targeting strategy relationships use row IDs`,
+      /^play-\d+$/.test(field(data, "revenueMotionPortfolio__motion-1__linkedSignalPlay"))
+      && /^play-\d+$/.test(field(data, "revenueMotionPortfolio__motion-2__linkedSignalPlay")),
+      `${field(data, "revenueMotionPortfolio__motion-1__linkedSignalPlay")} / ${field(data, "revenueMotionPortfolio__motion-2__linkedSignalPlay")}`);
+  }
 
   const repeated = [...new Map(values
     .filter(([, value]) => value.length >= 60 && !/^https?:/i.test(value))
@@ -69,34 +78,36 @@ for (const profile of qaProfiles) {
 
   const suspicious = values.filter(([key, value]) => {
     if (/url|website|publicPresence/.test(key)) return false;
-    if (profile.key === "queuepilot") return /gift purchase|consumer trend|specialty option|end consumer \/ direct-to-consumer/i.test(value);
-    if (profile.key === "nesttrail") return /procurement-led|enterprise security|retail buyer outreach|business account/i.test(value);
-    if (profile.key === "fieldsip") return /saas|software subscription|patient referral|family travel/i.test(value);
-    if (profile.key === "renewalgrid") return /retail assortment|sell-through|family travel|patient referral/i.test(value);
+    if (profile.key === "referralpath") return /gift purchase|consumer trend|specialty option|end consumer \/ direct-to-consumer/i.test(value);
+    if (profile.key === "roamready") return /procurement-led|enterprise security|retail buyer outreach|business account/i.test(value);
+    if (profile.key === "trailpour") return /saas|software subscription|patient referral|family travel/i.test(value);
+    if (profile.key === "clientrenew") return /retail assortment|sell-through|family travel|patient referral/i.test(value);
     return false;
   });
   check(`${profile.key}: no scenario-incompatible answers`, suspicious.length === 0,
     suspicious.slice(0, 10).map(([key, value]) => `${key}=${value}`).join("; "));
 
-  if (profile.key === "nesttrail") {
-    check("nesttrail: D2C route selected", /end consumer|direct-to-consumer/i.test(field(data, "preRevenueRouteToMarket")), field(data, "preRevenueRouteToMarket"));
-    check("nesttrail: validation includes observable commitment", /preorder|deposit/i.test(field(data, "preWedgeOfferType")), field(data, "preWedgeOfferType"));
-    check("nesttrail: missing evidence includes willingness to pay", /willingness to pay/i.test(field(data, "preMissingEvidenceDtc")), field(data, "preMissingEvidenceDtc"));
+  if (profile.key === "roamready") {
+    check("roamready: D2C route selected", /end consumer|direct-to-consumer/i.test(field(data, "preRevenueRouteToMarket")), field(data, "preRevenueRouteToMarket"));
+    check("roamready: validation includes observable commitment", /preorder|deposit/i.test(field(data, "preWedgeOfferType")), field(data, "preWedgeOfferType"));
+    check("roamready: missing evidence includes willingness to pay", /willingness to pay/i.test(field(data, "preMissingEvidenceDtc")), field(data, "preMissingEvidenceDtc"));
   }
-  if (profile.key === "queuepilot") {
-    check("queuepilot: business route selected", /business buyer/i.test(field(data, "preRevenueRouteToMarket")), field(data, "preRevenueRouteToMarket"));
-    check("queuepilot: pilot is the wedge", /pilot/i.test(field(data, "preWedgeOfferType")), field(data, "preWedgeOfferType"));
-    check("queuepilot: channel problem is workflow relevant", /workflow|adoption|proof/i.test(field(data, "preProblemHypothesisChannel")), field(data, "preProblemHypothesisChannel"));
+  if (profile.key === "referralpath") {
+    check("referralpath: business route selected", /business buyer/i.test(field(data, "preRevenueRouteToMarket")), field(data, "preRevenueRouteToMarket"));
+    check("referralpath: pilot is the wedge", /pilot/i.test(field(data, "preWedgeOfferType")), field(data, "preWedgeOfferType"));
+    check("referralpath: channel problem is workflow relevant", /workflow|adoption|proof/i.test(field(data, "preProblemHypothesisChannel")), field(data, "preProblemHypothesisChannel"));
   }
-  if (profile.key === "fieldsip") {
-    check("fieldsip: retailer is primary", /independent outdoor retailers/i.test(field(data, "bestFitCustomerGroup")));
-    check("fieldsip: consumer segment remains secondary", /outdoor households/i.test(groupTwo), groupTwo);
-    check("fieldsip: wholesale motion is preserved", /wholesale|retail/i.test(field(data, "primaryRevenueMotion")), field(data, "primaryRevenueMotion"));
+  if (profile.key === "trailpour") {
+    check("trailpour: retailer is primary", /independent outdoor retailers/i.test(field(data, "bestFitCustomerGroup")));
+    check("trailpour: consumer segment remains secondary", /outdoor households/i.test(groupTwo), groupTwo);
+    check("trailpour: wholesale motion is preserved",
+      /wholesale|retail/i.test(field(data, "revenueMotionPortfolio__motion-1__playName")),
+      field(data, "revenueMotionPortfolio__motion-1__playName"));
   }
-  if (profile.key === "renewalgrid") {
-    check("renewalgrid: evidence-backed segment is primary", /managed-service and it consulting firms/i.test(field(data, "bestFitCustomerGroup")));
-    check("renewalgrid: assumed SaaS segment remains a separate hypothesis", /b2b saas companies/i.test(groupTwo), groupTwo);
-    check("renewalgrid: problem is renewal workflow", /renewal risk|renewal/i.test(field(data, "quickBuyerProblem")), field(data, "quickBuyerProblem"));
+  if (profile.key === "clientrenew") {
+    check("clientrenew: evidence-backed segment is primary", /managed-service and it consulting firms/i.test(field(data, "bestFitCustomerGroup")));
+    check("clientrenew: assumed SaaS segment remains a separate hypothesis", /b2b saas companies/i.test(groupTwo), groupTwo);
+    check("clientrenew: problem is renewal workflow", /renewal risk|renewal/i.test(field(data, "quickBuyerProblem")), field(data, "quickBuyerProblem"));
   }
 
   findings.push({

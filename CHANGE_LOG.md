@@ -700,3 +700,13 @@ https://gtm-tool-1mib.onrender.com/login
 - Added timestamped machine-readable results and a concise human release summary.
 - Prevented the semantic fixture check from rewriting its tracked result file unless explicitly requested.
 - Verified the first authenticated Render run with 1,021 passing checks and no blocking failures.
+
+## 2026-07-24 - Fresh four-company QA and full Active Plan cycles
+
+- Replaced the legacy QA fixtures with four new, fully populated pre-revenue and post-revenue scenarios.
+- Corrected primary offer, targeting-strategy, and revenue-motion fixture relationships to store row IDs instead of display labels.
+- Added authenticated record deletion support and a reusable QA-record cleanup script.
+- Fixed the week-close prompt so it remains hidden until every current priority is complete and has evidence.
+- Removed remaining ForgeLine-specific dependencies from the permanent regression suite.
+- Added a two-company, four-week Active Plan cycle test covering partial completion, carry-forward, weekly history, and next-cycle creation.
+- Passed the local blocking release gate with 1,192 of 1,192 checks and the focused Active Plan cycle test with 26 of 26 checks.

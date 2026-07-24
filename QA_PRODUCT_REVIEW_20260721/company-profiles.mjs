@@ -1,13 +1,13 @@
 export const qaProfiles = [
   {
-    id: "qa2-pre-dtc-nesttrail-20260721",
-    key: "nesttrail",
-    name: "QA2 - NestTrail Kids",
+    id: "qa3-pre-dtc-roamready-20260724",
+    key: "roamready",
+    name: "QA3 - RoamReady Play",
     mode: "preRevenue",
     archetype: "pre-revenue-dtc-consumer-product",
-    operator: { name: "Maya Chen", role: "Founder", owner: "Founder" },
+    operator: { name: "Elena Park", role: "Founder", owner: "Founder" },
     company: {
-      website: "https://nesttrail.example.invalid",
+      website: "https://roamready.example.invalid",
       industry: "Consumer Products",
       businessModel: "Physical Product",
       stage: "Pre-revenue",
@@ -19,12 +19,12 @@ export const qaProfiles = [
       capacity: "Founder plus one part-time product designer"
     },
     product: {
-      primary: "NestTrail Travel Activity Kit",
+      primary: "RoamReady Adventure Kit",
       secondary: "Refill Activity Packs",
       description: "A modular, washable activity kit for keeping children ages four to eight engaged during flights, road trips, and restaurant waits without relying on a screen.",
       stage: "Functional prototypes; packaging and production order are not complete",
       priceHypothesis: "$54 to $69",
-      offer: "Reserve a first-production NestTrail kit with a refundable preorder deposit"
+      offer: "Reserve a first-production RoamReady kit with a refundable preorder deposit"
     },
     customer: {
       broadMarket: "Parents and caregivers who travel or spend extended waiting time with young children",
@@ -84,14 +84,14 @@ export const qaProfiles = [
     }
   },
   {
-    id: "qa2-pre-saas-queuepilot-20260721",
-    key: "queuepilot",
-    name: "QA2 - QueuePilot Health",
+    id: "qa3-pre-saas-referralpath-20260724",
+    key: "referralpath",
+    name: "QA3 - ReferralPath Health",
     mode: "preRevenue",
     archetype: "pre-revenue-b2b-saas",
-    operator: { name: "Daniel Ruiz", role: "Co-founder and CEO", owner: "CEO" },
+    operator: { name: "Noah Bennett", role: "Co-founder and CEO", owner: "CEO" },
     company: {
-      website: "https://queuepilot.example.invalid",
+      website: "https://referralpath.example.invalid",
       industry: "Healthcare",
       businessModel: "SaaS",
       stage: "Pilot",
@@ -103,7 +103,7 @@ export const qaProfiles = [
       capacity: "Two technical founders and one clinical workflow advisor"
     },
     product: {
-      primary: "QueuePilot Referral Workflow",
+      primary: "ReferralPath Workflow",
       secondary: "Referral Status Reporting",
       description: "Workflow software that helps independent outpatient clinics track referrals requiring patient follow-up, authorization, or external scheduling.",
       stage: "Clickable product with two design partners; production integrations and security review are incomplete",
@@ -165,14 +165,14 @@ export const qaProfiles = [
     }
   },
   {
-    id: "qa2-post-mixed-fieldsip-20260721",
-    key: "fieldsip",
-    name: "QA2 - FieldSip Pantry",
+    id: "qa3-post-mixed-trailpour-20260724",
+    key: "trailpour",
+    name: "QA3 - TrailPour Pantry",
     mode: "postRevenue",
     archetype: "post-revenue-mixed-consumer-brand",
-    operator: { name: "Alicia Morgan", role: "Chief Revenue Officer", owner: "Chief Revenue Officer" },
+    operator: { name: "Priya Shah", role: "Chief Revenue Officer", owner: "Chief Revenue Officer" },
     company: {
-      website: "https://fieldsip.example.invalid",
+      website: "https://trailpour.example.invalid",
       industry: "Consumer Products",
       businessModel: "Physical Product",
       stage: "Growth",
@@ -185,8 +185,8 @@ export const qaProfiles = [
       capacity: "One account manager, two marketing staff, and shared operations support"
     },
     product: {
-      primary: "FieldSip Drink Concentrate Starter Bundle",
-      secondary: "FieldSip Retail Assortment Program",
+      primary: "TrailPour Drink Concentrate Starter Bundle",
+      secondary: "TrailPour Retail Assortment Program",
       description: "Shelf-stable, low-sugar drink concentrates for outdoor and active households, sold directly and through independent retailers.",
       price: "$46 D2C starter bundle; $480 retailer opening order",
       offer: "A focused starter assortment with channel-specific merchandising and reorder support"
@@ -246,14 +246,14 @@ export const qaProfiles = [
     }
   },
   {
-    id: "qa2-post-saas-renewalgrid-20260721",
-    key: "renewalgrid",
-    name: "QA2 - RenewalGrid",
+    id: "qa3-post-saas-clientrenew-20260724",
+    key: "clientrenew",
+    name: "QA3 - ClientRenew OS",
     mode: "postRevenue",
     archetype: "post-revenue-b2b-saas-repositioning",
-    operator: { name: "Marcus Bell", role: "Chief Executive Officer", owner: "CEO" },
+    operator: { name: "Owen Carter", role: "Chief Executive Officer", owner: "CEO" },
     company: {
-      website: "https://renewalgrid.example.invalid",
+      website: "https://clientrenew.example.invalid",
       industry: "Software / Technology",
       businessModel: "SaaS",
       stage: "Turnaround",
@@ -267,7 +267,7 @@ export const qaProfiles = [
       capacity: "Four-person sales and marketing team plus founder involvement"
     },
     product: {
-      primary: "RenewalGrid Client Revenue Workspace",
+      primary: "ClientRenew Revenue Workspace",
       secondary: "HubSpot Renewal Risk Dashboard",
       description: "Renewal-risk and expansion workflow software for recurring-revenue service businesses using HubSpot.",
       price: "$24,000 to $60,000 annual subscription",
@@ -330,4 +330,3 @@ export const qaProfiles = [
 ];
 
 export const profileById = Object.fromEntries(qaProfiles.map((profile) => [profile.id, profile]));
-

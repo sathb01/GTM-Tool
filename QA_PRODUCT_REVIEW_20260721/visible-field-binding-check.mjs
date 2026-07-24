@@ -5,8 +5,8 @@ const { chromium } = require("C:/Users/sathb/.cache/codex-runtimes/codex-primary
 const baseUrl = String(process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
 const contextOptions = { viewport: { width: 1440, height: 900 }, ...(process.env.GTM_QA_COOKIE ? { extraHTTPHeaders: { Cookie: process.env.GTM_QA_COOKIE } } : {}) };
 const cases = [
-  ["qa2-post-mixed-fieldsip-20260721", "quickIcp"],
-  ["qa2-post-saas-renewalgrid-20260721", "quickIcp"]
+  ["qa3-post-mixed-trailpour-20260724", "quickIcp"],
+  ["qa3-post-saas-clientrenew-20260724", "quickIcp"]
 ];
 const browser = await chromium.launch({ headless: true, executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe" });
 const results = [];

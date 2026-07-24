@@ -5,8 +5,8 @@ const { chromium } = require("C:/Users/sathb/.cache/codex-runtimes/codex-primary
 const baseUrl = String(process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
 const cookie = process.env.GTM_QA_COOKIE || "";
 const recordIds = [
-  "qa2-post-mixed-fieldsip-20260721",
-  "qa2-post-saas-renewalgrid-20260721"
+  "qa3-post-mixed-trailpour-20260724",
+  "qa3-post-saas-clientrenew-20260724"
 ];
 const browser = await chromium.launch({
   headless: true,

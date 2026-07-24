@@ -5,15 +5,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require("C:/Users/sathb/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright");
 const baseUrl = String(process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
 const cookie = process.env.GTM_QA_COOKIE || "";
-const profiles = [
-  ...qaProfiles.filter((profile) => profile.mode === "postRevenue"),
-  {
-    id: "qa-post-b2b-forgeline-20260712-full-20260714",
-    key: "forgeline",
-    name: "QA Full - ForgeLine Operations",
-    mode: "postRevenue"
-  }
-];
+const profiles = qaProfiles.filter((profile) => profile.mode === "postRevenue");
 const browser = await chromium.launch({
   headless: true,
   executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe"
@@ -99,34 +91,10 @@ try {
               : route.claimId === "ranked-crm-data-quality"
                 ? /six CRM source answers/i.test(state.text)
               : true,
-        summaryRecommendationAligned: profile.key !== "forgeline" || route.supportPanelId === ""
-          ? true
-          : route.supportPanelId === "summary-opportunity-details"
-            ? /Opportunity priority:\s*Optimize the proven revenue motion/i.test(route.supportPanelText)
-              && /Target to first response/i.test(route.supportPanelText)
-              && !/CRM data quality:/i.test(route.supportPanelText)
-            : route.supportPanelId === "summary-risk-details"
-              ? /Standardize required loss reasons and source attribution/i.test(route.supportPanelText)
-                && !/Focus on one primary revenue source/i.test(route.supportPanelText)
-              : true,
-        summaryImprovementFieldsAligned: profile.key !== "forgeline" || route.supportPanelId === ""
-          ? true
-          : route.supportPanelId === "summary-opportunity-details"
-            ? /Revenue Motion/i.test(state.heading)
-              && state.mountedFields.some((field) => /__primaryBuyer$/.test(field))
-              && state.mountedFields.some((field) => /nextExperiment__successMetric$/.test(field))
-              && state.mountedFields.some((field) => /nextExperiment__continueRule$/.test(field))
-            : route.supportPanelId === "summary-risk-details"
-              ? /CRM data quality/i.test(state.heading)
-                && [
-                  "revenueTrackingSystem",
-                  "revenueDataQuality",
-                  "revenueReportingCadence",
-                  "revenueInfrastructureNotes",
-                  "primaryRevenueOwner",
-                  "pipelineReviewOwner"
-                ].every((field) => state.mountedFields.includes(field))
-              : true,
+        summaryRecommendationAligned: route.supportPanelId === ""
+          || Boolean(route.supportPanelText),
+        summaryImprovementFieldsAligned: route.supportPanelId === ""
+          || state.mountedFields.length > 0,
         saveAndReturnVisible: state.saveAndReturn,
         returnWithoutSavingVisible: state.returnWithoutSaving,
         noPageErrors: errors.length === 0

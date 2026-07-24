@@ -17,10 +17,10 @@ const pageErrors = [];
 page.on("pageerror", (error) => pageErrors.push(error.message));
 
 const profiles = [
-  { id: "qa2-pre-dtc-nesttrail-20260721", preRevenue: true },
-  { id: "qa2-pre-saas-queuepilot-20260721", preRevenue: true },
-  { id: "qa2-post-mixed-fieldsip-20260721", preRevenue: false },
-  { id: "qa2-post-saas-renewalgrid-20260721", preRevenue: false }
+  { id: "qa3-pre-dtc-roamready-20260724", preRevenue: true },
+  { id: "qa3-pre-saas-referralpath-20260724", preRevenue: true },
+  { id: "qa3-post-mixed-trailpour-20260724", preRevenue: false },
+  { id: "qa3-post-saas-clientrenew-20260724", preRevenue: false }
 ];
 const sharedAssets = ["gtm", "health", "active", "icp", "personas", "messaging", "targets", "proof-assets", "outreach", "weekly-review"];
 const results = [];

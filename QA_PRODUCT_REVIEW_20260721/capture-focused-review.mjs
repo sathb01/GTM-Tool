@@ -7,12 +7,12 @@ const baseUrl = String(process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787").r
 const outputDir = path.resolve("QA_PRODUCT_REVIEW_20260721", "screenshots");
 const routes = [
   {
-    name: "fieldsip-customer-priority",
-    url: "/index.html?section=quickIcp&recordId=qa2-post-mixed-fieldsip-20260721#quickIcp"
+    name: "trailpour-customer-priority",
+    url: "/index.html?section=quickIcp&recordId=qa3-post-mixed-trailpour-20260724#quickIcp"
   },
   {
-    name: "fieldsip-gtm-summary",
-    url: "/results.html?v=20260722-product-review&asset=gtm&recordId=qa2-post-mixed-fieldsip-20260721"
+    name: "trailpour-gtm-summary",
+    url: "/results.html?v=20260724-qa3&asset=gtm&recordId=qa3-post-mixed-trailpour-20260724"
   }
 ];
 

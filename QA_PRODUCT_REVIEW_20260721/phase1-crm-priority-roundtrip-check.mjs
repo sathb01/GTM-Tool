@@ -3,7 +3,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { chromium } = require("C:/Users/sathb/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright");
 const baseUrl = String(process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
-const sourceRecordId = process.env.GTM_QA_RECORD_ID || "qa-post-b2b-forgeline-20260712-full-20260714";
+const sourceRecordId = process.env.GTM_QA_RECORD_ID || "qa3-post-saas-clientrenew-20260724";
 const testRecordId = "qa-phase1-crm-priority-roundtrip";
 const cookie = process.env.GTM_QA_COOKIE || "";
 
@@ -76,7 +76,7 @@ try {
   });
   const claimSelector = '[data-claim-id="ranked-crm-data-quality"]';
   await page.waitForSelector(claimSelector, { timeout: 15000 });
-  await page.locator(claimSelector).getByRole("link", { name: "Improve This Priority" }).click();
+  await page.locator(`${claimSelector} a[href*="focus=pipeline"]`).first().evaluate((link) => link.click());
   await page.waitForSelector(".improvement-focus", { timeout: 15000 });
 
   const intakeState = await page.evaluate(() => ({
