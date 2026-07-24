@@ -12194,7 +12194,7 @@
       return `<!doctype html>
 <html>
 <head>
-  <meta name="gtm-release" content="20260723-phase5-release-gate-1">
+  <meta name="gtm-release" content="20260723-readiness-component-clarity-1">
   <meta charset="utf-8">
   <title>${escapedTitle}</title>
   <style>
@@ -12755,7 +12755,7 @@
       const components = [
         {
           key: "evidence",
-          label: "GTM foundation readiness",
+          label: "Customer, offer, and signal foundation",
           score: evidenceScore,
           weight: 0.55,
           explanation: "Customer, buyer, offer, proof, and buying-signal readiness.",
@@ -12892,7 +12892,7 @@
           : "<li>No immediate score-changing input is missing in this area.</li>";
         return `
           <details class="score-component-detail">
-            <summary>${escapeHtml(item.label)}: ${escapeHtml(item.score)}/100 - ${escapeHtml(scoreMetricStatus(item.score))}</summary>
+            <summary>${escapeHtml(item.label)}: ${escapeHtml(item.score)}/100 - ${escapeHtml(scoreMetricStatus(item.score))} (${escapeHtml(Math.round(item.weight * 100))}% of overall score)</summary>
             <p>${escapeHtml(item.explanation)}</p>
             <h4>Saved evidence counted</h4>
             <ul>${counted}</ul>
@@ -12916,7 +12916,7 @@
           <div>
             <span>GTM readiness</span>
             <strong>${escapeHtml(diagnostic.overallScore)}/100</strong>
-            <small>Current foundation and planned operating readiness</small>
+            <small>Weighted overall score across the three components below</small>
           </div>
           <div>
             <span>Evidence confidence</span>
@@ -12930,7 +12930,7 @@
           </div>
         </div>
         <h3>What goes into GTM readiness</h3>
-        <p class="muted">Readiness uses GTM foundation evidence, planned operating readiness, and a limited self-assessment contribution. Evidence confidence and completed execution are shown separately.</p>
+        <p class="muted">The overall score is weighted: 55% customer, offer, and signal foundation; 35% planned operating readiness; and 10% respondent self-assessment. Component scores may differ from the overall score. Evidence confidence and completed execution are shown separately.</p>
         <div class="score-component-list">${componentRows}</div>
         <h3>Top 3 ways to improve the score</h3>
         <div class="score-improvement-list">${improvementRows}</div>
