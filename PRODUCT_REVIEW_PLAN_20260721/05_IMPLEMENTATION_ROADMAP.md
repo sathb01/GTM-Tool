@@ -1,5 +1,14 @@
 # Prioritized Implementation Roadmap
 
+## Roadmap Status
+
+Phases 0 through 5 are implemented and verified as of July 23, 2026.
+
+- Local permanent release gate: 1,034 passed, 0 failed.
+- Authenticated Render permanent release gate: 1,021 passed, 0 failed.
+- Current verified Render release commit: `e1582e9`.
+- Future changes remain subject to the permanent release gate below.
+
 ## Phase 0: Test Foundation and Data Safety
 
 **Order:** First
@@ -198,3 +207,5 @@
 - Every run archives a machine-readable `release-gate.json` and a human `RELEASE_SUMMARY.md` under a timestamped folder.
 - The process exits with a failure code when any required gate fails.
 - The first complete local gate passed 1,034 checks with 0 failures.
+- Phase 5 release commit: `e1582e9`.
+- The first authenticated Render gate verified the deployment marker and passed 1,021 checks with 0 failures.

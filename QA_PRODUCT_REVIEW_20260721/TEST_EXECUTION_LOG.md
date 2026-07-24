@@ -226,4 +226,7 @@ These are not yet all confirmed defects. They have been separated from harness a
 - Render runs fail immediately when `GTM_RELEASE_MARKER` is missing or does not match the deployed HTML.
 - Machine-readable and human-readable results are archived by timestamp without real customer data.
 - First local archive: `QA_PRODUCT_REVIEW_20260721/releases/2026-07-24T00-05-16-936Z`.
-- Authenticated Render gate remains pending deployment of the release runner and marker.
+- Phase 5 release commit: `e1582e9`.
+- Authenticated Render deployment marker: passed.
+- Authenticated Render permanent release gate: 1,021 passed, 0 failed.
+- First Render archive: `QA_PRODUCT_REVIEW_20260721/releases/2026-07-24T00-08-53-536Z`.
