@@ -193,4 +193,24 @@ These are not yet all confirmed defects. They have been separated from harness a
 - Asset contract, correct export type, sidebar status, active navigation, clean labels, independent sidebar scrolling, non-overlapping controls, and print-mode checks: 440 passed, 0 failed locally.
 - The Validation Workspace correctly uses its separate workbook export instead of presenting the working data grid as a finished PDF asset.
 - A headless screenshot review confirmed that asset status and updated dates are stacked beneath asset names and remain readable in the sidebar.
+- Phase 3 asset contract release commit: `31e1b5d`.
+- Authenticated Render asset contract, navigation, layout, sidebar-scroll, and print-mode gate: 440 passed, 0 failed.
+- Authenticated Render canonical-plan integrity gate after the asset release: 30 passed, 0 failed.
+- Authenticated Render full report gate after the asset release: 78 passed, 0 failed.
+
+## July 23 Phase 4: Experience Polish and Accessibility
+
+- Four-company experience and accessibility gate: 80 passed, 0 failed locally.
+- Multi-select keyboard flow covers open, option focus, Arrow-key movement, Escape, and focus return.
+- Shared feedback states cover blank, loading, success, warning, error, accessible status roles, and polite announcements.
+- Visible controls have accessible names and rendered pages contain no duplicate IDs in the tested routes.
+- Standard table controls now inherit row and column context through programmatic labels.
+- Desktop intake navigation scrolls independently and section state survives refresh.
+- Mobile intake and asset navigation start compact and identify the current step and section.
+- Narrow GTM plans have no horizontal page overflow, clipped visible text, or overlapping action controls.
+- Headless visual review confirmed the mobile current-section heading appears directly after the compact navigation.
+- Full four-company report gate: 78 passed, 0 failed locally.
+- AI classification and write-safety gate: 43 passed, 0 failed locally.
+- Guided ranked-priority roundtrip gate: 14 passed, 0 failed locally.
+- Post-revenue deep-link gate: 9 passed, 0 failed locally.
 - Authenticated Render checks remain pending deployment.

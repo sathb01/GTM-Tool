@@ -127,7 +127,8 @@
 - Explicit content contracts now define the purpose and required content for the plan summary, plan status, active plan, ICP, personas, messaging, proof, target setup, outreach, validation, validation workspace, and weekly review.
 - Asset navigation now shows a concise status and last-updated date without changing the links into button-style controls.
 - PDF/print assets and the workbook-based Validation Workspace declare and expose the correct export type.
-- The four-company asset contract, navigation, layout, sidebar-scroll, and print-mode gate passes 440 checks across 44 asset/profile combinations locally.
+- The four-company asset contract, navigation, layout, sidebar-scroll, and print-mode gate passes 440 checks across 44 asset/profile combinations locally and on authenticated Render.
+- Phase 3 release commit: `31e1b5d`.
 
 ## Phase 4: Experience Polish and Accessibility
 
@@ -153,6 +154,18 @@
 
 - No overlap, clipped text, invisible selections, or inconsistent action placement.
 - A returning user understands location and next action within 15 seconds.
+
+### Implementation Status
+
+- Multi-select dropdowns now expose their option group, support Arrow keys, Home, End, and Escape, and return focus to the trigger when closed.
+- All major interactive controls share a clear coral focus indicator.
+- Saving, loading, success, warning, blank, and error messages use one accessible feedback layer with live-region semantics.
+- Legacy table inputs now have programmatic row and column labels, scoped headers, and an associated table title.
+- Desktop intake navigation remains independently scrollable and continues to restore the saved section.
+- Mobile intake navigation collapses to a concise step-and-section summary; the asset list also starts collapsed so the current section is not buried.
+- A hidden header status panel no longer leaves an empty card in the intake.
+- The four-company experience, accessibility, narrow-layout, navigation, and state gate passes 80 checks locally.
+- Broader report, visible-field, AI-control, guided-roundtrip, and deep-link gates also pass locally.
 
 ## Phase 5: Release Quality System
 

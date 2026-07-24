@@ -118,6 +118,10 @@
       padding: 12px;
     }
 
+    .header-status-panel[hidden] {
+      display: none;
+    }
+
     main {
       width: min(1440px, calc(100% - 32px));
       margin: 18px auto 32px;
@@ -203,6 +207,21 @@
       overflow: hidden;
     }
 
+    .nav-intake-summary {
+      display: none;
+    }
+
+    .nav-intake-content {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .nav-intake-box:not([open]) > .nav-intake-content {
+      display: none;
+    }
+
     .nav-group-list {
       flex: 1 1 auto;
       min-height: 0;
@@ -240,6 +259,7 @@
       box-shadow: inset 3px 0 0 var(--accent-coral);
     }
 
+    .nav-intake-summary,
     .nav-section-group > summary,
     .nav-assets-box > summary {
       cursor: pointer;
@@ -252,11 +272,13 @@
       text-transform: uppercase;
     }
 
+    .nav-intake-summary::-webkit-details-marker,
     .nav-section-group > summary::-webkit-details-marker,
     .nav-assets-box > summary::-webkit-details-marker {
       display: none;
     }
 
+    .nav-intake-summary::after,
     .nav-section-group > summary::after,
     .nav-assets-box > summary::after {
       content: "+";
@@ -265,6 +287,7 @@
       line-height: 10px;
     }
 
+    .nav-intake-box[open] > .nav-intake-summary::after,
     .nav-section-group[open] > summary::after,
     .nav-assets-box[open] > summary::after {
       content: "−";
@@ -1665,6 +1688,18 @@
         overflow: visible;
       }
 
+      .nav-intake-summary {
+        display: block;
+      }
+
+      .nav-intake-content {
+        display: block;
+      }
+
+      .nav-intake-box:not([open]) > .nav-intake-content {
+        display: none;
+      }
+
       .grid,
       .card-grid,
       .checkbox-grid {
@@ -1685,7 +1720,11 @@
       }
 
       .company-manager {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .company-manager .record-field {
+        grid-column: 1 / -1;
       }
 
       .actions,
@@ -1722,6 +1761,7 @@
     }
   </style>
   <link rel="stylesheet" href="assistant-ui.css">
+  <link rel="stylesheet" href="ui-feedback.css?v=20260723-phase4-feedback-1">
   <link rel="stylesheet" href="ai-intake-assist.css?v=20260723-phase2-answer-review-1">
   <script src="assistant-ui.js?v=20260723-brand-rename-1" defer></script>
 </head>
@@ -1797,5 +1837,6 @@
   <script src="app.js?v=20260722-intake-entry-1"></script>
   <script src="ai-research.js?v=20260616-quick-review"></script>
   <script src="ai-intake-assist.js?v=20260723-phase2-answer-review-1"></script>
+  <script src="ui-feedback.js?v=20260723-phase4-feedback-1"></script>
 </body>
 </html>

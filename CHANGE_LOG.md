@@ -681,3 +681,13 @@ https://gtm-tool-1mib.onrender.com/login
 - Added concise asset status and last-updated information beneath each asset link.
 - Kept the Validation Workspace on a workbook export path while preserving PDF and print controls for finished assets.
 - Added regression coverage for asset contracts, export controls, navigation state, sidebar scrolling, control overlap, and clean print mode.
+
+## 2026-07-23 - Phase 4 experience and accessibility
+
+- Added shared accessible feedback states for saving, loading, success, warnings, errors, and blank status regions.
+- Added a consistent visible focus treatment across links, buttons, fields, and expandable controls.
+- Added full keyboard navigation and ARIA relationships to the custom multi-select dropdown.
+- Added row, column, and table-title semantics to shared intake tables.
+- Preserved independently scrolling desktop navigation while adding compact current-section and asset navigation on mobile.
+- Removed the empty intake header panel that appeared when its status controls were hidden.
+- Added four-company regression coverage for accessibility basics, keyboard flow, section restoration, mobile context, clipped text, control overlap, and horizontal overflow.

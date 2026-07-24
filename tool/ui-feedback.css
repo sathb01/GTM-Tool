@@ -1,0 +1,71 @@
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid #ff7a59;
+  outline-offset: 2px;
+}
+
+:where(button, [role="button"])[aria-busy="true"] {
+  cursor: progress;
+}
+
+.ui-feedback-status {
+  min-height: 1.25em;
+  transition: color 120ms ease;
+}
+
+.ui-feedback-status[data-ui-state="blank"] {
+  color: var(--muted, #5f6b7a);
+}
+
+.ui-feedback-status[data-ui-state="loading"] {
+  color: var(--text, #1f2937);
+  font-weight: 700;
+}
+
+.ui-feedback-status[data-ui-state="success"] {
+  color: #166534;
+  font-weight: 700;
+}
+
+.ui-feedback-status[data-ui-state="warning"] {
+  color: #92400e;
+  font-weight: 700;
+}
+
+.ui-feedback-status[data-ui-state="error"] {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.ui-feedback-status[data-ui-state="info"] {
+  color: var(--muted, #5f6b7a);
+}
+
+.ui-blank-state,
+.ui-warning-state,
+.ui-error-state {
+  border: 1px solid var(--border, #d5d9e0);
+  border-left-width: 4px;
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+
+.ui-blank-state {
+  border-left-color: #64748b;
+  background: #f8fafc;
+}
+
+.ui-warning-state {
+  border-left-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.ui-error-state {
+  border-left-color: #dc2626;
+  background: #fef2f2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-feedback-status {
+    transition: none;
+  }
+}

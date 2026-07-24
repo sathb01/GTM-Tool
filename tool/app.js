@@ -16,6 +16,7 @@ let activeSectionId = "company";
 let formStateData = {};
 let activeDataQualityReview = null;
 let preferIntakeStartOnInitialLoad = false;
+let multiSelectDropdownId = 0;
 
 const carryForwardRules = [
   {
@@ -482,6 +483,8 @@ function createMultiSelectDropdown(field, name = field.id) {
   const recommendationWrapper = document.createElement("div");
   const recommendationTitle = document.createElement("div");
   const recommendationValue = document.createElement("div");
+  const dropdownId = `multi-select-${++multiSelectDropdownId}`;
+  const panelId = `${dropdownId}-options`;
   const fallbackOptions = field.recommendationKey ? recommendationFirstOptions(field.options || []) : field.options || [];
   const otherValues = ["Other", "Other measurable outcome", "Other quantified results"];
   let currentOptions = fallbackOptions;
@@ -516,7 +519,12 @@ function createMultiSelectDropdown(field, name = field.id) {
   trigger.className = "multi-select-trigger";
   trigger.textContent = "Choose options";
   trigger.setAttribute("aria-expanded", "false");
+  trigger.setAttribute("aria-controls", panelId);
+  trigger.setAttribute("aria-haspopup", "true");
   panel.className = "multi-select-dropdown-panel";
+  panel.id = panelId;
+  panel.setAttribute("role", "group");
+  panel.setAttribute("aria-label", `${field.label || name} options`);
   panel.hidden = true;
   summary.className = "multi-select-summary";
   otherWrapper.className = "other-field";
@@ -735,15 +743,60 @@ function createMultiSelectDropdown(field, name = field.id) {
     renderOptions(nextOptions, selected);
   };
 
+  function setPanelOpen(open, focusOption = false) {
+    panel.hidden = !open;
+    trigger.setAttribute("aria-expanded", String(open));
+    if (open && focusOption) {
+      const firstOption = panel.querySelector('input[type="checkbox"]:checked')
+        || panel.querySelector('input[type="checkbox"]:not(:disabled)');
+      firstOption?.focus();
+    }
+  }
+
   trigger.addEventListener("click", () => {
-    panel.hidden = !panel.hidden;
-    trigger.setAttribute("aria-expanded", String(!panel.hidden));
+    setPanelOpen(panel.hidden);
+  });
+
+  trigger.addEventListener("keydown", (event) => {
+    if (["ArrowDown", "Enter", " "].includes(event.key) && panel.hidden) {
+      event.preventDefault();
+      setPanelOpen(true, true);
+    } else if (event.key === "Escape" && !panel.hidden) {
+      event.preventDefault();
+      setPanelOpen(false);
+    }
+  });
+
+  panel.addEventListener("keydown", (event) => {
+    const options = Array.from(panel.querySelectorAll('input[type="checkbox"]:not(:disabled)'));
+    const currentIndex = options.indexOf(document.activeElement);
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setPanelOpen(false);
+      trigger.focus();
+      return;
+    }
+    if (currentIndex < 0 || !["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const nextIndex = event.key === "Home"
+      ? 0
+      : event.key === "End"
+        ? options.length - 1
+        : event.key === "ArrowDown"
+          ? (currentIndex + 1) % options.length
+          : (currentIndex - 1 + options.length) % options.length;
+    options[nextIndex]?.focus();
+  });
+
+  control.addEventListener("focusout", () => {
+    window.setTimeout(() => {
+      if (!control.contains(document.activeElement)) setPanelOpen(false);
+    }, 0);
   });
 
   document.addEventListener("click", (event) => {
     if (!control.contains(event.target)) {
-      panel.hidden = true;
-      trigger.setAttribute("aria-expanded", "false");
+      setPanelOpen(false);
     }
   });
 
@@ -2200,14 +2253,19 @@ function createTable(table) {
   const tbody = document.createElement("tbody");
   const headerRow = document.createElement("tr");
   const firstHeader = document.createElement("th");
+  const tableTitleId = `${String(table.id || "table").replace(/[^a-z0-9_-]+/gi, "-")}-title`;
 
   wrapper.className = "table-wrap";
   title.textContent = table.title;
+  title.id = tableTitleId;
+  htmlTable.setAttribute("aria-labelledby", tableTitleId);
   firstHeader.textContent = table.repeatable ? table.rowLabel : "Item";
+  firstHeader.scope = "col";
   headerRow.appendChild(firstHeader);
 
   table.columns.forEach((column) => {
     const th = document.createElement("th");
+    th.scope = "col";
     th.textContent = column.label;
     if (column.required) {
       th.textContent = `${column.label} *`;
@@ -2218,6 +2276,7 @@ function createTable(table) {
   if (table.scoreMatrix) {
     const th = document.createElement("th");
     th.textContent = "Total";
+    th.scope = "col";
     headerRow.appendChild(th);
   }
 
@@ -2236,7 +2295,7 @@ function createTable(table) {
 
   function addRow(row) {
     const tr = document.createElement("tr");
-    const rowHeader = document.createElement("td");
+    const rowHeader = document.createElement("th");
     const rowInputs = {};
     const rowInput = table.repeatable
       ? createInput({ id: `${table.id}__${row.id}__label`, type: "text" }, `${table.id}__${row.id}__label`)
@@ -2244,10 +2303,12 @@ function createTable(table) {
 
     if (rowInput) {
       rowInput.placeholder = row.label;
+      rowInput.setAttribute("aria-label", `${table.rowLabel}: ${row.label}`);
       rowHeader.appendChild(rowInput);
     } else {
       rowHeader.textContent = row.label;
     }
+    rowHeader.scope = "row";
 
     tr.appendChild(rowHeader);
 
@@ -2256,6 +2317,7 @@ function createTable(table) {
       const cellField = fieldForCell(column, row);
       const input = createInput(cellField, fieldName(table.id, row.id, column.id));
       input.required = Boolean(cellField.required);
+      input.setAttribute("aria-label", `${row.label}: ${column.label}`);
       rowInputs[column.id] = input;
       td.appendChild(cellField.type === "money" ? createMoneyControl(input) : input);
 
@@ -4954,7 +5016,10 @@ function switchActiveSection(sectionId) {
 
 function renderSectionNavigation(sectionsToShow, nav) {
   const activeIndex = Math.max(0, sectionsToShow.findIndex((section) => section.id === activeSectionId));
-  const intakeBox = document.createElement("div");
+  const compactNavigation = window.matchMedia("(max-width: 780px)").matches;
+  const intakeBox = document.createElement("details");
+  const intakeSummary = document.createElement("summary");
+  const intakeContent = document.createElement("div");
   const groupList = document.createElement("div");
   const progress = document.createElement("div");
   const progressText = document.createElement("div");
@@ -4972,6 +5037,10 @@ function renderSectionNavigation(sectionsToShow, nav) {
   progress.appendChild(progressText);
   progress.appendChild(progressTrack);
   intakeBox.className = "nav-intake-box";
+  intakeBox.open = !compactNavigation;
+  intakeSummary.className = "nav-intake-summary";
+  intakeSummary.textContent = `Step ${activeIndex + 1} of ${sectionsToShow.length}: ${sectionsToShow[activeIndex]?.title || "Intake"}`;
+  intakeContent.className = "nav-intake-content";
   groupList.className = "nav-group-list";
 
   const groupLabels = {
@@ -5021,7 +5090,8 @@ function renderSectionNavigation(sectionsToShow, nav) {
     details.append(summary, links);
     groupList.appendChild(details);
   });
-  intakeBox.append(progress, groupList);
+  intakeContent.append(progress, groupList);
+  intakeBox.append(intakeSummary, intakeContent);
   nav.appendChild(intakeBox);
 
   const navData = getFormData();
@@ -5038,7 +5108,7 @@ function renderSectionNavigation(sectionsToShow, nav) {
     const summary = document.createElement("summary");
     const assetLinksContainer = document.createElement("div");
     assets.className = "nav-assets-box";
-    assets.open = localStorage.getItem(`${STORAGE_KEY}:assetsNavOpen`) !== "false";
+    assets.open = !compactNavigation && localStorage.getItem(`${STORAGE_KEY}:assetsNavOpen`) !== "false";
     summary.textContent = "Assets";
     assetLinksContainer.className = "nav-asset-links";
     assets.append(summary, assetLinksContainer);
