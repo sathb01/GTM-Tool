@@ -22,6 +22,8 @@ async function improvementRoutes(profile) {
     waitUntil: "load"
   });
   await page.waitForSelector("#decision-summary", { timeout: 15000 });
+  await page.waitForFunction(() => Array.from(document.querySelectorAll("a"))
+    .some((link) => /^Improve This (?:Section|Priority)$/i.test(link.textContent.trim())), null, { timeout: 15000 });
   const routes = await page.evaluate(() => Array.from(document.querySelectorAll("a"))
     .filter((link) => /^Improve This (?:Section|Priority)$/i.test(link.textContent.trim()))
     .map((link, index) => ({
@@ -50,6 +52,8 @@ try {
         waitUntil: "load"
       });
       await page.waitForSelector("#decision-summary", { timeout: 15000 });
+      await page.waitForFunction(() => Array.from(document.querySelectorAll("a"))
+        .some((link) => /^Improve This (?:Section|Priority)$/i.test(link.textContent.trim())), null, { timeout: 15000 });
       const links = page.locator("a").filter({ hasText: /^Improve This (?:Section|Priority)$/i });
       await links.nth(route.index).evaluate((link) => link.click());
       await page.waitForURL(/index\.html/, { timeout: 15000 });
