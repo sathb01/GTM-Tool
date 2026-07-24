@@ -5,7 +5,15 @@ const require = createRequire(import.meta.url);
 const { chromium } = require("C:/Users/sathb/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright");
 const baseUrl = String(process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
 const cookie = process.env.GTM_QA_COOKIE || "";
-const profiles = qaProfiles.filter((profile) => profile.mode === "postRevenue");
+const profiles = [
+  ...qaProfiles.filter((profile) => profile.mode === "postRevenue"),
+  {
+    id: "qa-post-b2b-forgeline-20260712-full-20260714",
+    key: "forgeline",
+    name: "QA Full - ForgeLine Operations",
+    mode: "postRevenue"
+  }
+];
 const browser = await chromium.launch({
   headless: true,
   executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe"
@@ -77,11 +85,13 @@ try {
         improvementCardLoaded: /^Improving:/i.test(state.heading),
         correctSectionOpened: state.activeSection === state.expectedSection,
         sourceFieldsVisible: state.mountedFields.length > 0 && state.editableControls > 0,
-        editingDirectionVisible: /Update the .*source answers|Edit the intake answers below|Confirm the offer this proof supports|Confirm the revenue motion|Confirm the motion and capacity/i.test(state.text),
+        editingDirectionVisible: /Update the .*source answers|Edit the intake answers below|Confirm the offer this proof supports|Confirm the revenue motion|Confirm the motion and capacity|Confirm the motion being optimized/i.test(state.text),
         routeSpecificDirectionVisible: route.claimId === "ranked-proof-assets"
           ? /Full Readiness Analysis/i.test(state.text) && /Proof Readiness/i.test(state.text)
           : route.claimId === "ranked-revenue-motion-discipline"
             ? /Full Revenue Motion Play Assessment/i.test(state.text) && /Conversion Stages/i.test(state.text)
+            : route.claimId === "ranked-revenue-motion-optimization"
+              ? /Full Revenue Motion Play Assessment/i.test(state.text) && /Pipeline Metrics/i.test(state.text) && /Conversion Stages/i.test(state.text)
             : route.claimId === "ranked-conversion-assumptions"
               ? /Pipeline Metrics/i.test(state.text) && /Conversion Stages/i.test(state.text)
               : route.claimId === "ranked-crm-data-quality"

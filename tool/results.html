@@ -7915,6 +7915,24 @@
           fieldIds: ["primaryRevenueMotion", "revenueTrackingSystem", "revenueReportingCadence", "primaryRevenueOwner", "pipelineReviewOwner"]
         };
       }
+      if (/revenue motion optimization|optimize the proven revenue motion/i.test(`${priority.category || ""} ${priority.priority || ""}`)) {
+        return {
+          area: priority.priority,
+          why: priority.whyItMatters,
+          missing: ["The weakest measured conversion point in the selected revenue motion"],
+          questionsHeading: "What to do here",
+          questions: [
+            "Confirm the primary revenue motion and current review cadence directly below.",
+            "In that motion's Full Revenue Motion Play Assessment below this card, review Pipeline Metrics and Conversion Stages.",
+            "Identify the single largest stage-to-stage drop-off, record the current conversion evidence, and name the one change the team will test next.",
+            "Save the changes and return. The plan will automatically update the optimization priority."
+          ],
+          answerHeading: "Confirm the motion being optimized",
+          answerIntro: "The conversion evidence belongs to the selected revenue motion. Confirm that context here, then update Pipeline Metrics and Conversion Stages immediately below.",
+          example: priority.recommendedAction,
+          fieldIds: ["primaryRevenueMotion", "revenueReportingCadence", "primaryRevenueOwner", "pipelineReviewOwner"]
+        };
+      }
       if (/conversion assumptions|revenue operating assumptions/i.test(`${priority.category || ""} ${priority.priority || ""}`)) {
         return {
           area: priority.priority,
@@ -12338,7 +12356,7 @@
       return `<!doctype html>
 <html>
 <head>
-  <meta name="gtm-release" content="20260723-improvement-route-audit-1">
+  <meta name="gtm-release" content="20260723-improvement-route-audit-2">
   <meta charset="utf-8">
   <title>${escapedTitle}</title>
   <style>
