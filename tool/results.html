@@ -492,6 +492,22 @@
       gap: 8px;
     }
 
+    .revision-guidance-tooltip {
+      position: fixed;
+      z-index: 1000;
+      max-width: min(340px, calc(100vw - 24px));
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(22, 32, 51, 0.16);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.45;
+      padding: 10px 12px;
+      pointer-events: none;
+    }
+
     .metric-value {
       color: var(--text);
       font-size: 24px;
@@ -4324,12 +4340,26 @@
       return String(value || "").split(/[;,|]/).map((item) => item.trim()).filter(Boolean);
     }
 
+    function resolvedOtherClaimValue(value, otherValue) {
+      const selected = cleanText(value);
+      const other = cleanText(otherValue);
+      if (/^other(?:\s*\/\s*not sure yet)?$/i.test(selected) && other) return other;
+      const inlineOther = selected.match(/^other(?:\s*\/\s*not sure yet)?\s*:\s*(.+)$/i);
+      return inlineOther?.[1] || selected;
+    }
+
     function valueClaimOutcome(row) {
-      return row?.values.outcomeType || row?.values.outcome || row?.values.outcomeOtherText || row?.label || "Value claim";
+      return resolvedOtherClaimValue(
+        row?.values.outcomeType || row?.values.outcome,
+        row?.values.outcomeType__other || row?.values.outcomeOtherText
+      ) || row?.label || "Value claim";
     }
 
     function valueClaimMetric(row) {
-      return row?.values.successMetric || row?.values.metric || "";
+      return resolvedOtherClaimValue(
+        row?.values.successMetric || row?.values.metric,
+        row?.values.successMetric__other
+      );
     }
 
     function valueClaimTargetDefined(row) {
@@ -4441,22 +4471,63 @@
       ];
     }
 
-    function renderValueClaimProofAction(container, row) {
+    function valueClaimMissingInputs(row) {
+      const values = row?.values || {};
+      const missing = [];
+      const add = (label, fields) => missing.push({ label, fields });
+      if (!claimListValue(values.buyerRoles).length || claimListValue(values.buyerRoles).includes("Not sure yet")) {
+        add("The buyer role that cares most about this claim is not defined.", ["buyerRoles", "buyerRoleReason"]);
+      }
+      if (!valueClaimMetric(row) || valueClaimMetric(row) === "Not sure yet") {
+        add("A measurable success metric is not defined.", ["successMetric", "successMetric__other"]);
+      }
+      if (!values.baselineStatus || ["Unknown", "unknown"].includes(values.baselineStatus)) {
+        const currentText = cleanText(values.baselineValue);
+        add(currentText
+          ? `The baseline is marked Unknown. "${currentText}" describes what to measure but is not a measurable baseline.`
+          : "The current baseline is marked Unknown or has not been selected.", ["baselineStatus", "baselineValue", "baselineUnit", "baselineSource"]);
+      } else if (!/not applicable/i.test(values.baselineStatus)) {
+        if (!cleanText(values.baselineValue)) add("The current baseline value is blank.", ["baselineValue"]);
+        if (!cleanText(values.baselineUnit)) add("The baseline unit is blank.", ["baselineUnit"]);
+        if (!cleanText(values.baselineSource)) add("The source used to verify the baseline is blank.", ["baselineSource"]);
+      }
+      if (!valueClaimTargetDefined(row)) {
+        add("The target improvement and its measurement period are not defined.", ["targetImprovementType", "targetImprovementValue", "targetImprovementUnit", "targetImprovementDescription", "timeToImpact"]);
+      }
+      if (["No proof yet", "Anecdotal proof", ""].includes(values.proofStrength || "")) {
+        add("The proof is not strong enough to support the claim yet.", ["proofStrength", "evidenceAvailable", "evidenceNotes", "missingProof", "proofGap"]);
+      }
+      if (["Not yet - needs more validation", "Not sure", "not_ready", "not_sure"].includes(values.salesReadiness || "")) {
+        add("The claim is not marked ready for sales use.", ["salesReadiness"]);
+      }
+      return missing;
+    }
+
+    function renderValueClaimProofAction(container, row, tableId) {
       const score = scoreValueClaim(row);
       const claim = polishedText(row.values.buyerFacingClaim || row.values.buyerLanguage || valueClaimOutcome(row));
       const metric = valueClaimMetric(row) || missingText;
       const gap = valueClaimTopGap(row);
+      const missingInputs = valueClaimMissingInputs(row);
       const action = document.createElement("article");
       const heading = document.createElement("h4");
       const intro = document.createElement("p");
+      const missingHeading = document.createElement("h4");
+      const missingList = document.createElement("ul");
       const stepsHeading = document.createElement("h4");
       const steps = document.createElement("ul");
       const deliverable = document.createElement("p");
       const done = document.createElement("p");
       action.className = "blueprint-card value-claim-proof-action avoid-break";
       heading.textContent = `Validate the "${claim || valueClaimOutcome(row)}" claim`;
-      intro.innerHTML = `<strong>What this refers to:</strong> The offer claims "${escapeHtml(claim || valueClaimOutcome(row))}" and measures success using ${escapeHtml(metric)}. Its current readiness is ${escapeHtml(valueClaimStatus(score).toLowerCase())} because ${escapeHtml(gap.toLowerCase())}`;
-      stepsHeading.textContent = "What to capture";
+      intro.innerHTML = `<strong>What this refers to:</strong> The offer claims "${escapeHtml(claim || valueClaimOutcome(row))}" and measures success using ${escapeHtml(metric)}. Its current readiness is ${escapeHtml(valueClaimStatus(score).toLowerCase())}.`;
+      missingHeading.textContent = "Still needed";
+      missingInputs.forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = item.label;
+        missingList.appendChild(li);
+      });
+      stepsHeading.textContent = "How to complete the missing inputs";
       valueClaimProofSteps(row).forEach((item) => {
         const li = document.createElement("li");
         li.textContent = item;
@@ -4464,8 +4535,29 @@
       });
       deliverable.innerHTML = `<strong>Deliverable:</strong> ${escapeHtml(valueClaimSuggestedAsset(row))}`;
       done.innerHTML = `<strong>Done when:</strong> The baseline, calculation source, target improvement, and supporting evidence are recorded clearly enough for a buyer or sales lead to verify the claim.`;
-      action.append(heading, intro, stepsHeading, steps, deliverable, done);
-      appendReviewLink(action, "Complete Claim and Proof Inputs", "offer value claim baseline proof", { sameTab: true, returnSectionId: "offerStrategy", task: `Complete proof for ${claim || valueClaimOutcome(row)}` });
+      action.append(heading, intro, missingHeading, missingList, stepsHeading, steps, deliverable, done);
+      const fieldIds = missingInputs.flatMap((item) => item.fields).map((field) => `${tableId}__${row.rowId}__${field}`);
+      appendReviewLink(action, "Add Only the Missing Inputs", "offer value claim baseline proof", {
+        sameTab: true,
+        returnSectionId: "offerStrategy",
+        task: `Complete missing inputs for ${claim || valueClaimOutcome(row)}`,
+        focus: {
+          area: `Value claim: ${claim || valueClaimOutcome(row)}`,
+          fieldMode: "replace",
+          why: "The claim, success metric, and available evidence are already saved. Change only the specific missing inputs listed below.",
+          missing: missingInputs.map((item) => item.label),
+          questionsHeading: "What to do here",
+          questions: [
+            "Complete only the highlighted missing inputs below.",
+            "Do not replace answers that are still accurate.",
+            "Save the changes and return to the Offer Plan."
+          ],
+          answerHeading: "Complete the highlighted claim inputs",
+          answerIntro: "These are the only intake fields currently preventing this claim from being fully measurable and supported.",
+          example: `Baseline: 28% contribution margin from the last completed quarter, calculated from accounting records. Target: 34% within 90 days.`,
+          fieldIds
+        }
+      });
       container.appendChild(action);
     }
 
@@ -6643,24 +6735,8 @@
     }
 
     function appendPlanOutputLinks() {
-      const mappings = [
-        ["icpPlaybook", [["ICP Brief", "icp"], ["Target List Setup", "targets"]]],
-        ["offerStrategy", [["Proof Asset Builder", "proof-assets"], ["Messaging Kit", "messaging"]], "Complete the proof work first. Once the claim is supported, use it in the Messaging Kit."],
-        ["buyerPersonaBlueprint", [["Persona Brief", "personas"], ["Messaging Kit", "messaging"]]],
-        ["triggerSignalStrategy", [["Target List Setup", "targets"], ["Outreach Sequence", "outreach"]]],
-        ["salesMotionBlueprint", [["Outreach Sequence", "outreach"], ["Weekly GTM Review", "weekly-review"]]],
-        ["crmBlueprint", [["Target List Setup", "targets"], ["Weekly GTM Review", "weekly-review"]]],
-        ["activityModel", [["Active Plan", "active"], ["Weekly GTM Review", "weekly-review"]]]
-      ];
-
-      mappings.forEach(([containerId, outputs, guidance]) => {
-        const container = document.getElementById(containerId);
-        if (!container || container.querySelector(".plan-output-map")) return;
-        const map = document.createElement("div");
-        map.className = "plan-output-map no-print";
-        map.innerHTML = `<h3>Use this plan in</h3><p>${escapeHtml(guidance || "Each output opens as its own usable, printable, and downloadable asset.")}</p><div class="plan-output-links">${outputs.map(([label, asset]) => `<a href="${escapeHtml(reportAssetUrl(asset))}">${escapeHtml(label)}</a>`).join("")}</div>`;
-        container.appendChild(map);
-      });
+      // Task-level reference guidance in the Active Plan replaces generic
+      // output maps that blurred the distinction between plans and assets.
     }
 
     function executiveInsightOpportunity(model) {
@@ -6837,6 +6913,29 @@
 
     function createReviewLink(label, topic, options = {}) {
       const link = document.createElement("a");
+      const revisionGuidance = "Optional: Review prior answers only when new information, a corrected assumption, or a clearer idea means something should change. If the saved answers are still accurate, continue working the plan.";
+      let revisionTooltip = null;
+      const hideRevisionTooltip = () => {
+        revisionTooltip?.remove();
+        revisionTooltip = null;
+      };
+      const showRevisionTooltip = () => {
+        hideRevisionTooltip();
+        revisionTooltip = document.createElement("div");
+        revisionTooltip.className = "revision-guidance-tooltip";
+        revisionTooltip.setAttribute("role", "tooltip");
+        revisionTooltip.textContent = revisionGuidance;
+        document.body.appendChild(revisionTooltip);
+        const linkRect = link.getBoundingClientRect();
+        const tooltipRect = revisionTooltip.getBoundingClientRect();
+        const left = Math.max(12, Math.min(linkRect.left, window.innerWidth - tooltipRect.width - 12));
+        const below = linkRect.bottom + 8;
+        const top = below + tooltipRect.height <= window.innerHeight - 12
+          ? below
+          : Math.max(12, linkRect.top - tooltipRect.height - 8);
+        revisionTooltip.style.left = `${left}px`;
+        revisionTooltip.style.top = `${top}px`;
+      };
       const sectionId = intakeSectionForTopic(topic);
       const baseFocus = options.focus || reviewFocusForTopic(topic);
       const explicitFields = Array.isArray(baseFocus.fieldIds) ? baseFocus.fieldIds.filter(Boolean) : [];
@@ -6859,7 +6958,15 @@
         link.rel = "noopener";
       }
       link.textContent = label;
+      link.classList.add("optional-intake-revision");
+      link.dataset.revisionGuidance = revisionGuidance;
+      link.setAttribute("aria-label", `${label}. ${revisionGuidance}`);
+      link.addEventListener("mouseenter", showRevisionTooltip);
+      link.addEventListener("mouseleave", hideRevisionTooltip);
+      link.addEventListener("focus", showRevisionTooltip);
+      link.addEventListener("blur", hideRevisionTooltip);
       link.addEventListener("click", () => {
+        hideRevisionTooltip();
         localStorage.setItem(IMPROVEMENT_FOCUS_KEY, JSON.stringify({
           type: "review",
           area: focus.area,
@@ -6872,6 +6979,7 @@
           answerIntro: focus.answerIntro,
           example: focus.example,
           fieldIds: focus.fieldIds,
+          revisionGuidance,
           createdAt: new Date().toISOString()
         }));
         if (options.claim) {
@@ -11305,11 +11413,12 @@
       const data = model.data;
       const offer = model.primaryOffer;
       const rowId = offer?.rowId;
+      const valueClaimTableId = rowId ? scopedOfferTable(rowId, "valueClaims") : "valueClaims";
       const proofAssets = model.proofRows.filter((row) => row.values.assetExists === "Yes" || row.values.assetSource).map((row) => [row.values.claim, row.values.proofType, row.values.assetSource].filter(Boolean).join(" | "));
       const proofGaps = model.proofRows.filter((row) => row.values.gapNextAction || row.values.assetExists === "No").map((row) => [row.values.claim, row.values.gapNextAction].filter(Boolean).join(" | "));
       const objections = rowId ? repeatableRows(data, scopedOfferTable(rowId, "objectionHandling")).map((row) => row.values.objection || row.values.whyBuyerBelievesThis).filter(Boolean) : [];
       const valueClaims = rowId
-        ? repeatableRows(data, scopedOfferTable(rowId, "valueClaims")).filter(hasValueClaimData).sort((a, b) => scoreValueClaim(b) - scoreValueClaim(a))
+        ? repeatableRows(data, valueClaimTableId).filter(hasValueClaimData).sort((a, b) => scoreValueClaim(b) - scoreValueClaim(a))
         : [];
       renderBlueprintGrid(document.getElementById("offerStrategy"), [
         ["Primary offer", cleanRecommendation(offer ? offerDisplayName(offer, offerPortfolioRows(data).indexOf(offer)) : data.primaryOfferName)],
@@ -11349,9 +11458,9 @@
         actionsHeading.textContent = "Value Claim Proof Work";
         container.appendChild(actionsHeading);
         valueClaims
-          .filter((row) => valueClaimStatus(scoreValueClaim(row)) !== "Strong" || valueClaimTopGap(row) !== "No immediate proof gap identified.")
+          .filter((row) => valueClaimMissingInputs(row).length)
           .slice(0, 4)
-          .forEach((row) => renderValueClaimProofAction(container, row));
+          .forEach((row) => renderValueClaimProofAction(container, row, valueClaimTableId));
       }
     }
 

@@ -1791,12 +1791,26 @@ function claimListValue(value) {
   return splitMultiSelectValues(value);
 }
 
+function resolvedOtherClaimValue(value, otherValue) {
+  const selected = String(value || "").trim();
+  const other = String(otherValue || "").trim();
+  if (/^other(?:\s*\/\s*not sure yet)?$/i.test(selected) && other) return other;
+  const inlineOther = selected.match(/^other(?:\s*\/\s*not sure yet)?\s*:\s*(.+)$/i);
+  return inlineOther?.[1] || selected;
+}
+
 function valueClaimOutcome(values) {
-  return values.outcomeType || values.outcome || values.outcomeOtherText || "Value claim";
+  return resolvedOtherClaimValue(
+    values.outcomeType || values.outcome,
+    values.outcomeType__other || values.outcomeOtherText
+  ) || "Value claim";
 }
 
 function valueClaimMetric(values) {
-  return values.successMetric || values.metric || "";
+  return resolvedOtherClaimValue(
+    values.successMetric || values.metric,
+    values.successMetric__other
+  );
 }
 
 function valueClaimTargetDefined(values) {
@@ -4834,6 +4848,9 @@ function renderImprovementFocusCard(sectionId) {
   const card = document.createElement("div");
   const heading = document.createElement("h3");
   const why = document.createElement("p");
+  const revisionNotice = document.createElement("div");
+  const revisionNoticeHeading = document.createElement("strong");
+  const revisionNoticeCopy = document.createElement("p");
   const missingHeading = document.createElement("h4");
   const missingList = document.createElement("ul");
   const questionsHeading = document.createElement("h4");
@@ -4861,6 +4878,10 @@ function renderImprovementFocusCard(sectionId) {
   heading.textContent = `${focus.returnTo ? "Improving" : "Workshop"}: ${focus.area || "Recommended follow-up"}`;
   answerFields.className = "improvement-answer-fields";
   why.textContent = focus.why || "Answer the questions below to improve report confidence.";
+  revisionNotice.className = "improvement-revision-notice";
+  revisionNoticeHeading.textContent = "Change prior answers only when something has changed";
+  revisionNoticeCopy.textContent = focus.revisionGuidance || "Use this revision path when you have new information, corrected an assumption, or developed a clearer idea. If the saved answers are still accurate, return to the plan without changing them.";
+  revisionNotice.append(revisionNoticeHeading, revisionNoticeCopy);
   missingHeading.textContent = "What is missing or unclear";
   (focus.missing || []).forEach((item) => {
     const li = document.createElement("li");
@@ -4970,6 +4991,7 @@ function renderImprovementFocusCard(sectionId) {
 
   card.appendChild(heading);
   card.appendChild(why);
+  card.appendChild(revisionNotice);
   if (missingList.children.length) {
     card.appendChild(missingHeading);
     card.appendChild(missingList);
@@ -5006,8 +5028,17 @@ function mountImprovementAnswerFields(card, sectionEl) {
   if (!focus?.fieldIds?.length || !host) return;
 
   focus.fieldIds.forEach((fieldId) => {
-    const wrapper = sectionEl.querySelector(`[data-field-id="${CSS.escape(fieldId)}"]`);
+    const wrappers = Array.from(sectionEl.querySelectorAll(`[data-field-id="${CSS.escape(fieldId)}"]`));
+    const mountedWrapper = wrappers.find((item) => host.contains(item));
+    const sourceWrapper = wrappers.find((item) => !host.contains(item));
+    const wrapper = sourceWrapper || mountedWrapper;
     if (!wrapper) return;
+    if (sourceWrapper && mountedWrapper && sourceWrapper !== mountedWrapper) {
+      mountedWrapper.remove();
+    }
+    wrappers
+      .filter((item) => item !== wrapper && item !== mountedWrapper)
+      .forEach((item) => item.remove());
     const sourceGrid = wrapper.parentElement;
     const example = wrapper.querySelector(".field-example");
     const firstControl = wrapper.querySelector("textarea, select, input, [data-multi-select-dropdown]");
@@ -5430,8 +5461,12 @@ function currentVisibleFormData() {
       sourceField?.closest?.("[data-multi-select-dropdown]")
       || (sourceField?.tagName === "SELECT" && sourceField.multiple)
     );
-    if (data[key]) {
-      data[key] = `${data[key]}${multiValue ? "; " : ", "}${serializedValue}`;
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      if (multiValue && serializedValue) {
+        data[key] = [data[key], serializedValue].filter(Boolean).join("; ");
+      } else if (serializedValue) {
+        data[key] = serializedValue;
+      }
     } else {
       data[key] = serializedValue;
     }
