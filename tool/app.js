@@ -5256,7 +5256,7 @@ function renderSectionNavigation(sectionsToShow, nav) {
     const assetLinksContainer = document.createElement("div");
     assets.className = "nav-assets-box";
     assets.open = !compactNavigation && localStorage.getItem(`${STORAGE_KEY}:assetsNavOpen`) !== "false";
-    summary.textContent = "Assets";
+    summary.textContent = "Plan, Assets, and Tools";
     assetLinksContainer.className = "nav-asset-links";
     assets.append(summary, assetLinksContainer);
     assets.addEventListener("toggle", () => localStorage.setItem(`${STORAGE_KEY}:assetsNavOpen`, String(assets.open)));
@@ -5281,34 +5281,42 @@ function renderSectionNavigation(sectionsToShow, nav) {
     });
     updateNotice.append(updateTitle, updateCopy, updateButton);
     assetLinksContainer.appendChild(updateNotice);
-    summary.textContent = planNeedsUpdate ? "Assets - 1 update" : "Assets";
+    summary.textContent = planNeedsUpdate ? "Plan, Assets, and Tools - 1 update" : "Plan, Assets, and Tools";
 
     const assetLinks = isPreRevenueMode()
       ? [
-        ["GTM Plan Summary", "gtm"],
-        ["Active Plan", "active"],
-        ["ICP Brief", "icp"],
-        ["Persona Brief", "personas"],
-        ["Messaging Kit", "messaging"],
-        ["Target List Setup", "targets"],
-        ["Proof Asset Builder", "proof-assets"],
-        ["Outreach Sequence", "outreach"],
-        ["Weekly GTM Review", "weekly-review"],
-        ["30-Day Validation Plan", "validation"]
+        ["Plan", "This Week", "active"],
+        ["Plan", "Plan Summary", "gtm"],
+        ["Plan", "30-Day Validation Plan", "validation"],
+        ["Reference Assets", "ICP Brief", "icp"],
+        ["Reference Assets", "Persona Brief", "personas"],
+        ["Work Tools", "Messaging Kit", "messaging"],
+        ["Work Tools", "Target List Setup", "targets"],
+        ["Work Tools", "Proof Asset Builder", "proof-assets"],
+        ["Work Tools", "Outreach Sequence", "outreach"],
+        ["Work Tools", "Weekly GTM Review", "weekly-review"]
       ]
       : [
-        ["GTM Plan Summary", "gtm"],
-        ["Active Plan", "active"],
-        ...(hasIcpAsset ? [["ICP Brief", "icp"]] : []),
-        ["Persona Brief", "personas"],
-        ["Messaging Kit", "messaging"],
-        ["Target List Setup", "targets"],
-        ["Proof Asset Builder", "proof-assets"],
-        ["Outreach Sequence", "outreach"],
-        ["Weekly GTM Review", "weekly-review"]
+        ["Plan", "This Week", "active"],
+        ["Plan", "Plan Summary", "gtm"],
+        ...(hasIcpAsset ? [["Reference Assets", "ICP Brief", "icp"]] : []),
+        ["Reference Assets", "Persona Brief", "personas"],
+        ["Work Tools", "Messaging Kit", "messaging"],
+        ["Work Tools", "Target List Setup", "targets"],
+        ["Work Tools", "Proof Asset Builder", "proof-assets"],
+        ["Work Tools", "Outreach Sequence", "outreach"],
+        ["Work Tools", "Weekly GTM Review", "weekly-review"]
       ];
 
-    assetLinks.forEach(([text, asset]) => {
+    let currentAssetGroup = "";
+    assetLinks.forEach(([group, text, asset]) => {
+      if (group !== currentAssetGroup) {
+        const groupLabel = document.createElement("div");
+        groupLabel.className = "nav-asset-group-label";
+        groupLabel.textContent = group;
+        assetLinksContainer.appendChild(groupLabel);
+        currentAssetGroup = group;
+      }
       const link = document.createElement("a");
       link.href = resultsUrl(undefined, asset);
       link.textContent = text;
@@ -5674,13 +5682,24 @@ function resultsUrl(version = "20260712-pre-revenue-assets", asset = "") {
 }
 
 function updateResultsLink() {
-  const url = resultsUrl();
+  const savedRecord = currentRecord(readRecords());
+  const data = savedRecord?.data && typeof savedRecord.data === "object" ? savedRecord.data : formStateData;
+  const weeklyWorkspace = data?.activePlanWeeklyWorkspace;
+  const locallyStarted = Boolean(activeRecordId() && localStorage.getItem(`${STORAGE_KEY}:planStarted:${activeRecordId()}`) === "true");
+  const planStarted = locallyStarted || Boolean(
+    weeklyWorkspace
+    && typeof weeklyWorkspace === "object"
+    && Array.isArray(weeklyWorkspace.currentPriorities)
+    && weeklyWorkspace.currentPriorities.length
+  );
+  const url = resultsUrl(undefined, planStarted ? "active" : "gtm");
 
   ["viewResultsLink", "topResultsLink"].forEach((id) => {
     const link = document.getElementById(id);
 
     if (link) {
       link.href = url;
+      link.textContent = planStarted ? "Return to This Week" : "View Plan";
     }
   });
 }
@@ -8886,7 +8905,7 @@ function updatePlanStaleWarning(data = getFormData()) {
   });
   const summary = document.querySelector(".nav-assets-box > summary");
   if (summary) {
-    summary.textContent = isStale ? "Assets - 1 update" : "Assets";
+    summary.textContent = isStale ? "Plan, Assets, and Tools - 1 update" : "Plan, Assets, and Tools";
   }
   return isStale;
 }
@@ -9110,9 +9129,9 @@ function updateDetailedActionBar() {
   if (submitButton) {
     submitButton.textContent = isPreRevenueMode() ? "View GTM Plan" : "Generate GTM Action Plan";
   }
-  if (resultsLink && isPreRevenueMode()) {
+  if (resultsLink && isPreRevenueMode() && !/Return to This Week/i.test(resultsLink.textContent)) {
     resultsLink.href = resultsUrl(undefined, "gtm");
-    resultsLink.textContent = "View GTM Plan";
+    resultsLink.textContent = "View Plan";
   }
 }
 

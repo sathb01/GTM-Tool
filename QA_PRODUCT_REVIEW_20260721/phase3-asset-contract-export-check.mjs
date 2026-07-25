@@ -72,6 +72,7 @@ try {
           exportReady: document.body.dataset.exportReady,
           activeLinkText: activeLink?.textContent.trim() || "",
           activeLinkIsActive: activeLink?.classList.contains("active") || false,
+          navigationGroups: Array.from(document.querySelectorAll("#reportToc .toc-group-label")).map((item) => item.textContent.trim()),
           everyAssetHasMeta: navLinks.length > 0 && navLinks.every((link) => Boolean(link.querySelector(".asset-nav-meta")?.textContent.trim())),
           navUsesCleanLabels: navLinks.every((link) => !/^(?:open|view)\b/i.test(link.querySelector(".asset-nav-label")?.textContent.trim() || "")),
           controlsOverlap,
@@ -107,8 +108,10 @@ try {
         correctExportControlsAreAvailable: state.contract?.exportType === "workbook"
           ? /workbook/i.test(state.workbookLabel)
           : /download pdf/i.test(state.pdfLabel) && /print/i.test(state.printLabel),
-        navigationShowsAssetStatus: state.activeLinkText && state.everyAssetHasMeta,
-        currentAssetIsHighlighted: state.activeLinkIsActive,
+        navigationShowsAssetStatus: asset === "health" ? !state.activeLinkText : state.activeLinkText && state.everyAssetHasMeta,
+        currentAssetIsHighlighted: asset === "health" ? !state.activeLinkIsActive : state.activeLinkIsActive,
+        navigationSeparatesPlanReferencesAndTools: ["Plan", "Reference Assets", "Work Tools"]
+          .every((group) => state.navigationGroups.includes(group)),
         navigationLabelsAreClean: state.navUsesCleanLabels,
         sidebarScrollRemainsAvailable: state.tocCanScroll,
         actionControlsDoNotOverlap: !state.controlsOverlap,

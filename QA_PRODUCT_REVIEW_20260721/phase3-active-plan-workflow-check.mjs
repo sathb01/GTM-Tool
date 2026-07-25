@@ -53,7 +53,10 @@ try {
     actionRunnerPresent: Boolean(document.getElementById("action-runner")),
     actionParameterRemoved: !new URLSearchParams(window.location.search).has("action"),
     planModeVisible: document.body.innerText.includes("Plan Mode"),
-    whyThisPlanVisible: document.querySelector("#active-plan-objective")?.innerText.includes("Why this plan") || false,
+    currentContextVisible: ["30-day outcome", "current focus", "decision at the end"]
+      .every((label) => document.querySelector("#active-plan-objective")?.innerText.toLowerCase().includes(label)),
+    planOutlookCollapsed: !document.querySelector("#active-plan-weeks > details.section-details")?.open,
+    closeWeekCollapsed: !document.querySelector("#active-plan-review > details.section-details")?.open,
     samePageNavHidden: document.getElementById("currentSectionNav")?.hidden || getComputedStyle(document.getElementById("currentSectionNav")).display === "none",
     priorityCount: document.querySelectorAll("[data-weekly-priority]").length,
     completeWhenCount: Array.from(document.querySelectorAll("[data-weekly-priority]")).filter((card) => card.innerText.includes("Complete when:")).length,
@@ -109,7 +112,8 @@ try {
 
   const checks = {
     postRevenueActionRunnerRemoved: !initial.actionRunnerPresent && initial.actionParameterRemoved,
-    internalModeLabelRemoved: !initial.planModeVisible && initial.whyThisPlanVisible,
+    internalModeLabelRemoved: !initial.planModeVisible && initial.currentContextVisible,
+    futureWorkStartsCollapsed: initial.planOutlookCollapsed && initial.closeWeekCollapsed,
     redundantSamePageNavigationRemoved: initial.samePageNavHidden,
     weeklyPlanLimitedToThreePriorities: initial.priorityCount === 3,
     eachPriorityDefinesDoneAndEvidence: initial.completeWhenCount === initial.priorityCount

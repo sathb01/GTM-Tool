@@ -44,11 +44,10 @@ try {
         ),
         activePlanMatchesCanonical: JSON.stringify(preRevenue.active.actions.map((item) => item.title)) === JSON.stringify(expectedTitles)
           && JSON.stringify(preRevenue.active.actions.map((item) => item.output)) === JSON.stringify(expectedActions),
-        validationModeIsExplicit: preRevenue.canonical.mode.id === "validation"
+        validationModeStaysInternalAndConsistent: preRevenue.canonical.mode.id === "validation"
           && preRevenue.active.mode?.id === "validation"
-          && preRevenue.overview.includes("Why this plan")
-          && preRevenue.overview.includes("buyer evidence")
-          && !preRevenue.overview.includes("Plan Mode"),
+          && !preRevenue.overview.includes("Plan Mode")
+          && !preRevenue.overview.includes("Why this plan"),
         decisionSequenceEndsWithEvidenceReview: preRevenue.canonical.topActions[2].role === "execution-evidence"
       };
       results.push({
@@ -100,11 +99,11 @@ try {
         && expectedActions.every((action) => report.actionTableText.includes(action)),
       activePlanMatchesCanonical: JSON.stringify(active.actions.map((item) => item.title)) === JSON.stringify(expectedTitles)
         && JSON.stringify(active.actions.map((item) => item.output)) === JSON.stringify(expectedActions),
-      modeIsExplicitAndConsistent: profile.expectedMode.includes(report.canonical.mode.id)
-        && report.modeText.includes(`${report.canonical.mode.label} plan`)
+      modeStaysInternalAndConsistent: profile.expectedMode.includes(report.canonical.mode.id)
         && active.mode?.id === report.canonical.mode.id
-        && active.overview.includes("Why this plan")
-        && !active.overview.includes("Plan Mode"),
+        && !report.modeText.includes("Plan Mode")
+        && !active.overview.includes("Plan Mode")
+        && !active.overview.includes("Why this plan"),
       alternativesDoNotReplacePrimary: !report.canonical.alternativeCustomers.includes(report.canonical.primaryCustomer)
     };
     results.push({

@@ -40,6 +40,7 @@ const browserSuites = [
   ["Active plan weekly workflow", "phase3-active-plan-workflow-check.mjs", "plans"],
   ["Active plan reference assets", "phase3-reference-asset-guidance-check.mjs", "plans"],
   ["Optional intake revision guidance", "phase3-intake-revision-guidance-check.mjs", "plans"],
+  ["Usability simplification", "phase6-usability-simplification-check.mjs", "plans"],
   ["Asset contracts and exports", "phase3-asset-contract-export-check.mjs", "assets"],
   ["Experience and accessibility", "phase4-experience-accessibility-check.mjs", "responsive"],
   ["Post-revenue section deep links", "post-section-deep-link-check.mjs", "routes"],

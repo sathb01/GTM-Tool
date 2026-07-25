@@ -162,10 +162,21 @@
     }
 
     .report-file-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 6px;
+      display: none;
+    }
+
+    body[data-asset-contract="active"] .page-header {
+      gap: 5px;
+      padding: 16px 20px;
+    }
+
+    body[data-asset-contract="active"] .page-header h1,
+    body[data-asset-contract="active"] .page-header p {
+      margin-bottom: 0;
+    }
+
+    body[data-asset-contract="active"] .page-header .report-file-actions {
+      display: none;
     }
 
     .metadata-pill,
@@ -857,6 +868,95 @@
       margin: 0;
     }
 
+    .active-plan-command-head {
+      align-items: end;
+      display: flex;
+      gap: 24px;
+      justify-content: space-between;
+    }
+
+    .active-plan-command-head h2,
+    .active-plan-command-head p {
+      margin: 0;
+    }
+
+    .active-plan-command-head h2 {
+      margin: 3px 0 5px;
+    }
+
+    .active-plan-week-progress {
+      flex: 0 0 190px;
+    }
+
+    .active-plan-week-progress strong,
+    .active-plan-week-progress span {
+      display: block;
+    }
+
+    .active-plan-week-progress strong {
+      font-size: 18px;
+    }
+
+    .active-plan-week-progress span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 3px;
+    }
+
+    .active-plan-progress-track {
+      background: #e6e9ed;
+      border-radius: 999px;
+      height: 7px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+
+    .active-plan-progress-fill {
+      background: var(--accent);
+      height: 100%;
+    }
+
+    .active-plan-context-grid {
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: grid;
+      gap: 1px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 18px;
+      overflow: hidden;
+    }
+
+    .active-plan-context-item {
+      background: var(--panel);
+      padding: 14px;
+    }
+
+    .active-plan-context-item strong {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+
+    .active-plan-context-item p {
+      margin: 0;
+    }
+
+    .active-plan-focus-list {
+      display: grid;
+      gap: 4px;
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .active-plan-rhythm {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 10px 0 0;
+    }
+
     .active-plan-overview-list {
       display: grid;
       gap: 12px;
@@ -1095,9 +1195,18 @@
       padding: 7px 10px;
     }
 
+    .active-plan-reference a.work-tool-link {
+      background: #ffffff;
+      border: 1px solid var(--accent);
+      color: var(--accent-dark);
+    }
+
     .active-plan-reference a:hover,
-    .active-plan-reference a:focus {
+    .active-plan-reference a:focus,
+    .active-plan-reference a.work-tool-link:hover,
+    .active-plan-reference a.work-tool-link:focus {
       background: #6b7280;
+      border-color: #6b7280;
       color: #fff;
     }
 
@@ -1105,6 +1214,28 @@
       margin: 7px 0 0;
       color: var(--muted);
       font-size: 13px;
+    }
+
+    .workflow-return-bar {
+      align-items: center;
+      background: #fff7f3;
+      border: 1px solid #f3c6b5;
+      border-left: 4px solid var(--accent);
+      display: flex;
+      gap: 16px;
+      grid-column: 2;
+      justify-content: space-between;
+      margin: 0 0 14px;
+      padding: 12px 14px;
+    }
+
+    .workflow-return-bar p {
+      margin: 0;
+    }
+
+    .workflow-return-bar a {
+      flex: 0 0 auto;
+      white-space: nowrap;
     }
 
     .active-plan-week-grid,
@@ -1548,6 +1679,17 @@
       box-shadow: var(--shadow-card);
     }
 
+    .report-nav-body {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .mobile-workspace-nav-toggle {
+      display: none;
+    }
+
     .current-section-nav {
       align-items: center;
       align-self: start;
@@ -1816,6 +1958,44 @@
       border-radius: 8px;
       margin-bottom: 12px;
       padding: 12px;
+    }
+
+    .decision-summary-guide {
+      align-items: center;
+      display: flex;
+      gap: 20px;
+      justify-content: space-between;
+    }
+
+    .decision-summary-guide h3,
+    .decision-summary-guide p {
+      margin: 0;
+    }
+
+    .decision-summary-guide h3 {
+      margin-bottom: 5px;
+    }
+
+    .decision-summary-status {
+      border-left: 1px solid var(--border);
+      flex: 0 0 220px;
+      padding-left: 18px;
+    }
+
+    .decision-summary-status strong,
+    .decision-summary-status span {
+      display: block;
+    }
+
+    .decision-summary-status span {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 3px 0 8px;
+    }
+
+    .decision-summary-status a {
+      font-size: 13px;
+      padding: 8px 10px;
     }
 
     .score-list {
@@ -2767,12 +2947,40 @@
         height: auto;
         min-height: auto;
         overflow-y: visible;
-        padding: 0;
+        padding: 10px;
       }
 
       .report-nav .toc {
         max-height: none;
         overflow-y: visible;
+      }
+
+      .mobile-workspace-nav-toggle {
+        align-items: center;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        color: var(--nav-text);
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 12px;
+        width: 100%;
+      }
+
+      .mobile-workspace-nav-toggle::after {
+        content: "+";
+        font-size: 18px;
+      }
+
+      .mobile-workspace-nav-toggle[aria-expanded="true"]::after {
+        content: "−";
+      }
+
+      .report-nav-body[hidden] {
+        display: none;
+      }
+
+      .report-nav-body {
+        margin-top: 8px;
       }
 
       .current-section-nav {
@@ -2794,6 +3002,7 @@
       .decision-action-panel,
       .validation-test-grid,
       .active-plan-action,
+      .active-plan-context-grid,
       .active-plan-week-grid,
       .weekly-rollover-row,
       .validation-assessment-grid,
@@ -2801,6 +3010,37 @@
       .validation-evidence-columns,
       .validation-metric-grid {
         grid-template-columns: 1fr;
+      }
+
+      .active-plan-command-head,
+      .decision-summary-guide,
+      .workflow-return-bar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .active-plan-week-progress {
+        flex-basis: auto;
+      }
+
+      .decision-summary-status {
+        border-left: 0;
+        border-top: 1px solid var(--border);
+        flex-basis: auto;
+        padding-left: 0;
+        padding-top: 12px;
+      }
+
+      body[data-asset-contract="active"] .page-header {
+        padding: 14px 16px;
+      }
+
+      body[data-asset-contract="active"] .page-header h1 {
+        font-size: 24px;
+      }
+
+      body[data-asset-contract="active"] .page-header #generatedMeta {
+        display: none;
       }
 
       .decision-action-panel > div + div {
@@ -2910,7 +3150,7 @@
     </form>
     <div class="top-account" id="topAccountName">GTM Action Workspace</div>
     <div class="top-actions">
-      <a id="editIntakeLink" href="index.html" target="_blank" rel="noopener">Edit Intake</a>
+      <a id="editIntakeLink" href="index.html">Company Setup</a>
       <button id="exportButton" type="button" aria-expanded="false" aria-controls="exportMenu">Export Report</button>
       <button id="printButton" type="button">Print</button>
       <button id="downloadTrackerTop" type="button" hidden>Download Test Workbook</button>
@@ -2937,8 +3177,11 @@
     </header>
 
     <nav class="report-nav no-print" aria-label="Report navigation">
-      <ul class="toc" id="reportToc"></ul>
-      <a class="nav-intake-return" id="navIntakeBackLink" href="index.html" target="_blank" rel="noopener">Back to Intake Form</a>
+      <button class="mobile-workspace-nav-toggle" id="workspaceNavToggle" type="button" aria-expanded="false" aria-controls="workspaceNavBody">Plan, assets, and tools</button>
+      <div class="report-nav-body" id="workspaceNavBody">
+        <ul class="toc" id="reportToc"></ul>
+        <a class="nav-intake-return" id="navIntakeBackLink" href="index.html">Company Setup</a>
+      </div>
     </nav>
 
     <nav class="current-section-nav no-print" id="currentSectionNav" aria-label="Current page navigation">
@@ -6631,6 +6874,11 @@
         nextAction,
         topRisk
       });
+      const weekly = model.data.activePlanWeeklyWorkspace && typeof model.data.activePlanWeeklyWorkspace === "object"
+        ? model.data.activePlanWeeklyWorkspace
+        : { currentWeek: 1, currentPriorities: [] };
+      const currentPriorities = Array.isArray(weekly.currentPriorities) ? weekly.currentPriorities : [];
+      const completePriorities = currentPriorities.filter((priority) => priority?.status === "Complete").length;
 
       const section = cards.closest("section");
       let guide = section?.querySelector(".decision-summary-guide");
@@ -6640,7 +6888,7 @@
         section.insertBefore(guide, cards);
       }
       if (guide) {
-        guide.innerHTML = `<h3>How to use this plan</h3><p><strong>${escapeHtml(canonical.mode.label)} plan:</strong> ${escapeHtml(canonical.mode.explanation)}</p><p>Start with Top Opportunity to confirm the recommended direction, then use Next Best Action to begin the work. Expand the matching section beneath any card to understand its evidence, improve its inputs, or open the related execution asset.</p>`;
+        guide.innerHTML = `<div><h3>Start with the recommendation, then work the current week</h3><p><strong>${escapeHtml(canonical.mode.label)} plan:</strong> ${escapeHtml(canonical.mode.explanation)}</p><p>Use the four cards to understand the recommendation. Use This Week for execution, references, evidence, and progress.</p></div><div class="decision-summary-status"><strong>Week ${weekly.currentWeek || 1}</strong><span>${completePriorities} of ${currentPriorities.length || canonical.topActions.length} priorities complete</span><a href="${escapeHtml(reportAssetUrl("active"))}">Go to This Week</a></div>`;
       }
 
       cards.innerHTML = "";
@@ -9506,9 +9754,22 @@
       const returnTo = intakeReturnUrl();
       if (!link) return;
       link.href = returnTo;
-      link.target = "_blank";
-      link.rel = "noopener";
-      link.textContent = returnTo === "index.html" ? "Edit Intake" : "Back to Intake";
+      link.removeAttribute("target");
+      link.removeAttribute("rel");
+      link.textContent = "Company Setup";
+    }
+
+    function renderWorkflowReturnBar() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("workReturn") !== "active") return;
+      const main = document.querySelector("main");
+      const header = main?.querySelector(".page-header");
+      if (!main || !header || document.getElementById("workflowReturnBar")) return;
+      const bar = document.createElement("div");
+      bar.id = "workflowReturnBar";
+      bar.className = "workflow-return-bar no-print";
+      bar.innerHTML = `<p><strong>Working from This Week</strong><br>Use this tool for the current priority, then return to record the result and status.</p><a href="${escapeHtml(reportAssetUrl("active"))}">Return to This Week</a>`;
+      header.insertAdjacentElement("afterend", bar);
     }
 
     function facilitationTypeForText(value) {
@@ -12030,11 +12291,11 @@
       });
       document.querySelectorAll("a").forEach((link) => {
         const currentLabel = cleanText(link.textContent);
-        if (!/^(?:Back to Intake(?: Form)?|Edit Intake)$/i.test(currentLabel) && !link.classList.contains("back-action")) return;
+        if (!/^(?:Back to Intake(?: Form)?|Edit Intake|Company Setup)$/i.test(currentLabel) && !link.classList.contains("back-action")) return;
         link.classList.add("back-action");
-        link.setAttribute("aria-label", "Back to Intake Form");
-        link.title = "Back to Intake Form";
-        link.innerHTML = '<span class="action-icon" aria-hidden="true">←</span><span>Intake</span>';
+        link.setAttribute("aria-label", "Company Setup");
+        link.title = "Review or revise foundational company answers";
+        link.innerHTML = '<span class="action-icon" aria-hidden="true">←</span><span>Company Setup</span>';
       });
     }
 
@@ -12365,28 +12626,44 @@
         item.appendChild(link);
         sectionToc.appendChild(item);
       };
-      addNavItem("Assets", "GTM Plan Summary", reportAssetUrl("gtm"), null, "gtm");
-      addNavItem("Assets", "Plan Status", reportAssetUrl("health"), null, "health");
-      addNavItem("Assets", "Active Plan", reportAssetUrl("active"), null, "active");
+      addNavItem("Plan", "This Week", reportAssetUrl("active"), null, "active");
+      addNavItem("Plan", "Plan Summary", reportAssetUrl("gtm"), null, "gtm");
+      if (currentAsset === "validation-workspace" || document.getElementById("plan-decision") || document.getElementById("draft-icp")) {
+        addNavItem("Plan", "30-Day Validation Plan", reportAssetUrl("validation"), null, "validation");
+      }
       if (document.body.dataset.hasIcpAsset === "true") {
-        addNavItem("Assets", "ICP Brief", reportAssetUrl("icp"), null, "icp");
+        addNavItem("Reference Assets", "ICP Brief", reportAssetUrl("icp"), null, "icp");
       }
       if (document.body.dataset.hasPersonaAsset === "true") {
-        addNavItem("Assets", "Persona Brief", reportAssetUrl("personas"), null, "personas");
+        addNavItem("Reference Assets", "Persona Brief", reportAssetUrl("personas"), null, "personas");
       }
-      addNavItem("Assets", "Messaging Kit", reportAssetUrl("messaging"), null, "messaging");
-      addNavItem("Assets", "Target List Setup", reportAssetUrl("targets"), null, "targets");
-      addNavItem("Assets", "Proof Asset Builder", reportAssetUrl("proof-assets"), null, "proof-assets");
-      addNavItem("Assets", "Outreach Sequence", reportAssetUrl("outreach"), null, "outreach");
-      addNavItem("Assets", "Weekly GTM Review", reportAssetUrl("weekly-review"), null, "weekly-review");
+      addNavItem("Work Tools", "Messaging Kit", reportAssetUrl("messaging"), null, "messaging");
+      addNavItem("Work Tools", "Target List Setup", reportAssetUrl("targets"), null, "targets");
+      addNavItem("Work Tools", "Proof Asset Builder", reportAssetUrl("proof-assets"), null, "proof-assets");
+      addNavItem("Work Tools", "Outreach Sequence", reportAssetUrl("outreach"), null, "outreach");
+      addNavItem("Work Tools", "Weekly GTM Review", reportAssetUrl("weekly-review"), null, "weekly-review");
       if (currentAsset === "validation-workspace" || document.getElementById("plan-decision") || document.getElementById("draft-icp")) {
-        addNavItem("Assets", "Validation Workspace", reportAssetUrl("validation-workspace"), null, "validation-workspace");
-        addNavItem("Assets", "30-Day Validation Plan", reportAssetUrl("validation"), null, "validation");
+        addNavItem("Work Tools", "Validation Workspace", reportAssetUrl("validation-workspace"), null, "validation-workspace");
       }
       Array.from(toc.querySelectorAll("a")).forEach((link) => {
         const linkedAsset = new URL(link.href, window.location.href).searchParams.get("asset") || "";
         link.classList.toggle("active", linkedAsset === currentAsset || (!currentAsset && linkedAsset === ""));
       });
+      const workspaceNavToggle = document.getElementById("workspaceNavToggle");
+      const workspaceNavBody = document.getElementById("workspaceNavBody");
+      if (workspaceNavToggle && workspaceNavBody) {
+        const mobileNavigation = window.matchMedia("(max-width: 780px)").matches;
+        const currentLabel = toc.querySelector("a.active .asset-nav-label")?.textContent.trim() || "Plan";
+        workspaceNavToggle.hidden = !mobileNavigation;
+        workspaceNavBody.hidden = mobileNavigation;
+        workspaceNavToggle.textContent = `${currentLabel} - Plan, assets, and tools`;
+        workspaceNavToggle.setAttribute("aria-expanded", String(!mobileNavigation));
+        workspaceNavToggle.onclick = () => {
+          const expanded = workspaceNavToggle.getAttribute("aria-expanded") === "true";
+          workspaceNavToggle.setAttribute("aria-expanded", String(!expanded));
+          workspaceNavBody.hidden = expanded;
+        };
+      }
       document.querySelectorAll('a[target="_blank"]').forEach((link) => {
         const destination = new URL(link.href, window.location.href);
         if (destination.origin === window.location.origin && !link.classList.contains("keep-separate-window")) {
@@ -12406,7 +12683,10 @@
           const summary = document.createElement("summary");
           const body = document.createElement("div");
           details.className = "section-details";
-          details.open = Boolean(document.getElementById("action-runner")) || index < 3;
+          const defaultOpen = section.dataset.defaultOpen;
+          details.open = Boolean(document.getElementById("action-runner"))
+            || defaultOpen === "true"
+            || (defaultOpen !== "false" && index < 2);
           summary.appendChild(heading);
           while (section.firstChild) {
             const child = section.firstChild;
@@ -12427,23 +12707,6 @@
         toggle.textContent = shouldOpen ? "Collapse all" : "Expand all";
       };
 
-      const navigationParams = new URLSearchParams(window.location.search);
-      const requestedAsset = navigationParams.get("asset") || "";
-      const requestedAssetId = requestedAsset === "validation"
-        ? "plan-decision"
-        : requestedAsset === "gtm"
-          ? "draft-icp"
-          : "";
-      if (requestedAssetId && !navigationParams.has("resumeY")) {
-        const requestedSection = document.getElementById(requestedAssetId);
-        const requestedDetails = requestedSection?.querySelector(":scope > details.section-details");
-        if (requestedDetails) {
-          requestedDetails.open = true;
-        }
-        window.setTimeout(() => {
-          requestedSection?.scrollIntoView({ block: "start" });
-        }, 50);
-      }
       applyStandardActionIcons();
       setupActiveActionRoundTripLinks();
       restoreImprovementReturnState();
@@ -15416,9 +15679,9 @@
     function activePlanReferenceAssets(action, data) {
       const text = `${action.title || ""} ${action.output || ""} ${action.why || ""}`.toLowerCase();
       const assets = [];
-      const add = (asset, label, use) => {
+      const add = (asset, label, use, type = "reference") => {
         if (assets.some((item) => item.asset === asset)) return;
-        assets.push({ asset, label, use });
+        assets.push({ asset, label, use, type });
       };
 
       if (/\bcustomer\b|\bsegment\b|\bicp\b|target (?:account|customer|buyer|user|list)|account list|market (?:segment|selection|fit)|fit criteria|buying signal|validation (?:audience|segment|hypothesis)|decision rule/.test(text)) {
@@ -15433,15 +15696,52 @@
       if (isPreRevenueReport(data) && !assets.length && !/crm|data quality|source attribution|loss reason/.test(text)) {
         add("icp", "ICP Brief", "Use the current first-win segment and validation assumptions.");
       }
-      return assets;
+      if (/target (?:account|customer|buyer|user|list)|account list|list criteria/.test(text)) {
+        add("targets", "Target List Setup", "Translate the selected ICP into CRM or spreadsheet criteria.", "tool");
+      }
+      if (/proof|case study|testimonial|business case/.test(text)) {
+        add("proof-assets", "Proof Asset Builder", "Create or strengthen the exact proof needed for this priority.", "tool");
+      }
+      if (/message|messaging|conversation|discovery/.test(text)) {
+        add("messaging", "Messaging Kit", "Draft and save the buyer-specific message used for this work.", "tool");
+      }
+      if (/outreach|sequence|follow-up/.test(text)) {
+        add("outreach", "Outreach Sequence", "Build the bounded sequence and its stop rules.", "tool");
+      }
+      if (/validation (?:test|motion|interview|evidence)|problem interview/.test(text) && isPreRevenueReport(data)) {
+        add("validation-workspace", "Validation Workspace", "Collect target-level evidence and apply the decision rules.", "tool");
+      }
+      return assets.slice(0, 4);
+    }
+
+    function activePlanToolUrl(asset) {
+      const destination = new URL(reportAssetUrl(asset), window.location.href);
+      destination.searchParams.set("workReturn", "active");
+      return `${destination.pathname.split("/").pop()}${destination.search}${destination.hash}`;
     }
 
     function activePlanReferenceMarkup(action, data) {
       const assets = activePlanReferenceAssets(action, data);
       if (!assets.length) {
-        return '<div class="active-plan-reference"><strong>Reference for this work</strong><p class="active-plan-reference-note">No reference asset is required for this operational task. Complete it in the system where the work is managed, then record the result here.</p></div>';
+        return '<div class="active-plan-reference"><strong>What to use</strong><p class="active-plan-reference-note">No GTM Intelligence OS asset is required. Complete this task in the system where the work is managed, then record the result here.</p></div>';
       }
-      return `<div class="active-plan-reference"><strong>Reference for this work</strong><ul>${assets.map((item) => `<li><strong>${escapeHtml(item.label)}:</strong> ${escapeHtml(item.use)} <a class="keep-separate-window" href="${escapeHtml(reportAssetUrl(item.asset))}" target="_blank" rel="noopener">Open separately</a></li>`).join("")}</ul><p class="active-plan-reference-note">Keep the asset open while you work, or use its print or PDF controls for a desk copy.</p></div>`;
+      return `<div class="active-plan-reference"><strong>What to use</strong><ul>${assets.map((item) => {
+        if (item.type === "tool") {
+          return `<li><strong>Work tool - ${escapeHtml(item.label)}:</strong> ${escapeHtml(item.use)} <a class="work-tool-link" href="${escapeHtml(activePlanToolUrl(item.asset))}">Work here</a></li>`;
+        }
+        return `<li><strong>Reference - ${escapeHtml(item.label)}:</strong> ${escapeHtml(item.use)} <a class="keep-separate-window" href="${escapeHtml(reportAssetUrl(item.asset))}" target="_blank" rel="noopener">View beside plan</a></li>`;
+      }).join("")}</ul><p class="active-plan-reference-note">Reference assets open separately. Work tools keep a clear route back to This Week.</p></div>`;
+    }
+
+    function activePlanFocusMarkup(value) {
+      const text = cleanText(value);
+      if (!text) return "<p>No focused customer, offer, or motion has been selected yet.</p>";
+      const items = text
+        .split(/(?=\b(?:Customer|Offer|Buyer|Channel|Revenue motion):)/i)
+        .map((item) => cleanText(item))
+        .filter(Boolean);
+      if (items.length < 2) return `<p>${escapeHtml(text)}</p>`;
+      return `<ul class="active-plan-focus-list">${items.slice(0, 4).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
     }
 
     async function persistActivePlanData(data, statusElement) {
@@ -15900,6 +16200,10 @@
       const plan = activePlanDefinition(data);
       window.GTM_ACTIVE_PLAN_DEFINITION = plan;
       const weeklyWorkspace = activePlanWeeklyWorkspace(data, plan);
+      const recordId = activeReportRecordId();
+      if (recordId) {
+        localStorage.setItem(`${STORAGE_KEY}:planStarted:${recordId}`, "true");
+      }
       const requestedAction = Number(new URLSearchParams(window.location.search).get("action")) - 1;
       if (plan.type === "validation" && Number.isInteger(requestedAction) && requestedAction >= 0 && requestedAction < plan.actions.length) {
         renderActivePlanActionRunner(data, plan, requestedAction);
@@ -15916,21 +16220,27 @@
         ? Boolean(preRevenueScore(data).primary)
         : Boolean(data.bestFitCustomerGroup || data.quickBestFitCustomer);
       document.body.dataset.hasPersonaAsset = "true";
-      document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} Active Plan` : "Active Plan";
+      document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} This Week` : "This Week";
       document.getElementById("companyMeta").textContent = [data.website, data.companyStage, plan.title].filter(Boolean).join(" | ");
-      document.getElementById("generatedMeta").textContent = "A working 30-day plan built from the latest GTM recommendations.";
+      document.getElementById("generatedMeta").textContent = "Complete the current priorities, save the result, and close the week when the work is done.";
       document.getElementById("metadataPills").innerHTML = "";
 
+      const completedPriorityCount = weeklyWorkspace.currentPriorities.filter((priority) => priority.status === "Complete").length;
+      const priorityProgress = weeklyWorkspace.currentPriorities.length
+        ? Math.round((completedPriorityCount / weeklyWorkspace.currentPriorities.length) * 100)
+        : 0;
       const objective = document.createElement("section");
       objective.id = "active-plan-objective";
-      objective.dataset.toc = "30-Day Objective";
-      objective.innerHTML = `<div class="active-plan-header"><h2>${escapeHtml(plan.title)}</h2><p>${escapeHtml(plan.objective)}</p></div><ul class="active-plan-overview-list"><li><strong>Why this plan</strong>${escapeHtml(plan.cyclePurpose || plan.objective)}</li><li><strong>Current focus</strong>${escapeHtml(plan.focus)}</li><li><strong>Evidence to review</strong>${escapeHtml(plan.evidence)}</li><li><strong>Decision at the end of 30 days</strong>${escapeHtml(plan.decision)}</li><li><strong>Weekly owner and rhythm</strong>${escapeHtml(`${plan.cadence} review led by ${plan.owner}.`)}</li></ul>`;
+      objective.dataset.toc = "This Week";
+      objective.className = "workspace-section active-plan-command-center";
+      objective.innerHTML = `<div class="active-plan-command-head"><div><p class="active-plan-label">Cycle ${weeklyWorkspace.cycle || 1} | Week ${weeklyWorkspace.currentWeek}</p><h2>This Week</h2><p>Finish the current work before adding another initiative.</p></div><div class="active-plan-week-progress"><strong id="activePlanProgressCount">${completedPriorityCount} of ${weeklyWorkspace.currentPriorities.length} complete</strong><span>Current-week progress</span><div class="active-plan-progress-track" id="activePlanProgressTrack" aria-label="${priorityProgress}% of current priorities complete"><div class="active-plan-progress-fill" id="activePlanProgressFill" style="width:${priorityProgress}%"></div></div></div></div><div class="active-plan-context-grid"><article class="active-plan-context-item"><strong>30-day outcome</strong><p>${escapeHtml(plan.objective)}</p></article><article class="active-plan-context-item"><strong>Current focus</strong>${activePlanFocusMarkup(plan.focus)}</article><article class="active-plan-context-item"><strong>Decision at the end</strong><p>${escapeHtml(plan.decision)}</p></article></div><p class="active-plan-rhythm"><strong>Owner and rhythm:</strong> ${escapeHtml(`${plan.owner} leads a ${String(plan.cadence || "weekly").toLowerCase()} review.`)}</p>`;
       main.appendChild(objective);
 
       const actions = document.createElement("section");
       actions.id = "active-plan-this-week";
-      actions.dataset.toc = "This Week";
-      actions.innerHTML = `<h2>Week ${weeklyWorkspace.currentWeek} Priorities</h2><p class="muted">This is the working area for the week. Complete and document each priority here; there is no separate action page.</p><div class="active-plan-actions"></div><div class="active-plan-save-row"><button type="button" id="saveWeeklyProgressButton">Save Weekly Progress</button><span class="active-plan-save-status" id="weeklyProgressSaveStatus"></span></div><div class="weekly-close-prompt" id="weeklyClosePrompt" hidden><p><strong>Week ${weeklyWorkspace.currentWeek} is ready to close.</strong> All priorities are complete and have a result note.</p><button type="button" id="reviewCloseWeekButton">Review and Close Week ${weeklyWorkspace.currentWeek}</button></div>`;
+      actions.dataset.toc = "Current Priorities";
+      actions.className = "workspace-section active-plan-current-work";
+      actions.innerHTML = `<h2>Do This Week</h2><p class="muted">Complete and document each priority here. References and work tools appear inside the priority that needs them.</p><div class="active-plan-actions"></div><div class="active-plan-save-row"><button type="button" id="saveWeeklyProgressButton">Save Weekly Progress</button><span class="active-plan-save-status" id="weeklyProgressSaveStatus"></span></div><div class="weekly-close-prompt" id="weeklyClosePrompt" hidden><p><strong>Week ${weeklyWorkspace.currentWeek} is ready to close.</strong> All priorities are complete and have a result note.</p><button type="button" id="reviewCloseWeekButton">Review and Close Week ${weeklyWorkspace.currentWeek}</button></div>`;
       const actionList = actions.querySelector(".active-plan-actions");
       weeklyWorkspace.currentPriorities.forEach((action, index) => {
         const card = document.createElement("article");
@@ -15950,6 +16260,13 @@
       };
       const refreshWeeklyClosePrompt = () => {
         syncWeeklyPriorityCards();
+        const completeCount = weeklyWorkspace.currentPriorities.filter((priority) => priority.status === "Complete").length;
+        const progress = weeklyWorkspace.currentPriorities.length
+          ? Math.round((completeCount / weeklyWorkspace.currentPriorities.length) * 100)
+          : 0;
+        objective.querySelector("#activePlanProgressCount").textContent = `${completeCount} of ${weeklyWorkspace.currentPriorities.length} complete`;
+        objective.querySelector("#activePlanProgressTrack").setAttribute("aria-label", `${progress}% of current priorities complete`);
+        objective.querySelector("#activePlanProgressFill").style.width = `${progress}%`;
         const ready = weeklyWorkspace.currentPriorities.length > 0
           && weeklyWorkspace.currentPriorities.every((priority) => priority.status === "Complete" && cleanText(priority.evidence));
         actions.querySelector("#weeklyClosePrompt").hidden = !ready;
@@ -15992,8 +16309,9 @@
 
       const weeks = document.createElement("section");
       weeks.id = "active-plan-weeks";
-      weeks.dataset.toc = "Four-Week Plan";
-      weeks.innerHTML = "<h2>Four-Week Plan</h2><p class=\"muted\">The outline shows the intended sequence. Closing each week creates the next focused set of no more than three priorities.</p><div class=\"active-plan-week-grid\"></div>";
+      weeks.dataset.toc = "Plan Outlook";
+      weeks.dataset.defaultOpen = "false";
+      weeks.innerHTML = "<h2>Plan Outlook</h2><p class=\"muted\">Use this only to understand what may come next. The current week remains the source of truth.</p><div class=\"active-plan-week-grid\"></div>";
       const weekGrid = weeks.querySelector(".active-plan-week-grid");
       plan.weeks.slice(0, 4).forEach((week, weekIndex) => {
         const card = document.createElement("article");
@@ -16007,6 +16325,10 @@
       const review = document.createElement("section");
       review.id = "active-plan-review";
       review.dataset.toc = "Close the Week";
+      review.dataset.defaultOpen = weeklyWorkspace.currentPriorities.length > 0
+        && weeklyWorkspace.currentPriorities.every((priority) => priority.status === "Complete" && cleanText(priority.evidence))
+        ? "true"
+        : "false";
       const rolloverRows = weeklyWorkspace.currentPriorities.map((priority, index) => {
         const recommended = index < 2 ? "Carry forward" : "Drop";
         const selected = priority.status === "Complete" ? "Drop" : (priority.disposition || recommended);
@@ -16139,6 +16461,7 @@
         const history = document.createElement("section");
         history.id = "active-plan-week-history";
         history.dataset.toc = "Weekly History";
+        history.dataset.defaultOpen = "false";
         history.innerHTML = `<h2>Weekly History</h2><div class="messaging-version-list">${weeklyWorkspace.history.slice().reverse().map((entry) => {
           const completed = entry.priorities.filter((priority) => priority.status === "Complete").length;
           return `<div class="messaging-version-row"><div><strong>Cycle ${entry.cycle || 1}, Week ${entry.week}</strong><span>${escapeHtml(entry.closedAt.slice(0, 10))}</span></div><div><strong>${completed} of ${entry.priorities.length} completed</strong><span>${escapeHtml(entry.decision)}</span></div><div><strong>${escapeHtml(entry.nextChange || "No strategic change")}</strong><span>${escapeHtml(entry.learning || "No learning note saved")}</span></div><div></div></div>`;
@@ -18354,6 +18677,7 @@
       }
       const requestedAsset = new URLSearchParams(window.location.search).get("asset") || "";
       const finishAsset = (asset = "gtm") => {
+        renderWorkflowReturnBar();
         setupReportNavigation();
         applyStandardActionIcons();
         applyAssetContentContract(asset, data);
