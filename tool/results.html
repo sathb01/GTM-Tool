@@ -1045,6 +1045,52 @@
       color: #6b7280;
     }
 
+    .active-plan-reference {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .active-plan-reference > strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .active-plan-reference ul {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .active-plan-reference li {
+      padding-left: 2px;
+    }
+
+    .active-plan-reference a {
+      display: inline-block;
+      margin-left: 6px;
+      border: 0;
+      border-radius: 5px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 7px 10px;
+    }
+
+    .active-plan-reference a:hover,
+    .active-plan-reference a:focus {
+      background: #6b7280;
+      color: #fff;
+    }
+
+    .active-plan-reference-note {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
     .active-plan-week-grid,
     .active-plan-review {
       display: grid;
@@ -12234,7 +12280,7 @@
       });
       document.querySelectorAll('a[target="_blank"]').forEach((link) => {
         const destination = new URL(link.href, window.location.href);
-        if (destination.origin === window.location.origin) {
+        if (destination.origin === window.location.origin && !link.classList.contains("keep-separate-window")) {
           link.removeAttribute("target");
           link.removeAttribute("rel");
         }
@@ -15258,6 +15304,37 @@
       };
     }
 
+    function activePlanReferenceAssets(action, data) {
+      const text = `${action.title || ""} ${action.output || ""} ${action.why || ""}`.toLowerCase();
+      const assets = [];
+      const add = (asset, label, use) => {
+        if (assets.some((item) => item.asset === asset)) return;
+        assets.push({ asset, label, use });
+      };
+
+      if (/\bcustomer\b|\bsegment\b|\bicp\b|target (?:account|customer|buyer|user|list)|account list|market (?:segment|selection|fit)|fit criteria|buying signal|validation (?:audience|segment|hypothesis)|decision rule/.test(text)) {
+        add("icp", "ICP Brief", "Use the customer definition, fit criteria, problem, and observable signals.");
+      }
+      if (/buyer|persona|message|messaging|outreach|conversation|discovery|objection|proof|case study|testimonial|business case|offer/.test(text)) {
+        add("personas", "Persona Brief", "Use the buyer priorities, decision role, objections, and language.");
+      }
+      if (/message|messaging|outreach|conversation|discovery|proof|offer/.test(text)) {
+        add("icp", "ICP Brief", "Keep the work tied to the selected customer, problem, and buying context.");
+      }
+      if (isPreRevenueReport(data) && !assets.length && !/crm|data quality|source attribution|loss reason/.test(text)) {
+        add("icp", "ICP Brief", "Use the current first-win segment and validation assumptions.");
+      }
+      return assets;
+    }
+
+    function activePlanReferenceMarkup(action, data) {
+      const assets = activePlanReferenceAssets(action, data);
+      if (!assets.length) {
+        return '<div class="active-plan-reference"><strong>Reference for this work</strong><p class="active-plan-reference-note">No reference asset is required for this operational task. Complete it in the system where the work is managed, then record the result here.</p></div>';
+      }
+      return `<div class="active-plan-reference"><strong>Reference for this work</strong><ul>${assets.map((item) => `<li><strong>${escapeHtml(item.label)}:</strong> ${escapeHtml(item.use)} <a class="keep-separate-window" href="${escapeHtml(reportAssetUrl(item.asset))}" target="_blank" rel="noopener">Open separately</a></li>`).join("")}</ul><p class="active-plan-reference-note">Keep the asset open while you work, or use its print or PDF controls for a desk copy.</p></div>`;
+    }
+
     async function persistActivePlanData(data, statusElement) {
       data.activePlan__updatedAt = new Date().toISOString();
       updateActivePlanLocalCache(data);
@@ -15678,8 +15755,8 @@
 
       const resources = document.createElement("section");
       resources.id = "action-runner-resources";
-      resources.dataset.toc = "Use These Resources";
-      resources.innerHTML = `<h2>Use These Resources</h2><p class="muted">Use the existing plan and tracker as the source of truth. Do not recreate the work in a separate document.</p><div class="action-runner-resource-row"><a href="${escapeHtml(plan.planLink)}">${escapeHtml(plan.planLinkLabel)}</a><a href="${escapeHtml(intakeReturnUrl())}" target="_blank" rel="noopener">Review Related Intake Answers</a></div>`;
+      resources.dataset.toc = "References";
+      resources.innerHTML = `<h2>References for This Work</h2>${activePlanReferenceMarkup(action, data)}<div class="action-runner-resource-row"><a href="${escapeHtml(plan.planLink)}" target="_blank" rel="noopener">${escapeHtml(plan.planLinkLabel)}</a><a href="${escapeHtml(intakeReturnUrl())}" target="_blank" rel="noopener">Review Related Intake Answers</a></div>`;
       main.appendChild(resources);
 
       const capture = document.createElement("section");
@@ -15752,7 +15829,7 @@
         card.className = "active-plan-action";
         if (action.sourceIndex === requestedAction) card.classList.add("is-highlighted");
         card.dataset.weeklyPriority = String(index);
-        card.innerHTML = `<div class="active-plan-action-copy"><div class="active-plan-label">Priority ${index + 1}</div><h3>${escapeHtml(action.title)}</h3><p><strong>Why it matters:</strong> ${escapeHtml(action.why)}</p><p><strong>This week's output:</strong> ${escapeHtml(action.output)}</p><p><strong>Complete when:</strong> ${escapeHtml(action.completionRule || "The stated output is complete and its result is recorded.")}</p><p><strong>Evidence to save:</strong> ${escapeHtml(action.evidenceRequired || "A short result note showing what changed, what was observed, and what remains.")}</p><div class="active-plan-task-guidance"><strong>How to complete this priority</strong><ul>${guidance.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ul></div><label class="wide">Result and evidence<span class="active-plan-evidence-help">Use a short outcome note: what changed, how much, and what remains.</span><textarea rows="3" data-weekly-priority-field="evidence" placeholder="${escapeHtml(guidance.placeholder)}">${escapeHtml(action.evidence || "")}</textarea></label></div><div class="active-plan-controls"><label>Status<select data-weekly-priority-field="status">${activePlanWeeklyStatusOptions(action.status)}</select></label><label>Owner<input data-weekly-priority-field="owner" value="${escapeHtml(action.owner || plan.owner)}"></label></div>`;
+        card.innerHTML = `<div class="active-plan-action-copy"><div class="active-plan-label">Priority ${index + 1}</div><h3>${escapeHtml(action.title)}</h3><p><strong>Why it matters:</strong> ${escapeHtml(action.why)}</p><p><strong>This week's output:</strong> ${escapeHtml(action.output)}</p><p><strong>Complete when:</strong> ${escapeHtml(action.completionRule || "The stated output is complete and its result is recorded.")}</p><p><strong>Evidence to save:</strong> ${escapeHtml(action.evidenceRequired || "A short result note showing what changed, what was observed, and what remains.")}</p><div class="active-plan-task-guidance"><strong>How to complete this priority</strong><ul>${guidance.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ul></div>${activePlanReferenceMarkup(action, data)}<label class="wide">Result and evidence<span class="active-plan-evidence-help">Use a short outcome note: what changed, how much, and what remains.</span><textarea rows="3" data-weekly-priority-field="evidence" placeholder="${escapeHtml(guidance.placeholder)}">${escapeHtml(action.evidence || "")}</textarea></label></div><div class="active-plan-controls"><label>Status<select data-weekly-priority-field="status">${activePlanWeeklyStatusOptions(action.status)}</select></label><label>Owner<input data-weekly-priority-field="owner" value="${escapeHtml(action.owner || plan.owner)}"></label></div>`;
         actionList.appendChild(card);
       });
       const syncWeeklyPriorityCards = () => {
