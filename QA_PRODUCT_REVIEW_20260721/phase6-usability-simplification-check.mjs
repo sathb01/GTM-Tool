@@ -4,6 +4,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require("C:/Users/sathb/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright");
 const baseUrl = String(process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
 const cookie = process.env.GTM_QA_COOKIE || "";
+const qaTimeout = /^https?:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?$/i.test(baseUrl) ? 20000 : 60000;
 const profiles = [
   "qa3-pre-dtc-roamready-20260724",
   "qa3-pre-saas-referralpath-20260724",
@@ -26,6 +27,7 @@ page.on("pageerror", (error) => pageErrors.push(error.message));
 try {
   for (const recordId of profiles) {
     await page.goto(`${baseUrl}/results.html?asset=active&recordId=${encodeURIComponent(recordId)}`, { waitUntil: "load" });
+    await page.waitForSelector("#active-plan-objective", { timeout: qaTimeout });
     const startWeek = page.locator("#startWeekOneButton");
     if (await startWeek.count()) {
       await page.evaluate(() => {
@@ -36,7 +38,7 @@ try {
       });
       await startWeek.click();
     }
-    await page.waitForSelector("#active-plan-this-week", { timeout: 20000 });
+    await page.waitForSelector("#active-plan-this-week", { timeout: qaTimeout });
     const activeState = await page.evaluate(() => {
       const links = Array.from(document.querySelectorAll("#reportToc a[data-asset]"));
       const priorities = Array.from(document.querySelectorAll("[data-weekly-priority]"));
@@ -74,7 +76,7 @@ try {
     if (activeState.workToolLinks.length) {
       toolReturnState.applicable = true;
       await page.goto(activeState.workToolLinks[0], { waitUntil: "load" });
-      await page.waitForSelector("#workflowReturnBar", { timeout: 20000 });
+      await page.waitForSelector("#workflowReturnBar", { timeout: qaTimeout });
       toolReturnState = await page.evaluate(() => ({
         applicable: true,
         returnBarVisible: Boolean(document.getElementById("workflowReturnBar")?.offsetParent),
@@ -86,7 +88,7 @@ try {
     }
 
     await page.goto(`${baseUrl}/index.html?recordId=${encodeURIComponent(recordId)}`, { waitUntil: "load" });
-    await page.waitForSelector(".nav-assets-box", { timeout: 20000 });
+    await page.waitForSelector(".nav-assets-box", { timeout: qaTimeout });
     const intakeState = await page.evaluate(() => ({
       summary: document.querySelector(".nav-assets-box > summary")?.textContent.trim() || "",
       groups: Array.from(document.querySelectorAll(".nav-assets-box .nav-asset-group-label")).map((item) => item.textContent.trim()),
@@ -98,7 +100,7 @@ try {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${baseUrl}/results.html?asset=active&recordId=${encodeURIComponent(recordId)}`, { waitUntil: "load" });
-    await page.waitForSelector("#active-plan-this-week", { timeout: 20000 });
+    await page.waitForSelector("#active-plan-this-week", { timeout: qaTimeout });
     const mobileState = await page.evaluate(() => ({
       horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 2,
       clippedPriorityText: Array.from(document.querySelectorAll("[data-weekly-priority]")).some((card) => card.scrollWidth > card.clientWidth + 2),
