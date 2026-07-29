@@ -33,13 +33,24 @@ for (const viewport of [
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(`${baseUrl}/results.html?v=20260724-reference-assets&asset=active&recordId=${encodeURIComponent(recordId)}`, { waitUntil: "networkidle" });
+    const startWeek = page.locator("#startWeekOneButton");
+    if (await startWeek.count()) {
+      await page.evaluate(() => {
+        document.querySelectorAll("[data-tool-setup-status]").forEach((control) => {
+          control.value = "Ready";
+          control.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+      });
+      await startWeek.click();
+      await page.waitForSelector("#active-plan-this-week", { timeout: 20000 });
+    }
 
     const result = await page.evaluate(() => {
       const cards = Array.from(document.querySelectorAll("[data-weekly-priority]"));
       return {
         cardCount: cards.length,
         references: cards.map((card) => {
-          const block = card.querySelector(".active-plan-reference");
+          const block = card.querySelector(".active-plan-task-resources");
           const links = Array.from(block?.querySelectorAll("a") || []);
           return {
             hasBlock: Boolean(block),
@@ -47,7 +58,7 @@ for (const viewport of [
             text: block?.textContent?.replace(/\s+/g, " ").trim() || "",
             links: links.map((link) => ({
               label: link.textContent.trim(),
-              type: link.classList.contains("work-tool-link") ? "tool" : "reference",
+              type: link.dataset.keepNewWindow === "true" ? "reference" : "tool",
               target: link.getAttribute("target"),
               rel: link.getAttribute("rel"),
               href: link.getAttribute("href")
@@ -61,8 +72,8 @@ for (const viewport of [
 
     const label = `${viewport.name} ${recordId}`;
     check(`${label}: weekly priorities render`, result.cardCount > 0, `${result.cardCount} priorities`);
-    check(`${label}: every priority identifies what to use`, result.references.every((item) => item.hasBlock && item.heading === "What to use"));
-    check(`${label}: every priority gives an asset, tool, or clear no-asset instruction`, result.references.every((item) => item.links.length > 0 || /No GTM Intelligence OS asset is required/i.test(item.text)));
+    check(`${label}: every priority identifies what to use`, result.references.every((item) => item.hasBlock && item.heading === "Use for this task"));
+    check(`${label}: every priority gives a relevant asset or tool`, result.references.every((item) => item.links.length > 0));
     check(`${label}: reference assets open separately`, result.references.every((item) => item.links
       .filter((link) => link.type === "reference")
       .every((link) => link.target === "_blank" && /noopener/.test(link.rel || ""))), JSON.stringify(result.references.map((item) => item.links)));
@@ -72,7 +83,7 @@ for (const viewport of [
     check(`${label}: work tools stay in flow and return to This Week`, result.references.every((item) => item.links
       .filter((link) => link.type === "tool")
       .every((link) => !link.target
-        && /[?&]asset=(?:messaging|targets|proof-assets|outreach|validation-workspace)(?:&|$)/.test(link.href || "")
+        && /[?&]asset=(?:messaging|targets|proof-assets|outreach|validation-workspace|weekly-review)(?:&|$)/.test(link.href || "")
         && /[?&]workReturn=active(?:&|#|$)/.test(link.href || ""))), JSON.stringify(result.references.map((item) => item.links.filter((link) => link.type === "tool"))));
     check(`${label}: priority cards do not overflow`, !result.bodyOverflow && result.references.every((item) => !item.overflow));
     check(`${label}: no page errors`, errors.length === 0, errors.join(" | "));

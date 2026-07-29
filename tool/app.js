@@ -3523,7 +3523,7 @@ function createOfferAssessmentPanel(row, index) {
   const workaroundOptions = ["Manual work", "Spreadsheets", "Internal team", "Incumbent vendor", "Point solution", "Agency", "Consultant", "Generic tool", "No formal solution", "Doing nothing", "Other"];
   const costOfInactionOptions = ["Lost revenue", "Higher costs", "Lower margin", "Launch delays", "Quality issues", "Customer churn", "Missed opportunities", "Operational risk", "Founder or team burnout", "Poor visibility", "Compliance or security risk", "Other"];
   const offerEvidenceOptions = ["Customer interview", "Current customer example", "Past customer example", "Win/loss pattern", "CRM data", "Sales call notes", "Pipeline pattern", "Case study", "Testimonial", "Reference customer", "Market research", "Founder observation", "Assumption only", "Other"];
-  const useCaseOptions = ["Reduce manual work", "Increase qualified pipeline", "Improve conversion", "Reduce costs", "Improve margin", "Launch products faster", "Improve operational reliability", "Improve reporting or visibility", "Create a repeatable sales process", "Clarify positioning or messaging", "Build a target-account list", "Improve proof or buyer confidence", "Reduce implementation risk", "Other"];
+  const useCaseOptions = ["Reduce manual work", "Increase qualified pipeline", "Improve conversion", "Reduce costs", "Improve margin", "Launch products faster", "Improve operational reliability", "Improve reporting or visibility", "Create a repeatable sales process", "Clarify positioning or messaging", "Build a Target List", "Improve proof or buyer confidence", "Reduce implementation risk", "Other"];
   const buyerRequirementOptions = ["Budget owner access", "Executive sponsor", "Champion or day-to-day owner", "Clean data", "System access", "Implementation owner", "Process change", "Training / enablement", "Technical integration", "Security or privacy review", "Procurement review", "Low customization", "Other"];
   const outcomeTypeOptions = ["Save time", "Reduce cost", "Increase revenue", "Improve margin", "Launch faster", "Reduce risk", "Improve quality", "Increase capacity", "Improve customer experience", "Simplify operations", "Improve visibility", "Reduce dependency on internal resources", "Improve consistency", "Improve compliance", "Other / Not sure yet"];
   const successMetricOptions = ["Hours saved", "Days saved", "Cycle time reduction", "Fewer manual steps", "Fewer meetings", "Faster approval", "Faster launch", "Reduced internal workload", "Dollar savings", "Lower labor cost", "Lower vendor cost", "Lower rework cost", "Lower landed cost", "Lower support cost", "Lower software/tool cost", "Reduced waste", "More leads", "Higher conversion rate", "Faster sales cycle", "Larger average order", "More products launched", "More repeat purchases", "Higher retention", "Higher customer lifetime value", "Higher gross margin", "Lower production cost", "Lower defect/rework cost", "Better pricing power", "Improved product mix", "Reduced logistics cost", "Shorter development cycle", "Shorter sourcing cycle", "Shorter production timeline", "Faster time to first order", "Faster time to market", "Fewer delays", "Fewer quality issues", "Fewer supplier problems", "Fewer compliance issues", "Better predictability", "Lower operational dependency", "Quality improved", "Risk reduced", "Capacity increased", "Customer satisfaction improved", "Process visibility improved", "Other", "Not sure yet"];
@@ -4764,7 +4764,7 @@ function improvementFocusFromUrl() {
     },
     customer: {
       area: "Customer priority and ICP answers",
-      why: "Review the customer evidence that defines the Top Opportunity and ICP-related priorities.",
+      why: "Review the customer evidence that defines the Priority Opportunity and ICP-related priorities.",
       missing: ["Priority customer group", "Buyer problem", "Reason to act now", "Evidence", "Observable fit and disqualification criteria"],
       questionsHeading: "What to do here",
       questions: [
@@ -4773,7 +4773,7 @@ function improvementFocusFromUrl() {
         "Save the changes and return. The plan will automatically recalculate the opportunity and ranked priorities."
       ],
       answerHeading: "Update the customer-priority source answers",
-      answerIntro: "These intake answers are used to define the Top Opportunity and ICP-related priorities.",
+      answerIntro: "These intake answers are used to define the Priority Opportunity and ICP-related priorities.",
       example: "Specialty manufacturers with 75-400 employees, urgent throughput constraints, and a documented backlog that is affecting delivery performance or margin.",
       fieldIds: ["customerContextStarter", "bestFitCustomerGroup", "bestFitPrimaryPain", "bestFitTrigger", "bestFitEvidence"]
     },

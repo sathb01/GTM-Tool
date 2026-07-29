@@ -80,7 +80,11 @@ try {
     /only when new information/i.test(link.dataset.revisionGuidance || "")
     && /only when new information/i.test(link.getAttribute("aria-label") || "")
   ))));
-  await page.locator(".optional-intake-revision:visible").first().hover();
+  await revisionLinks.first().evaluate((link) => {
+    const details = link.closest("details");
+    if (details) details.open = true;
+  });
+  await revisionLinks.first().hover();
   check("hover guidance appears without leaving the plan", await page.locator(".revision-guidance-tooltip").filter({ hasText: /only when new information/i }).count() === 1);
   await page.mouse.move(2, 2);
 

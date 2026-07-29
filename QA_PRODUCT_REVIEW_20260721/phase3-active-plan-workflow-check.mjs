@@ -12,6 +12,7 @@ const sourceResponse = await fetch(`${baseUrl}/api/records/${encodeURIComponent(
 if (!sourceResponse.ok) throw new Error(`Could not load ${recordId}: ${sourceResponse.status}`);
 let testRecord = structuredClone((await sourceResponse.json()).record);
 delete testRecord.data.activePlanWeeklyWorkspace;
+delete testRecord.data.activePlanToolSetupWorkspace;
 Object.keys(testRecord.data).forEach((key) => {
   if (/^activePlan__(?:action-|weeklyReview__|updatedAt)/.test(key)) delete testRecord.data[key];
 });
@@ -48,33 +49,42 @@ try {
   });
 
   await page.goto(`${baseUrl}/results.html?asset=active&action=1&recordId=${recordId}`, { waitUntil: "load" });
+  await page.waitForSelector("#active-plan-objective [data-tool-setup-status]", { timeout: 20000 });
+  await page.evaluate(() => {
+    document.querySelectorAll("[data-tool-setup-status]").forEach((control) => {
+      control.value = "Ready";
+      control.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  });
+  await page.click("#startWeekOneButton");
   await page.waitForSelector("#active-plan-this-week", { timeout: 20000 });
   const initial = await page.evaluate(() => ({
     actionRunnerPresent: Boolean(document.getElementById("action-runner")),
     actionParameterRemoved: !new URLSearchParams(window.location.search).has("action"),
     planModeVisible: document.body.innerText.includes("Plan Mode"),
-    currentContextVisible: ["30-day outcome", "current focus", "decision at the end"]
-      .every((label) => document.querySelector("#active-plan-objective")?.innerText.toLowerCase().includes(label)),
     planOutlookCollapsed: !document.querySelector("#active-plan-weeks > details.section-details")?.open,
     closeWeekCollapsed: !document.querySelector("#active-plan-review > details.section-details")?.open,
+    toolSetupComplete: document.querySelector("#active-plan-objective")?.innerText.includes("Tool Setup is complete") || false,
     samePageNavHidden: document.getElementById("currentSectionNav")?.hidden || getComputedStyle(document.getElementById("currentSectionNav")).display === "none",
     priorityCount: document.querySelectorAll("[data-weekly-priority]").length,
-    completeWhenCount: Array.from(document.querySelectorAll("[data-weekly-priority]")).filter((card) => card.innerText.includes("Complete when:")).length,
-    evidenceToSaveCount: Array.from(document.querySelectorAll("[data-weekly-priority]")).filter((card) => card.innerText.includes("Evidence to save:")).length,
-    guidanceCount: document.querySelectorAll(".active-plan-task-guidance").length,
+    instructionCount: document.querySelectorAll(".active-plan-task-instruction").length,
+    resultCount: document.querySelectorAll('[data-weekly-priority-field="result"]').length,
+    learningCount: document.querySelectorAll('[data-weekly-priority-field="learning"]').length,
+    blockerCount: document.querySelectorAll('[data-weekly-priority-field="blocker"]').length,
+    resourceCount: document.querySelectorAll(".active-plan-task-resources").length,
     workOnActionLinks: Array.from(document.querySelectorAll("#active-plan-this-week a")).filter((link) => /Work on this action/i.test(link.textContent)).length,
     planLinks: Array.from(document.querySelectorAll("#active-plan-this-week a")).filter((link) => /GTM Action Plan/i.test(link.textContent)).length,
-    highlightedPriority: Boolean(document.querySelector(".active-plan-action.is-highlighted"))
+    onThisWeekHash: window.location.hash === "#active-plan-this-week"
   }));
 
   await page.evaluate(() => {
     document.querySelectorAll("[data-weekly-priority]").forEach((card, index) => {
       const status = card.querySelector('[data-weekly-priority-field="status"]');
-      const evidence = card.querySelector('[data-weekly-priority-field="evidence"]');
+      const result = card.querySelector('[data-weekly-priority-field="result"]');
       status.value = "Complete";
       status.dispatchEvent(new Event("change", { bubbles: true }));
-      evidence.value = `Completed priority ${index + 1} with saved evidence.`;
-      evidence.dispatchEvent(new Event("input", { bubbles: true }));
+      result.value = `Completed priority ${index + 1} with a measured result.`;
+      result.dispatchEvent(new Event("input", { bubbles: true }));
     });
   });
   await page.click("#saveWeeklyProgressButton");
@@ -112,15 +122,17 @@ try {
 
   const checks = {
     postRevenueActionRunnerRemoved: !initial.actionRunnerPresent && initial.actionParameterRemoved,
-    internalModeLabelRemoved: !initial.planModeVisible && initial.currentContextVisible,
+    internalModeLabelRemoved: !initial.planModeVisible && initial.toolSetupComplete,
     futureWorkStartsCollapsed: initial.planOutlookCollapsed && initial.closeWeekCollapsed,
     redundantSamePageNavigationRemoved: initial.samePageNavHidden,
     weeklyPlanLimitedToThreePriorities: initial.priorityCount === 3,
-    eachPriorityDefinesDoneAndEvidence: initial.completeWhenCount === initial.priorityCount
-      && initial.evidenceToSaveCount === initial.priorityCount,
-    eachPriorityIncludesInlineGuidance: initial.guidanceCount === initial.priorityCount,
+    eachPriorityHasPlainInstruction: initial.instructionCount === initial.priorityCount,
+    eachPriorityCapturesResultLearningAndBlocker: initial.resultCount === initial.priorityCount
+      && initial.learningCount === initial.priorityCount
+      && initial.blockerCount === initial.priorityCount,
+    eachPriorityShowsRelevantResources: initial.resourceCount >= 2,
     duplicateWorkflowLinksRemoved: initial.workOnActionLinks === 0 && initial.planLinks === 0,
-    oldActionLinkReturnsToHighlightedWeeklyPriority: initial.highlightedPriority,
+    oldActionLinkReturnsToThisWeek: initial.onThisWeekHash,
     allCompletePromptsWeekClose: completed.closePromptVisible && /ready to close|complete/i.test(completed.saveMessage),
     completedWorkCannotCarryForward: completed.completedRolloverRows === initial.priorityCount
       && completed.visibleCompletedRolloverRows === 0

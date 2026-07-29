@@ -341,6 +341,33 @@
       padding: 16px;
     }
 
+    .summary-primary-action {
+      max-width: 860px;
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.5;
+      margin: 0 0 16px;
+    }
+
+    .summary-secondary-context {
+      border-left: 3px solid var(--border);
+      color: var(--muted);
+      margin: 18px 0;
+      padding: 2px 0 2px 14px;
+    }
+
+    .summary-secondary-context h3 {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 7px;
+    }
+
+    .summary-secondary-context ul,
+    .summary-secondary-context p {
+      margin-bottom: 0;
+    }
+
     .summary-support-content > .card-actions {
       border-top: 1px solid var(--border);
       clear: both;
@@ -978,6 +1005,69 @@
       gap: 12px;
     }
 
+    .active-plan-tool-setup {
+      display: grid;
+      gap: 16px;
+    }
+
+    .active-plan-tool-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .active-plan-tool-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+    }
+
+    .active-plan-tool-card h3,
+    .active-plan-tool-card p {
+      margin: 0;
+    }
+
+    .active-plan-tool-card label {
+      color: var(--muted);
+      display: grid;
+      font-size: 12px;
+      font-weight: 800;
+      gap: 4px;
+    }
+
+    .active-plan-tool-card select {
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text);
+      font: inherit;
+      padding: 8px 9px;
+      width: 100%;
+    }
+
+    .active-plan-tool-purpose {
+      color: var(--text);
+    }
+
+    .active-plan-tool-done {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .active-plan-tool-ready {
+      align-items: center;
+      background: var(--soft);
+      border-left: 4px solid var(--strong);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      justify-content: space-between;
+      padding: 12px 14px;
+    }
+
     .active-plan-action {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(190px, 0.35fr);
@@ -1007,6 +1097,34 @@
     .active-plan-action-copy {
       display: grid;
       gap: 8px;
+    }
+
+    .active-plan-task-instruction {
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .active-plan-task-resources {
+      background: var(--soft);
+      border-left: 3px solid var(--accent);
+      display: grid;
+      gap: 8px;
+      padding: 10px 12px;
+    }
+
+    .active-plan-task-resources strong {
+      font-size: 13px;
+    }
+
+    .active-plan-result-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 4px;
+    }
+
+    .active-plan-result-grid .wide {
+      grid-column: 1 / -1;
     }
 
     .active-plan-task-guidance {
@@ -1125,6 +1243,8 @@
 
     .active-plan-controls select,
     .active-plan-controls input,
+    .active-plan-result-grid textarea,
+    .active-plan-result-grid input,
     .active-plan-review textarea,
     .active-plan-review select,
     .active-plan-review input,
@@ -1135,6 +1255,17 @@
       color: var(--text);
       font: inherit;
       padding: 8px 9px;
+    }
+
+    @media (max-width: 760px) {
+      .active-plan-tool-grid,
+      .active-plan-result-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .active-plan-result-grid .wide {
+        grid-column: auto;
+      }
     }
 
     .active-plan-link-row {
@@ -3446,7 +3577,7 @@
       gtm: {
         label: "GTM Plan Summary",
         purpose: "Turn the current GTM diagnosis into one coherent decision and a ranked, executable plan.",
-        requiredContent: ["plan mode", "primary customer", "offer", "top opportunity", "next best action", "top three actions"]
+        requiredContent: ["primary customer", "offer", "priority opportunity", "this week", "top three actions"]
       },
       health: {
         label: "Plan Status",
@@ -6559,7 +6690,7 @@
     function actionPanelAssets(model) {
       const data = model.data;
       const assets = [
-        "Target account list",
+        "Target List",
         "Outreach message",
         "Weekly pipeline review template"
       ];
@@ -6731,7 +6862,7 @@
         }),
         opportunity: outputClaim({
           id: "summary-opportunity",
-          label: "Top Opportunity",
+          label: "Priority Opportunity",
           value: dynamicSummary.opportunity,
           status: "Recommendation",
           confidence: opportunityPriority?.confidence || (dynamicSummary.feedback.sufficientTest ? "High" : "Medium"),
@@ -6751,7 +6882,7 @@
         }),
         action: outputClaim({
           id: "summary-action",
-          label: "Next Best Action",
+          label: "This Week",
           value: nextAction,
           status: dynamicSummary.nextPriority ? "Saved input" : "Recommendation",
           confidence: dynamicSummary.nextPriority ? "High" : (opportunityPriority?.confidence || "Medium"),
@@ -6771,7 +6902,7 @@
         }),
         risk: outputClaim({
           id: "summary-risk",
-          label: "Biggest Risk",
+          label: "Risk",
           value: topRisk,
           status: blockedTitles.length ? "Saved evidence" : "Inference",
           confidence: blockedTitles.length ? "High" : (riskInsight?.confidence || "Medium"),
@@ -6821,6 +6952,77 @@
       }).join("")}</ul>`;
     }
 
+    function planCustomerName(model) {
+      return cleanText(
+        model.priorityGroup?.values?.groupName
+        || model.data.bestFitCustomerGroup
+        || model.data.quickBestFitCustomer
+      ) || "the selected customer group";
+    }
+
+    function planOfferName(model) {
+      return cleanText(
+        model.primaryOffer?.values?.offerName
+        || model.data.primaryOfferName
+        || model.data.quickPrimaryOffer
+      ) || "the current offer";
+    }
+
+    function planProblemName(model) {
+      return cleanText(
+        model.priorityGroup?.values?.problem
+        || model.data.bestFitPrimaryPain
+        || model.data.quickBuyerProblem
+      ) || "the priority buyer problem";
+    }
+
+    function planWorkSystem(model) {
+      return cleanText(
+        model.data.crmName
+        || model.data.crmSystem
+        || model.data.currentCrm
+        || model.data.revenueTrackingSystem
+        || model.data.revenueTrackingSystemOther
+      ) || "the CRM or spreadsheet";
+    }
+
+    function priorityOpportunityCopy(model) {
+      return `Build a Target List for ${planCustomerName(model)} and use it to test whether ${planOfferName(model)} solves ${planProblemName(model)}.`;
+    }
+
+    function priorityOpportunityBasis(model) {
+      const group = model.priorityGroup?.values || {};
+      const evidence = normalizeList([
+        group.evidenceSource,
+        group.notesEvidence,
+        model.data.bestFitEvidence
+      ])[0];
+      return [
+        `${planCustomerName(model)} is the customer group selected for the first test.`,
+        `${planProblemName(model)} is the problem the plan needs to confirm.`,
+        evidence
+          ? `The current evidence is: ${evidence}.`
+          : "The customer and problem are still hypotheses, so the plan starts with a small test instead of more volume."
+      ];
+    }
+
+    function ninetyDayFocusItems(model) {
+      const customer = planCustomerName(model);
+      const offer = planOfferName(model);
+      const targetType = isPreRevenueReport(model.data) ? "people or accounts" : "accounts";
+      return [
+        `Build and work a Target List of 25 ${targetType} that match ${customer}.`,
+        `Use buyer responses to confirm or improve ${offer} and the ICP before adding more volume.`
+      ];
+    }
+
+    function thisWeekActionCopy(model) {
+      const customer = planCustomerName(model);
+      const system = planWorkSystem(model);
+      const targetType = isPreRevenueReport(model.data) ? "people or accounts" : "accounts";
+      return `Using the ICP Brief and Persona Brief as reference, build a Target List of 25 ${targetType} for ${customer} in ${system}. Prepare one outreach message, contact the first qualified targets, and record the results in the Weekly GTM Review.`;
+    }
+
     function renderWorkspaceDashboard(model) {
       const cards = document.getElementById("workspaceSummaryCards");
       const recommendation = document.getElementById("workspaceRecommendation");
@@ -6837,8 +7039,8 @@
       const targetListOpportunity = /target list|customer|icp|segment/i.test(dynamicSummary.opportunity)
         ? canonical.rankedPriorities.find((priority) => /icp|customer priority/i.test(`${priority.category || ""} ${priority.priority || ""}`)) || {
             category: "ICP Focus",
-            priority: "Focused target list",
-            whyItMatters: "A focused target list turns the current customer hypothesis into a practical market test.",
+            priority: "Target List",
+            whyItMatters: "A Target List turns the current customer hypothesis into a practical market test.",
             drivers: model.priorityGroup?.values.groupName
               ? `The current priority customer group is ${model.priorityGroup.values.groupName}.`
               : "The plan recommends testing one priority customer group before adding adjacent segments.",
@@ -6888,7 +7090,7 @@
         section.insertBefore(guide, cards);
       }
       if (guide) {
-        guide.innerHTML = `<div><h3>Start with the recommendation, then work the current week</h3><p><strong>${escapeHtml(canonical.mode.label)} plan:</strong> ${escapeHtml(canonical.mode.explanation)}</p><p>Use the four cards to understand the recommendation. Use This Week for execution, references, evidence, and progress.</p></div><div class="decision-summary-status"><strong>Week ${weekly.currentWeek || 1}</strong><span>${completePriorities} of ${currentPriorities.length || canonical.topActions.length} priorities complete</span><a href="${escapeHtml(reportAssetUrl("active"))}">Go to This Week</a></div>`;
+        guide.innerHTML = `<h3>Start here</h3><p>Review the Priority Opportunity, then open This Week to set up the tools and begin the work. Use Risk only when it changes what the team should do next.</p>`;
       }
 
       cards.innerHTML = "";
@@ -6903,27 +7105,27 @@
         claim: claims.readiness
       });
       renderMetricCard(cards, {
-        label: "Top Opportunity",
-        value: opportunityPriority?.priority || model.lowestCategory?.name || "Best leverage point",
-        copy: dynamicSummary.opportunity,
+        label: "Priority Opportunity",
+        value: "Build the Target List",
+        copy: `Test ${planCustomerName(model)} with ${planOfferName(model)}.`,
         badge: { label: "Opportunity", className: "medium" },
         tone: "opportunity",
         target: "summary-opportunity-details",
         claim: claims.opportunity
       });
       renderMetricCard(cards, {
-        label: "Next Best Action",
-        value: "This week",
-        copy: nextAction,
+        label: "This Week",
+        value: "Set up the tools and start the list",
+        copy: thisWeekActionCopy(model),
         badge: { label: "Priority", className: "strong" },
         tone: "action",
         target: "summary-action-details",
         claim: claims.action
       });
       renderMetricCard(cards, {
-        label: "Biggest Risk",
-        value: "Risk",
-        copy: topRisk,
+        label: "Risk",
+        value: topRisk,
+        copy: "Open only when this risk changes the work the team should do next.",
         badge: { label: /risk|capacity|weak|missing|unclear/i.test(topRisk) ? "Watch" : "Review", className: "warning" },
         tone: "risk",
         target: "summary-risk-details",
@@ -6936,18 +7138,17 @@
         tone: "readiness",
         title: "GTM Readiness: Evidence and Score Details",
         subtitle: "See what supports the score and what would improve it.",
-        content: `<p><strong>Current status:</strong> ${escapeHtml(status.label)} at ${escapeHtml(model.readinessScore)}/100.</p>${claimTraceMarkup(claims.readiness)}<div class="score-breakdown-host"></div>`
+        content: `<p><strong>Current status:</strong> ${escapeHtml(status.label)} at ${escapeHtml(model.readinessScore)}/100.</p><div class="score-breakdown-host"></div>`
       });
       renderScoreBreakdown(model.readinessDiagnostic, readinessPanel.querySelector(".score-breakdown-host"), model);
       recommendation.appendChild(readinessPanel);
 
-      const opportunityEvidence = strategicEvidence[0];
       const opportunityPanel = summarySupportPanel({
         id: "summary-opportunity-details",
         tone: "opportunity",
-        title: "Top Opportunity",
-        subtitle: "Understand what it is, why it was selected, and which inputs affect it.",
-        content: `<h3>Recommended opportunity</h3><p>${escapeHtml(dynamicSummary.opportunity)}</p>${claimTraceMarkup(claims.opportunity)}${dynamicSummary.feedback.state === "Supported" ? `<h3>Conversion point to improve</h3><p>${dynamicSummary.feedback.weakestConversionPoint ? `<strong>${escapeHtml(dynamicSummary.feedback.weakestConversionPoint)}</strong> is the saved answer for Biggest funnel drop-off in Revenue Motion.` : "No biggest funnel drop-off has been defined yet. Compare the conversion between each sales stage before choosing where to improve."}</p>` : ""}<h3>Recommended direction</h3>${summaryBulletList(decisionContent.decisionRequired, true)}<h3>Why this is prioritized</h3><ul><li>${escapeHtml(opportunityPriority?.drivers || opportunityEvidence?.observation || executiveInsightMeaning(model))}</li><li>${escapeHtml(opportunityPriority?.recommendedAction || "It is the clearest available leverage point for improving focused execution.")}</li></ul><h3>Recommended 90-Day Focus</h3><ul>${decisionContent.recommendedFocusItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+        title: "Priority Opportunity",
+        subtitle: "The one opportunity the current plan is built around.",
+        content: `<p class="summary-primary-action">${escapeHtml(priorityOpportunityCopy(model))}</p><div class="summary-secondary-context"><h3>What this is based on</h3><ul>${priorityOpportunityBasis(model).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div><h3>90-Day Focus</h3><p>For the next 90 days, do two things:</p><ol>${ninetyDayFocusItems(model).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol>`
       });
       appendReviewLink(opportunityPanel.querySelector(".summary-support-content"), "Improve This Section", claims.opportunity.improvementTopic, {
         sameTab: true,
@@ -6960,18 +7161,18 @@
       const actionDetails = summarySupportPanel({
         id: "summary-action-details",
         tone: "action",
-        title: "Next Best Action",
-        subtitle: "See the owner, timing, and assets needed to complete this work.",
-        content: `<h3>Immediate Action</h3><p>${escapeHtml(nextAction)}</p>${claimTraceMarkup(claims.action)}<ul><li><strong>Owner:</strong> ${escapeHtml(owner)}</li><li><strong>Due:</strong> This week</li><li><strong>Assets needed:</strong> ${escapeHtml(assets.join(", "))}</li></ul><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Work on this action</a></div>`
+        title: "This Week",
+        subtitle: "The work to start now.",
+        content: `<p class="summary-primary-action">${escapeHtml(thisWeekActionCopy(model))}</p><ul><li><strong>Customer group:</strong> ${escapeHtml(planCustomerName(model))}</li><li><strong>Owner:</strong> ${escapeHtml(owner)}</li><li><strong>Due:</strong> This week</li><li><strong>Tools needed:</strong> ${escapeHtml(["ICP Brief", "Persona Brief", ...assets].join(", "))}</li></ul><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Work on This Action</a></div>`
       });
       recommendation.appendChild(actionDetails);
 
       const riskPanel = summarySupportPanel({
         id: "summary-risk-details",
         tone: "risk",
-        title: "Biggest Risk",
-        subtitle: "See why the risk matters and which inputs can reduce it.",
-        content: `<h3>Current risk</h3><p>${escapeHtml(topRisk)}</p>${claimTraceMarkup(claims.risk)}<h3>What to do about it</h3><p>${escapeHtml(riskPriority?.recommendedAction || model.readinessDiagnostic?.improvements?.[0]?.action || "Confirm the source inputs, assign an owner, and resolve the risk before expanding activity.")}</p>${strategicEvidence.length ? `<h3>Related evidence</h3><ul>${strategicEvidence.slice(0, 2).map((insight) => `<li>${escapeHtml(insight.observation)}</li>`).join("")}</ul>` : ""}`
+        title: "Risk",
+        subtitle: "The issue most likely to change the current plan.",
+        content: `<p class="summary-primary-action">${escapeHtml(topRisk)}</p><div class="summary-secondary-context"><h3>What to do about it</h3><p>${escapeHtml(riskPriority?.recommendedAction || model.readinessDiagnostic?.improvements?.[0]?.action || "Resolve this risk before adding more accounts or activity.")}</p></div>`
       });
       appendReviewLink(riskPanel.querySelector(".summary-support-content"), "Improve This Section", claims.risk.improvementTopic, {
         sameTab: true,
@@ -7128,7 +7329,7 @@
             "Save the changes and return. The plan will automatically recalculate the opportunity and ranked priorities."
           ],
           answerHeading: "Update the customer-priority source answers",
-          answerIntro: "These intake answers are used to define the Top Opportunity and ICP-related priorities.",
+          answerIntro: "These intake answers are used to define the Priority Opportunity and ICP-related priorities.",
           example: "Specialty manufacturers with 75-400 employees, urgent throughput constraints, and a documented backlog that is affecting delivery performance or margin.",
           fieldIds: ["customerContextStarter", "bestFitCustomerGroup", "bestFitPrimaryPain", "bestFitTrigger", "bestFitEvidence"]
         };
@@ -7357,17 +7558,16 @@
     function icpRationaleItems(model) {
       const group = model.priorityGroup;
       const values = group?.values || {};
+      const inline = (value) => cleanText(value).replace(/;\s*/g, ", ");
       const items = [
-        group?.values.groupName ? `Selected customer group: ${group.values.groupName}` : "",
-        Number.isFinite(group?.score) ? `Customer group hypothesis score: ${group.score}/15` : "",
-        values.problem ? `Pain: ${values.problem}` : "",
-        values.useCaseDefinition ? `Use case: ${values.useCaseDefinition}` : "",
-        values.whyNow ? `Why now: ${values.whyNow}` : "",
-        values.evidenceSource ? `Evidence: ${values.evidenceSource}` : "",
-        values.observableCompanySignals ? `Observable signals: ${values.observableCompanySignals}` : ""
+        values.problem ? `The group has a defined problem the offer is intended to solve: ${inline(values.problem)}` : "",
+        values.useCaseDefinition ? `The use case is specific enough to test in buyer conversations: ${inline(values.useCaseDefinition)}` : "",
+        values.whyNow ? `There is a reason the buyer may act now: ${inline(values.whyNow)}` : "",
+        values.observableCompanySignals ? `The group can be identified before outreach using observable signals: ${inline(values.observableCompanySignals)}` : "",
+        values.evidenceSource ? `The hypothesis is supported by this evidence: ${inline(values.evidenceSource)}` : ""
       ];
       const seen = new Set();
-      return items
+      const result = items
         .map((item) => String(item || "").trim())
         .filter(Boolean)
         .filter((item) => {
@@ -7376,6 +7576,7 @@
           seen.add(key);
           return true;
         });
+      return result.length ? result : ["This is the current customer hypothesis. The first 30-day test should determine whether the problem is urgent, the group is reachable, and buyers will take a meaningful next step."];
     }
 
     function executiveDecisionContent(model) {
@@ -7448,7 +7649,7 @@
       overview.className = "overview-note";
       overview.innerHTML = `
         <h3>How to use this report</h3>
-        <p>Use this as an action plan, not as a static assessment. Start with the top opportunity, complete the most important action, and use the ranked plan to improve the intake answers, proof, targeting, and revenue motion that drive the score.</p>
+        <p>Use this as an action plan, not as a static assessment. Start with the Priority Opportunity, complete This Week's work, and use the ranked plan only when you need supporting detail.</p>
       `;
       container.appendChild(overview);
 
@@ -8953,7 +9154,7 @@
       if (priority.missingOperatingElements?.length) {
         return `All listed operating elements are saved and visible in the plan: ${toSentence(priority.missingOperatingElements.map((item) => item.label))}.`;
       }
-      if (role === "customer") return "A focused target definition is saved, a reachable first list is prepared, and real buyer evidence is recorded.";
+      if (role === "customer") return "A clear customer definition is saved, the first Target List is prepared, and real buyer evidence is recorded.";
       if (role === "motion") return "The motion has a named owner, channel, weekly activity target, stage rules, and review cadence.";
       if (role === "proof") return "At least one buyer-facing proof asset supports the primary claim and the highest-risk objection.";
       if (role === "offer") return "The offer names one customer, problem, measurable outcome, proof point, and next step.";
@@ -9018,7 +9219,7 @@
           rank: 1,
           role: "customer",
           title: "Validate the first-win customer and problem",
-          action: `Build a focused first test list for ${target} and confirm whether ${problem.toLowerCase()} is recognized without prompting.`,
+          action: `Build the first Target List for ${target} and confirm whether ${problem.toLowerCase()} is recognized without prompting.`,
           why: "The first market decision should be based on real buyer behavior rather than the completeness of the intake.",
           owner,
           timing: "Week 1",
@@ -9291,9 +9492,6 @@
         body.appendChild(why);
         body.appendChild(drivers);
         if (priority.missingInputs.length) body.appendChild(prerequisites);
-        const traceTemplate = document.createElement("template");
-        traceTemplate.innerHTML = claimTraceMarkup(priority.claim);
-        body.appendChild(traceTemplate.content);
         if (priority.improvementAsset) {
           const actions = document.createElement("div");
           const link = document.createElement("a");
@@ -9749,6 +9947,22 @@
       return `results.html?${query.toString()}${hash ? `#${hash}` : ""}`;
     }
 
+    function renderPlanWorkReturnBar() {
+      const params = new URLSearchParams(window.location.search);
+      const workReturn = params.get("workReturn");
+      if (!["setup", "active"].includes(workReturn) || params.get("asset") === "active") return;
+      document.getElementById("planWorkReturnBar")?.remove();
+      const main = document.querySelector("main");
+      if (!main) return;
+      const returnUrl = new URL(reportAssetUrl("active"), window.location.href);
+      returnUrl.hash = workReturn === "setup" ? "active-plan-objective" : "active-plan-this-week";
+      const bar = document.createElement("section");
+      bar.id = "planWorkReturnBar";
+      bar.className = "workspace-return-bar workspace-section no-print";
+      bar.innerHTML = `<div class="workspace-return-bar-copy"><span class="workspace-return-bar-label">${workReturn === "setup" ? "Tool Setup" : "This Week"}</span><strong>Use this ${workReturn === "setup" ? "before weekly work begins" : "for the current task"}.</strong><span class="workspace-return-bar-origin">${workReturn === "setup" ? "Mark it Ready or Skip for now when you return." : "Return to the task card to record the result."}</span></div><a class="secondary" href="${escapeHtml(`${returnUrl.pathname.split("/").pop() || "results.html"}${returnUrl.search}${returnUrl.hash}`)}">Return to ${workReturn === "setup" ? "Tool Setup" : "This Week"}</a>`;
+      main.prepend(bar);
+    }
+
     function updateIntakeReturnLinks() {
       const link = document.getElementById("editIntakeLink");
       const returnTo = intakeReturnUrl();
@@ -9950,7 +10164,7 @@
     function normalizeList(items) {
       const seen = new Set();
       return (items || [])
-        .flatMap((item) => Array.isArray(item) ? item : String(item || "").split(/[,;|]/))
+        .flatMap((item) => Array.isArray(item) ? item : String(item || "").split(/[;|]/))
         .map(cleanText)
         .filter(Boolean)
         .filter((item) => {
@@ -10177,6 +10391,29 @@
       }
 
       return cleanBullets(methods).slice(0, 8);
+    }
+
+    function targetSearchInstructions(model) {
+      const data = model.data;
+      const groupName = cleanText(model.priorityGroup?.values?.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer) || "the priority customer group";
+      const shortGroupName = cleanText(groupName.split(/\b(?:with|whose|that)\b/i)[0]) || groupName;
+      const employeeRange = groupName.match(/\b\d[\d,]*\s*(?:-|to)\s*\d[\d,]*\s+employees\b/i)?.[0] || "";
+      const titles = [...new Map(personaRowsForPlan(model)
+        .slice(0, 3)
+        .map((row) => cleanText(row.titles || row.identifiedRole || row.label))
+        .filter(Boolean)
+        .map((title) => [title.toLowerCase(), title])).values()];
+      const signals = accountLookForSignals(model).slice(0, 4);
+      const sources = accountFindingMethods(model).slice(0, 4);
+      const instructions = [
+        `Create one saved list named "Target List - ${shortGroupName}" in the CRM or spreadsheet.`,
+        employeeRange ? `Set the company-size filter to ${employeeRange}.` : "Use the company-size range from the intake when the data source supports it.",
+        titles.length ? `Use these title filters to find the first likely buyers: ${titles.join(", ")}.` : "Add the first likely buyer title before searching for contacts.",
+        signals.length ? `Prioritize accounts showing at least one of these signals: ${signals.join(", ")}.` : "",
+        sources.length ? `Source the first 25 accounts from: ${sources.join(", ")}.` : "",
+        "For every target, record the reason it fits, the likely buyer, the source, an owner, and the next action."
+      ];
+      return instructions.filter(Boolean);
     }
 
     function accountLookForSignals(model) {
@@ -11057,8 +11294,8 @@
         addCoachingPlan(plans, {
           title: `Build a ${targetList.label}`,
           order: 3,
-          objective: "Create a focused list of accounts that match the priority ICP and can be used for outreach, referrals, and proof testing.",
-          why: "A focused target list turns ICP strategy into a concrete set of accounts the team can actually pursue and learn from.",
+          objective: "Create a Target List of accounts that match the priority ICP and can be used for outreach, referrals, and proof testing.",
+          why: "A Target List turns ICP strategy into a concrete set of accounts the team can actually pursue and learn from.",
           steps: [
             idealProfileStep,
             searchCriteriaStep,
@@ -12534,8 +12771,11 @@
       let status = "Available";
       if (asset === "health") status = "Current";
       if (workspace) status = workspace.updatedAt ? "In progress" : "Ready to use";
-      if (asset === "active" && Array.isArray(window.GTM_CANONICAL_PLAN?.actions) && window.GTM_CANONICAL_PLAN.actions.length) {
-        status = workspace?.updatedAt ? "In progress" : "Ready to use";
+      if (asset === "active") {
+        const setup = data.activePlanToolSetupWorkspace && typeof data.activePlanToolSetupWorkspace === "object"
+          ? data.activePlanToolSetupWorkspace
+          : {};
+        status = !setup.started ? "Setup required" : workspace?.updatedAt ? "In progress" : "Ready to use";
       }
       return [status, updated ? `Updated ${updated}` : ""].filter(Boolean).join(" | ");
     }
@@ -12666,7 +12906,11 @@
       }
       document.querySelectorAll('a[target="_blank"]').forEach((link) => {
         const destination = new URL(link.href, window.location.href);
-        if (destination.origin === window.location.origin && !link.classList.contains("keep-separate-window")) {
+        if (
+          destination.origin === window.location.origin
+          && !link.classList.contains("keep-separate-window")
+          && link.dataset.keepNewWindow !== "true"
+        ) {
           link.removeAttribute("target");
           link.removeAttribute("rel");
         }
@@ -12686,7 +12930,9 @@
           const defaultOpen = section.dataset.defaultOpen;
           details.open = Boolean(document.getElementById("action-runner"))
             || defaultOpen === "true"
-            || (defaultOpen !== "false" && index < 2);
+            || (defaultOpen !== "false" && (currentAsset === "active"
+              ? ["active-plan-objective", "active-plan-this-week"].includes(section.id)
+              : index === 0));
           summary.appendChild(heading);
           while (section.firstChild) {
             const child = section.firstChild;
@@ -15381,7 +15627,7 @@
         ["Decision", "Rule", "What to change or do next"],
         ["Continue", `Continue when ${customerGroup} produces meaningful buyer conversations, qualified meetings, or opportunities through ${channel}.`, "Keep the focused ICP, offer, and channel. Improve execution and add the next small batch of accounts."],
         ["Revise", "Revise when there is interest but weak conversion, unclear messaging, poor buyer fit, or low-quality responses.", "Change one variable: customer group, buyer, message, offer framing, or channel. Document the change in the Weekly GTM Review."],
-        ["Pause", "Pause when the focused list is not reachable, the buyer problem is not urgent, or qualified activity produces no meaningful learning.", "Stop adding volume. Review the ICP, offer evidence, and buying triggers before selecting a new test."],
+        ["Pause", "Pause when the Target List is not reachable, the buyer problem is not urgent, or qualified activity produces no meaningful learning.", "Stop adding volume. Review the ICP, offer evidence, and buying triggers before selecting a new test."],
         [],
         ["Company-specific operating notes", ""],
         ...activity.stopScaleRules.map((rule) => ["", rule])
@@ -15559,6 +15805,9 @@
           status: cleanText(data[activePlanField(index, "status")]) || "Not started",
           owner: cleanText(data[activePlanField(index, "owner")]) || plan.owner,
           evidence: cleanText(data[activePlanField(index, "evidence")]),
+          result: cleanText(data[activePlanField(index, "evidence")]),
+          learning: "",
+          blocker: "",
           disposition: index < 2 ? "Carry forward" : "Drop",
           revisedTask: ""
         }));
@@ -15576,8 +15825,147 @@
           priority.owner = priority.owner || plan.owner;
         });
       }
+      saved.currentPriorities.forEach((priority) => {
+        priority.result = cleanText(priority.result) || cleanText(priority.evidence);
+        priority.learning = cleanText(priority.learning);
+        priority.blocker = cleanText(priority.blocker);
+      });
       data.activePlanWeeklyWorkspace = saved;
       return saved;
+    }
+
+    function activePlanToolUrl(asset, returnMode = "active") {
+      const destination = new URL(reportAssetUrl(asset), window.location.href);
+      destination.searchParams.set("workReturn", returnMode);
+      return `${destination.pathname.split("/").pop() || "results.html"}${destination.search}${destination.hash}`;
+    }
+
+    function activePlanToolSetup(data, plan, weeklyWorkspace) {
+      const saved = data.activePlanToolSetupWorkspace && typeof data.activePlanToolSetupWorkspace === "object"
+        ? data.activePlanToolSetupWorkspace
+        : {};
+      saved.statuses = saved.statuses && typeof saved.statuses === "object" ? saved.statuses : {};
+      const hasStartedWork = weeklyWorkspace.currentWeek > 1
+        || weeklyWorkspace.history.length > 0
+        || weeklyWorkspace.currentPriorities.some((priority) => priority.status !== "Not started" || cleanText(priority.evidence));
+      if (hasStartedWork) saved.started = true;
+      const system = cleanText(
+        data.crmName
+        || data.crmSystem
+        || data.currentCrm
+        || data.revenueTrackingSystem
+        || data.revenueTrackingSystemOther
+      ) || (plan.type === "validation" ? "the validation tracker" : "the CRM or spreadsheet");
+      const tools = [
+        {
+          id: "icp",
+          label: "ICP Brief",
+          asset: "icp",
+          type: "reference",
+          purpose: "Use the customer definition and fit rules when choosing targets.",
+          done: "You can explain who belongs on the Target List and who does not."
+        },
+        {
+          id: "personas",
+          label: "Persona Brief",
+          asset: "personas",
+          type: "reference",
+          purpose: "Use the buyer roles, concerns, and discovery questions during outreach.",
+          done: "The first buyer role and the questions to ask are clear."
+        },
+        {
+          id: "targets",
+          label: "Target List Setup",
+          asset: "targets",
+          type: "tool",
+          purpose: `Set up the fields and filters for the Target List in ${system}.`,
+          done: `The Target List structure is ready in ${system}; Week 1 will add the 25 targets.`
+        },
+        {
+          id: "messaging",
+          label: "Messaging Kit",
+          asset: "messaging",
+          type: "tool",
+          purpose: "Prepare one plain-language message for the first offer test.",
+          done: "One message and one clear next-step ask are ready to use."
+        },
+        {
+          id: "outreach",
+          label: "Outreach Sequence",
+          asset: "outreach",
+          type: "tool",
+          purpose: "Decide the first contact and follow-up steps before outreach begins.",
+          done: "The sequence, timing, owner, and stop rule are ready."
+        },
+        {
+          id: "weekly-review",
+          label: "Weekly GTM Review",
+          asset: "weekly-review",
+          type: "tool",
+          purpose: "Prepare the place where results and the weekly decision will be recorded.",
+          done: "The review owner, measures, and continue/revise/pause rule are clear."
+        }
+      ];
+      tools.forEach((tool) => {
+        if (saved.statuses[tool.id]) return;
+        const autoReady = (tool.id === "messaging" && data.messagingKitWorkspace?.updatedAt)
+          || (tool.id === "outreach" && data.outreachSequenceWorkspace?.updatedAt)
+          || (tool.id === "weekly-review" && data.weeklyReviewWorkspace?.updatedAt);
+        saved.statuses[tool.id] = autoReady ? "Ready" : (tool.type === "reference" ? "Needs review" : "Not ready");
+      });
+      saved.tools = tools;
+      saved.ready = tools.every((tool) => ["Ready", "Skip for now"].includes(saved.statuses[tool.id]));
+      data.activePlanToolSetupWorkspace = saved;
+      return saved;
+    }
+
+    function activePlanTaskInstruction(action, data, plan) {
+      const text = `${action.title || ""} ${action.output || ""}`.toLowerCase();
+      const system = cleanText(
+        data.crmName
+        || data.crmSystem
+        || data.currentCrm
+        || data.revenueTrackingSystem
+        || data.revenueTrackingSystemOther
+      ) || (plan.type === "validation" ? "the validation tracker" : "the CRM or spreadsheet");
+      if (/review|decision|evidence/.test(text)) {
+        return `Record the week's counts, repeated buyer feedback, and concrete next steps in the Weekly GTM Review. Then apply this rule: ${activePlanDecisionRule(data, action.decision)}`;
+      }
+      if (/target list|target account|icp/.test(text)) {
+        return `Using the ICP Brief and Persona Brief as reference, add 25 qualified ${plan.type === "validation" ? "people or accounts" : "accounts"} to ${system}. Give each target an owner, a clear reason it fits, and one next action.`;
+      }
+      if (/offer|message|outreach|conversation/.test(text)) {
+        return "Use the saved message and outreach sequence with the first 10 qualified targets. Keep the customer, offer, and core message the same so the responses can teach you something.";
+      }
+      if (/crm|data quality|source attribution|loss reason/.test(text)) {
+        return `Make the named field changes in ${system}, correct the current records, and record how many were reviewed and fixed.`;
+      }
+      return cleanText(action.output) || cleanText(action.title);
+    }
+
+    function activePlanTaskResources(action) {
+      const text = `${action.title || ""} ${action.output || ""}`.toLowerCase();
+      if (/review|decision|evidence/.test(text)) {
+        return [
+          { label: "Weekly GTM Review", asset: "weekly-review", type: "tool" },
+          { label: "Target List Setup", asset: "targets", type: "tool" }
+        ];
+      }
+      if (/target list|target account|icp/.test(text)) {
+        return [
+          { label: "ICP Brief", asset: "icp", type: "reference" },
+          { label: "Persona Brief", asset: "personas", type: "reference" },
+          { label: "Target List Setup", asset: "targets", type: "tool" }
+        ];
+      }
+      if (/offer|message|outreach|conversation/.test(text)) {
+        return [
+          { label: "Messaging Kit", asset: "messaging", type: "tool" },
+          { label: "Outreach Sequence", asset: "outreach", type: "tool" },
+          { label: "Persona Brief", asset: "personas", type: "reference" }
+        ];
+      }
+      return [];
     }
 
     function syncActivePlanWeeklyPriorityFields(data, weeklyWorkspace) {
@@ -15585,7 +15973,12 @@
         if (!Number.isInteger(priority.sourceIndex)) return;
         data[activePlanField(priority.sourceIndex, "status")] = cleanText(priority.status) || "Not started";
         data[activePlanField(priority.sourceIndex, "owner")] = cleanText(priority.owner);
-        data[activePlanField(priority.sourceIndex, "evidence")] = cleanText(priority.evidence);
+        priority.evidence = [
+          cleanText(priority.result),
+          cleanText(priority.learning),
+          cleanText(priority.blocker) ? `Blocker: ${cleanText(priority.blocker)}` : ""
+        ].filter(Boolean).join(" | ") || cleanText(priority.evidence);
+        data[activePlanField(priority.sourceIndex, "evidence")] = priority.evidence;
       });
     }
 
@@ -15602,6 +15995,9 @@
         status: "Not started",
         owner: plan.owner,
         evidence: "",
+        result: "",
+        learning: "",
+        blocker: "",
         disposition: "Carry forward",
         revisedTask: ""
       };
@@ -15770,6 +16166,74 @@
       }
     }
 
+    function activePlanDecisionRule(data, fallback = "") {
+      const candidates = [
+        data.quickStopAvoid,
+        data.preStopRule,
+        data.preReviseRule,
+        data.preContinueRule,
+        ...repeatableListItems(data, "icpDisqualificationRules")
+      ].map(cleanText).filter(Boolean);
+      return candidates.find((item) => /\b(?:if|when|after|fewer|less than|more than|\d+)\b/i.test(item))
+        || candidates[0]
+        || fallback
+        || "Revise the customer group, offer, or message when a meaningful test produces no repeated problem and no concrete next step.";
+    }
+
+    function actionFirstPlanActions(data, {
+      preRevenue = false,
+      customer,
+      problem,
+      offer,
+      owner
+    }) {
+      const system = cleanText(
+        data.crmName
+        || data.crmSystem
+        || data.currentCrm
+        || data.revenueTrackingSystem
+        || data.revenueTrackingSystemOther
+      ) || (preRevenue ? "the validation tracker" : "the CRM or spreadsheet");
+      const targetType = preRevenue ? "people or accounts" : "accounts";
+      const firstBatch = preRevenue ? 10 : 10;
+      const decisionRule = activePlanDecisionRule(data);
+      return [
+        {
+          title: "Build the Target List",
+          why: `The team needs a real list before it can test whether ${customer} is the right customer group.`,
+          output: `Using the ICP Brief and Persona Brief as reference, add 25 qualified ${targetType} that match ${customer} to ${system}. Give each target an owner, fit reason, and next action.`,
+          owner,
+          timing: "This week",
+          completionRule: `25 qualified ${targetType} are saved in ${system} with an owner, fit reason, and next action.`,
+          evidenceRequired: "Final list size, excluded targets, and any ICP criterion that was difficult to verify.",
+          decision: `Keep or revise the current ICP before adding more ${targetType}.`,
+          destination: { type: "asset", value: "targets" }
+        },
+        {
+          title: "Test the Offer",
+          why: `The offer must earn a real response from ${customer}, not just sound complete in the plan.`,
+          output: `Use one saved message and the outreach sequence to contact the first ${firstBatch} qualified targets. Test whether ${offer} addresses ${problem} and ask for one concrete next step.`,
+          owner,
+          timing: "This week",
+          completionRule: `${firstBatch} qualified targets receive the same core offer test and every response or objection is recorded.`,
+          evidenceRequired: "Attempts, replies, conversations, repeated objections, and concrete next steps.",
+          decision: "Keep the offer, improve one part of it, or pause the current test.",
+          destination: { type: "asset", value: "messaging" }
+        },
+        {
+          title: "Review the Results",
+          why: "The result of the work should change a decision, not create another collection of notes.",
+          output: `Review the Target List and offer-test results in the Weekly GTM Review. Apply this rule: ${decisionRule}`,
+          owner,
+          timing: "End of the week",
+          completionRule: "A continue, revise, or pause decision is saved with the result that supports it and one next action.",
+          evidenceRequired: "List quality, conversations, problem confirmation, offer response, next steps, and the saved decision.",
+          decision: decisionRule,
+          destination: { type: "asset", value: "weekly-review" }
+        }
+      ];
+    }
+
     function activePlanDefinition(data) {
       if (isPreRevenueReport(data)) {
         const model = preRevenueScore(data);
@@ -15792,17 +16256,13 @@
           evidence: "Problem recognition, current workaround, buyer language, objections, and a meaningful next-step signal.",
           decision: "Continue, revise, or stop the first-win segment before scaling.",
           feedback,
-          actions: canonical.topActions.map((action) => ({
-            title: action.title,
-            why: action.why,
-            output: action.action,
-            owner: action.owner,
-            timing: action.timing,
-            completionRule: action.completionRule,
-            evidenceRequired: action.evidenceRequired,
-            decision: action.reviewDecision,
-            destination: action.destination
-          })),
+          actions: actionFirstPlanActions(data, {
+            preRevenue: true,
+            customer: target,
+            problem,
+            offer: cleanText(data.preWedgeOfferName || data.primaryOfferName) || "the current offer",
+            owner
+          }),
           weeks: preRevenueWeeklyWorkplanRows(data, model)
             .filter(([label]) => /^Week [1-4]/.test(label))
             .map(([label, items]) => ({ label, items: Array.isArray(items) ? items.map((item) => item?.text || item) : [items] })),
@@ -15835,19 +16295,14 @@
         evidence: "Target quality, buyer conversations, next steps, opportunities, conversion, objections, and stalled reasons.",
         decision: "Continue, revise, or pause one focused motion based on the weekly evidence.",
         feedback,
-        actions: canonical.topActions.map((action) => ({
-          title: action.title,
-          why: action.why,
-          output: action.action,
-          owner: action.owner,
-          timing: action.timing,
-          completionRule: action.completionRule,
-          evidenceRequired: action.evidenceRequired,
-          decision: action.reviewDecision,
-          destination: action.destination
-        })),
+        actions: actionFirstPlanActions(data, {
+          customer: model.priorityGroup?.values?.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer || "the selected customer group",
+          problem: model.priorityGroup?.values?.problem || data.bestFitPrimaryPain || data.quickBuyerProblem || "the priority buyer problem",
+          offer: model.primaryOffer?.values?.offerName || data.primaryOfferName || "the current offer",
+          owner
+        }),
         weeks: [
-          { label: "Week 1 - Set the focused motion", items: ["Confirm the priority customer group, offer, buyer, channel, and owner.", "Build the first small target-account batch and prepare the proof or message needed."] },
+          { label: "Week 1 - Build and start the Target List", items: ["Add 25 qualified accounts to the CRM or spreadsheet.", "Contact the first 10 accounts using one offer and one message."] },
           { label: "Week 2 - Run the first execution cycle", items: ["Complete the planned outreach, referral, discovery, or follow-up activity.", "Record every meaningful interaction and its next action."] },
           { label: "Week 3 - Improve one variable", items: ["Review target quality, message response, buyer fit, and conversion.", "Change only one variable if the evidence calls for it."] },
           { label: "Week 4 - Decide the next cycle", items: ["Review results against the decision rules.", "Document whether to continue, revise, or pause the motion and the next change."] }
@@ -16078,7 +16533,7 @@
       if (index === 1) {
         return {
           steps: [
-            "Schedule or run conversations with people from the focused list.",
+            "Schedule or run conversations with people from the Target List.",
             "Ask about a real past situation before explaining the product or leading the witness.",
             "Record the current alternative, the consequence, exact language, and any objection.",
             "Ask for a concrete next step only after the problem is understood."
@@ -16220,35 +16675,95 @@
         ? Boolean(preRevenueScore(data).primary)
         : Boolean(data.bestFitCustomerGroup || data.quickBestFitCustomer);
       document.body.dataset.hasPersonaAsset = "true";
-      document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} This Week` : "This Week";
       document.getElementById("companyMeta").textContent = [data.website, data.companyStage, plan.title].filter(Boolean).join(" | ");
-      document.getElementById("generatedMeta").textContent = "Complete the current priorities, save the result, and close the week when the work is done.";
       document.getElementById("metadataPills").innerHTML = "";
 
-      const completedPriorityCount = weeklyWorkspace.currentPriorities.filter((priority) => priority.status === "Complete").length;
-      const priorityProgress = weeklyWorkspace.currentPriorities.length
-        ? Math.round((completedPriorityCount / weeklyWorkspace.currentPriorities.length) * 100)
-        : 0;
+      const toolSetup = activePlanToolSetup(data, plan, weeklyWorkspace);
+      document.getElementById("companyName").textContent = data.companyName
+        ? `${data.companyName} ${toolSetup.started ? "This Week" : "Plan Setup"}`
+        : toolSetup.started ? "This Week" : "Plan Setup";
+      document.getElementById("generatedMeta").textContent = toolSetup.started
+        ? "Complete this week's work and record what happened."
+        : "Prepare the reference assets and work tools before Week 1.";
       const objective = document.createElement("section");
       objective.id = "active-plan-objective";
-      objective.dataset.toc = "This Week";
-      objective.className = "workspace-section active-plan-command-center";
-      objective.innerHTML = `<div class="active-plan-command-head"><div><p class="active-plan-label">Cycle ${weeklyWorkspace.cycle || 1} | Week ${weeklyWorkspace.currentWeek}</p><h2>This Week</h2><p>Finish the current work before adding another initiative.</p></div><div class="active-plan-week-progress"><strong id="activePlanProgressCount">${completedPriorityCount} of ${weeklyWorkspace.currentPriorities.length} complete</strong><span>Current-week progress</span><div class="active-plan-progress-track" id="activePlanProgressTrack" aria-label="${priorityProgress}% of current priorities complete"><div class="active-plan-progress-fill" id="activePlanProgressFill" style="width:${priorityProgress}%"></div></div></div></div><div class="active-plan-context-grid"><article class="active-plan-context-item"><strong>30-day outcome</strong><p>${escapeHtml(plan.objective)}</p></article><article class="active-plan-context-item"><strong>Current focus</strong>${activePlanFocusMarkup(plan.focus)}</article><article class="active-plan-context-item"><strong>Decision at the end</strong><p>${escapeHtml(plan.decision)}</p></article></div><p class="active-plan-rhythm"><strong>Owner and rhythm:</strong> ${escapeHtml(`${plan.owner} leads a ${String(plan.cadence || "weekly").toLowerCase()} review.`)}</p>`;
+      objective.dataset.toc = "Tool Setup";
+      const toolCards = toolSetup.tools.map((tool) => {
+        const statusOptions = tool.type === "reference"
+          ? ["Needs review", "Ready", "Skip for now"]
+          : ["Not ready", "Ready", "Skip for now"];
+        const actionLabel = tool.type === "reference" ? "Review" : "Set up";
+        const actionTarget = tool.type === "reference" ? ' target="_blank" rel="noopener"' : "";
+        return `<article class="active-plan-tool-card">
+          <h3>${escapeHtml(tool.label)}</h3>
+          <p class="active-plan-tool-purpose">${escapeHtml(tool.purpose)}</p>
+          <p class="active-plan-tool-done"><strong>Ready when:</strong> ${escapeHtml(tool.done)}</p>
+          <div class="active-plan-link-row"><a href="${escapeHtml(activePlanToolUrl(tool.asset, "setup"))}"${actionTarget}${tool.type === "reference" ? ' data-keep-new-window="true"' : ""}>${escapeHtml(actionLabel)}</a></div>
+          <label>Status<select data-tool-setup-status="${escapeHtml(tool.id)}">${statusOptions.map((option) => `<option${toolSetup.statuses[tool.id] === option ? " selected" : ""}>${escapeHtml(option)}</option>`).join("")}</select></label>
+        </article>`;
+      }).join("");
+      objective.innerHTML = toolSetup.started
+        ? `<div class="active-plan-tool-ready"><div><strong>Tool Setup is complete.</strong><br><span class="muted">Review or change a tool only when the work has changed.</span></div><button type="button" class="secondary" id="toggleToolSetup">Review Tool Setup</button></div><div class="active-plan-tool-setup" id="activePlanToolSetupDetails" hidden><h2>Tool Setup</h2><p>Before weekly work begins, make sure the reference assets and working tools are usable. Mark a tool Ready or Skip for now.</p><div class="active-plan-tool-grid">${toolCards}</div><div class="active-plan-save-row"><button type="button" id="saveToolSetupButton">Save Tool Setup</button><span class="active-plan-save-status" id="toolSetupStatus"></span></div></div>`
+        : `<div class="active-plan-tool-setup"><div><h2>Tool Setup</h2><p>Prepare these reference assets and work tools before Week 1. Mark each one Ready or Skip for now, then start the weekly plan.</p></div><div class="active-plan-tool-grid">${toolCards}</div><div class="active-plan-save-row"><button type="button" id="startWeekOneButton">Start Week 1</button><span class="active-plan-save-status" id="toolSetupStatus"></span></div></div>`;
       main.appendChild(objective);
+
+      const syncToolSetup = () => {
+        objective.querySelectorAll("[data-tool-setup-status]").forEach((control) => {
+          toolSetup.statuses[control.dataset.toolSetupStatus] = control.value;
+        });
+        toolSetup.ready = toolSetup.tools.every((tool) => ["Ready", "Skip for now"].includes(toolSetup.statuses[tool.id]));
+      };
+      objective.querySelector("#toggleToolSetup")?.addEventListener("click", (event) => {
+        const details = objective.querySelector("#activePlanToolSetupDetails");
+        details.hidden = !details.hidden;
+        event.currentTarget.textContent = details.hidden ? "Review Tool Setup" : "Hide Tool Setup";
+      });
+      objective.querySelector("#saveToolSetupButton")?.addEventListener("click", async (event) => {
+        const button = event.currentTarget;
+        syncToolSetup();
+        const status = objective.querySelector("#toolSetupStatus");
+        button.disabled = true;
+        await persistActivePlanData(data, status);
+        button.disabled = false;
+      });
+      objective.querySelector("#startWeekOneButton")?.addEventListener("click", async (event) => {
+        const button = event.currentTarget;
+        syncToolSetup();
+        const status = objective.querySelector("#toolSetupStatus");
+        if (!toolSetup.ready) {
+          const unfinished = toolSetup.tools.filter((tool) => !["Ready", "Skip for now"].includes(toolSetup.statuses[tool.id])).map((tool) => tool.label);
+          status.textContent = `Mark Ready or Skip for now: ${unfinished.join(", ")}.`;
+          return;
+        }
+        toolSetup.started = true;
+        button.disabled = true;
+        const saved = await persistActivePlanData(data, status);
+        button.disabled = false;
+        if (saved) renderActivePlanWorkspace(data);
+      });
+      if (!toolSetup.started) {
+        setupReportNavigation();
+        configureAssetPdfExport();
+        return;
+      }
 
       const actions = document.createElement("section");
       actions.id = "active-plan-this-week";
-      actions.dataset.toc = "Current Priorities";
       actions.className = "workspace-section active-plan-current-work";
-      actions.innerHTML = `<h2>Do This Week</h2><p class="muted">Complete and document each priority here. References and work tools appear inside the priority that needs them.</p><div class="active-plan-actions"></div><div class="active-plan-save-row"><button type="button" id="saveWeeklyProgressButton">Save Weekly Progress</button><span class="active-plan-save-status" id="weeklyProgressSaveStatus"></span></div><div class="weekly-close-prompt" id="weeklyClosePrompt" hidden><p><strong>Week ${weeklyWorkspace.currentWeek} is ready to close.</strong> All priorities are complete and have a result note.</p><button type="button" id="reviewCloseWeekButton">Review and Close Week ${weeklyWorkspace.currentWeek}</button></div>`;
+      actions.dataset.toc = "This Week";
+      actions.innerHTML = `<h2>Do This Week</h2><p class="muted">Week ${weeklyWorkspace.currentWeek}. Complete no more than three priorities, record the result in the same card, and close the week when the work is done.</p><div class="active-plan-actions"></div><div class="active-plan-save-row"><button type="button" id="saveWeeklyProgressButton">Save Weekly Progress</button><span class="active-plan-save-status" id="weeklyProgressSaveStatus"></span></div><div class="weekly-close-prompt" id="weeklyClosePrompt" hidden><p><strong>Week ${weeklyWorkspace.currentWeek} is ready to close.</strong> All priorities are complete and have a result.</p><button type="button" id="reviewCloseWeekButton">Close Week ${weeklyWorkspace.currentWeek}</button></div>`;
       const actionList = actions.querySelector(".active-plan-actions");
       weeklyWorkspace.currentPriorities.forEach((action, index) => {
         const card = document.createElement("article");
-        const guidance = activePlanPriorityGuidance(action, data);
+        const instruction = activePlanTaskInstruction(action, data, plan);
+        const resources = activePlanTaskResources(action);
         card.className = "active-plan-action";
         if (action.sourceIndex === requestedAction) card.classList.add("is-highlighted");
         card.dataset.weeklyPriority = String(index);
-        card.innerHTML = `<div class="active-plan-action-copy"><div class="active-plan-label">Priority ${index + 1}</div><h3>${escapeHtml(action.title)}</h3><p><strong>Why it matters:</strong> ${escapeHtml(action.why)}</p><p><strong>This week's output:</strong> ${escapeHtml(action.output)}</p><p><strong>Complete when:</strong> ${escapeHtml(action.completionRule || "The stated output is complete and its result is recorded.")}</p><p><strong>Evidence to save:</strong> ${escapeHtml(action.evidenceRequired || "A short result note showing what changed, what was observed, and what remains.")}</p><div class="active-plan-task-guidance"><strong>How to complete this priority</strong><ul>${guidance.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ul></div>${activePlanReferenceMarkup(action, data)}<label class="wide">Result and evidence<span class="active-plan-evidence-help">Use a short outcome note: what changed, how much, and what remains.</span><textarea rows="3" data-weekly-priority-field="evidence" placeholder="${escapeHtml(guidance.placeholder)}">${escapeHtml(action.evidence || "")}</textarea></label></div><div class="active-plan-controls"><label>Status<select data-weekly-priority-field="status">${activePlanWeeklyStatusOptions(action.status)}</select></label><label>Owner<input data-weekly-priority-field="owner" value="${escapeHtml(action.owner || plan.owner)}"></label></div>`;
+        const resourceMarkup = resources.length
+          ? `<div class="active-plan-task-resources"><strong>Use for this task</strong><div class="active-plan-link-row">${resources.map((resource) => `<a href="${escapeHtml(activePlanToolUrl(resource.asset, "active"))}"${resource.type === "reference" ? ' target="_blank" rel="noopener" data-keep-new-window="true"' : ""}>${escapeHtml(resource.label)}</a>`).join("")}</div></div>`
+          : "";
+        card.innerHTML = `<div class="active-plan-action-copy"><div class="active-plan-label">Priority ${index + 1}</div><h3>${escapeHtml(action.title)}</h3><p class="active-plan-task-instruction">${escapeHtml(instruction)}</p>${resourceMarkup}<div class="active-plan-result-grid"><label class="wide">What happened?<textarea rows="3" data-weekly-priority-field="result" placeholder="Record the concrete result, count, or change.">${escapeHtml(action.result || action.evidence || "")}</textarea></label><label>What did you learn?<textarea rows="3" data-weekly-priority-field="learning" placeholder="What did the result teach you?">${escapeHtml(action.learning || "")}</textarea></label><label>Blocker (optional)<textarea rows="3" data-weekly-priority-field="blocker" placeholder="What prevented completion?">${escapeHtml(action.blocker || "")}</textarea></label></div></div><div class="active-plan-controls"><label>Status<select data-weekly-priority-field="status">${activePlanWeeklyStatusOptions(action.status)}</select></label><label>Owner<input data-weekly-priority-field="owner" value="${escapeHtml(action.owner || plan.owner)}"></label></div>`;
         actionList.appendChild(card);
       });
       const syncWeeklyPriorityCards = () => {
@@ -16264,11 +16779,14 @@
         const progress = weeklyWorkspace.currentPriorities.length
           ? Math.round((completeCount / weeklyWorkspace.currentPriorities.length) * 100)
           : 0;
-        objective.querySelector("#activePlanProgressCount").textContent = `${completeCount} of ${weeklyWorkspace.currentPriorities.length} complete`;
-        objective.querySelector("#activePlanProgressTrack").setAttribute("aria-label", `${progress}% of current priorities complete`);
-        objective.querySelector("#activePlanProgressFill").style.width = `${progress}%`;
+        const progressCount = objective.querySelector("#activePlanProgressCount");
+        const progressTrack = objective.querySelector("#activePlanProgressTrack");
+        const progressFill = objective.querySelector("#activePlanProgressFill");
+        if (progressCount) progressCount.textContent = `${completeCount} of ${weeklyWorkspace.currentPriorities.length} complete`;
+        if (progressTrack) progressTrack.setAttribute("aria-label", `${progress}% of current priorities complete`);
+        if (progressFill) progressFill.style.width = `${progress}%`;
         const ready = weeklyWorkspace.currentPriorities.length > 0
-          && weeklyWorkspace.currentPriorities.every((priority) => priority.status === "Complete" && cleanText(priority.evidence));
+          && weeklyWorkspace.currentPriorities.every((priority) => priority.status === "Complete" && (cleanText(priority.result) || cleanText(priority.evidence)));
         actions.querySelector("#weeklyClosePrompt").hidden = !ready;
       };
       actions.querySelectorAll("[data-weekly-priority-field]").forEach((control) => {
@@ -16286,7 +16804,7 @@
         let missingEvidence = false;
         syncWeeklyPriorityCards();
         weeklyWorkspace.currentPriorities.forEach((priority) => {
-          if (priority.status === "Complete" && !priority.evidence) missingEvidence = true;
+          if (priority.status === "Complete" && !cleanText(priority.result) && !cleanText(priority.evidence)) missingEvidence = true;
         });
         syncActivePlanWeeklyPriorityFields(data, weeklyWorkspace);
         button.disabled = true;
@@ -16374,7 +16892,7 @@
       review.querySelector("#closeActivePlanWeek").addEventListener("click", async (event) => {
         const status = review.querySelector("#activeWeekCloseStatus");
         syncWeeklyCards();
-        const completedWithoutEvidence = weeklyWorkspace.currentPriorities.find((priority) => priority.status === "Complete" && !priority.evidence);
+        const completedWithoutEvidence = weeklyWorkspace.currentPriorities.find((priority) => priority.status === "Complete" && !cleanText(priority.result) && !cleanText(priority.evidence));
         if (completedWithoutEvidence) {
           status.textContent = `Add a result or evidence note for "${completedWithoutEvidence.title}" before closing the week.`;
           return;
@@ -16426,6 +16944,9 @@
             output: priority.disposition === "Revise" || priority.disposition === "Blocked" ? priority.revisedTask : priority.output,
             status: "Not started",
             evidence: "",
+            result: "",
+            learning: "",
+            blocker: "",
             disposition: "Carry forward",
             revisedTask: ""
           }));
@@ -16639,7 +17160,7 @@
       const targetList = targetListGuidance(model);
       const buyerRoles = personaRowsForPlan(model)
         .slice(0, 5)
-        .map((row) => `${row.label}: ${row.titles}. Needs: ${row.concern}. Proof: ${row.proof}`);
+        .map((row) => `${row.label}: ${cleanText(row.titles).replace(/;\s*/g, ", ")}. Needs: ${cleanText(row.concern).replace(/;\s*/g, ", ")}. Proof: ${cleanText(row.proof).replace(/;\s*/g, ", ")}`);
       const evidence = normalizeList([
         values.notesEvidence,
         values.evidenceSource,
@@ -16655,27 +17176,31 @@
         !model.buyer?.label ? "The economic buyer or first conversation role is not yet clear." : "",
         !repeatableListItems(data, "icpMustHaveSignals").length ? "Observable fit signals have not been defined." : ""
       ]);
-      const status = group?.score >= 13 && !missing.length
-        ? "Validated ICP candidate"
-        : group?.score >= 9
-          ? "Promising ICP hypothesis"
-          : "Draft ICP hypothesis";
+      const feedback = executionEvidenceFeedback(data);
+      const validated = feedback.metrics.conversations >= 5
+        && feedback.metrics.meaningfulNextSteps >= 1
+        && evidence.length > 0;
+      const status = validated
+        ? "Supported by early customer evidence"
+        : evidence.length
+          ? "ICP candidate with evidence to test"
+          : "ICP hypothesis to test";
       return [
         ["Customer context starter", cleanText(data.customerContextStarter) || "No early customer description was captured. Add one in Customer Priority Framework so the ICP has a clear qualitative source."],
         ["ICP status", status],
         ["Priority customer group", values.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer || "Not selected yet"],
         ["Why this group", icpRationaleItems(model)],
-        ["Firmographic and operating profile", criteria.bullets],
-        ["Search and qualification criteria", criteria.lookForBullets],
+        ["Companies to include", criteria.bullets],
+        ["Target List filters", criteria.lookForBullets],
         ["Buyer problem and use case", normalizeList([values.problem || data.bestFitPrimaryPain || data.quickBuyerProblem, values.useCaseDefinition, values.currentWorkaround || data.bestFitCurrentWorkaround])],
         ["Trigger and urgency", normalizeList([values.whyNow || data.bestFitTrigger || data.quickUrgencyNow, values.triggerEvent])],
-        ["Buying committee and decision requirements", buyerRoles.length ? buyerRoles : [model.buyer?.label ? `${model.buyer.label}: clarify what this role needs to believe, the proof required, and its approval role.` : "Buyer roles have not been defined yet."]],
-        ["Observable signals", normalizeList([...repeatableListItems(data, "icpMustHaveSignals"), values.observableCompanySignals])],
-        ["Where to find accounts", accountFindingMethods(model)],
+        ["People involved in the decision", buyerRoles.length ? buyerRoles : [model.buyer?.label ? `${model.buyer.label}: clarify what this role needs to believe, the proof required, and its approval role.` : "Buyer roles have not been defined yet."]],
+        ["Signals to look for", normalizeList([...repeatableListItems(data, "icpMustHaveSignals"), values.observableCompanySignals])],
+        ["How to find these accounts", targetSearchInstructions(model)],
         ["Disqualify or deprioritize", normalizeList([...repeatableListItems(data, "icpDisqualificationRules"), ...avoidAccountBullets(model)])],
         ["Evidence supporting this ICP", evidence.length ? evidence : ["No direct evidence captured yet. Treat this as a hypothesis, not a proven ICP."]],
-        ["What still needs to be proven", missing.length ? missing : ["No critical ICP evidence gap is currently flagged. Continue validating with current customer and market evidence."]],
-        ["First activation step", `Build a focused ${targetList.label} using these criteria. ${targetList.reason}`]
+        ["What still needs to be proven", missing.length ? missing : [`Use the 30-day test to confirm that qualified conversations produce a repeated urgent problem and concrete next steps. Apply this rule before adding volume: ${activePlanDecisionRule(data)}`]],
+        ["Start here", `Build the Target List with 25 qualified accounts using these criteria. ${targetList.reason}`]
       ];
     }
 
@@ -16702,7 +17227,7 @@
       renderBlueprintFields(grid, postRevenueIcpAssetRows(model));
       grid.querySelectorAll(".field").forEach((field) => {
         const label = field.querySelector("h3")?.textContent.trim();
-        if (label === "First activation step") {
+        if (label === "Start here") {
           field.insertAdjacentHTML("beforeend", `<div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("targets"))}">Set Up Target List</a></div>`);
         }
         if (label === "What still needs to be proven") {
@@ -16889,6 +17414,40 @@
       return titles.join(" / ") || row.label;
     }
 
+    function personaDiscoveryQuestionItems(capturedValues, recommendedValues) {
+      const items = [];
+      const seen = new Set();
+      const add = (value) => {
+        if (Array.isArray(value)) {
+          value.forEach(add);
+          return;
+        }
+        const text = cleanText(value);
+        if (!text) return;
+        const parts = text.match(/[^?]+(?:\?|$)/g) || [text];
+        parts.forEach((part) => {
+          const clean = cleanText(part).replace(/^[\s,;/-]+|[\s,;/-]+$/g, "");
+          if (!clean) return;
+          const question = clean.endsWith("?") ? clean : `${clean}?`;
+          const key = question.toLowerCase();
+          if (seen.has(key)) return;
+          seen.add(key);
+          items.push(question);
+        });
+      };
+      add(capturedValues);
+      add(recommendedValues);
+      return items.slice(0, 8);
+    }
+
+    function personaSuggestedOpening(customerGroup, problem, capturedMessage = "") {
+      const captured = cleanText(capturedMessage);
+      if (captured && /(?:\?|i(?:'m| am) (?:speaking|talking|working)|would value|curious how)/i.test(captured)) return captured;
+      const audience = cleanText(customerGroup) || "companies like yours";
+      const issue = cleanText(problem).replace(/[.!?]+$/, "") || "this challenge";
+      return `How are you currently handling ${issue.toLowerCase()}? I'm speaking with ${audience.toLowerCase()} about where this creates the most risk or manual work, and I would value your perspective.`;
+    }
+
     function postRevenuePersonaAssetModel(data) {
       const categories = categoryDefinitions.map((category) => ({ ...category, score: categoryScore(data, category) }));
       const confidence = quickScoreConfidence(data);
@@ -16916,11 +17475,22 @@
         personaAssetModule("Decision criteria", [values.needsToBelieve, data.reviewRequirements], "Clarify the business, implementation, adoption, and risk conditions that must be true before approval."),
         personaAssetModule("Likely objections", [values.likelyObjection, values.objectionDetail, data.dealBlocker, data.dealStallRisks], "Test for delay, budget, adoption, implementation, proof, security, or competing-priority concerns."),
         personaAssetModule("Proof and assets needed", [values.proofNeeded, values.salesAssetsNeeded], "Provide a relevant customer example, measurable result, implementation path, and risk-reduction proof."),
-        personaAssetModule("Preferred communication path", [motion.channelSource, motion.primaryChannel, data.primaryRevenueChannel, data.quickPrimaryChannel], "Confirm the first channel this persona is most likely to notice, trust, and respond through."),
+        personaAssetModule("Where and how to reach this buyer", [motion.channelSource, motion.primaryChannel, data.primaryRevenueChannel, data.quickPrimaryChannel], "Use the saved account source to find likely buyers, then contact them through the channel they are most likely to notice and trust."),
         personaAssetModule("Likely information sources", [], personaAssetRecommendedSources("b2b", roleName))
       ];
       const directMessage = cleanText(values.message);
-      const discovery = personaAssetItems(values.discoveryQuestions);
+      const capturedDiscovery = personaDiscoveryQuestionItems(values.discoveryQuestions, []);
+      const recommendedDiscovery = personaDiscoveryQuestionItems([], [
+        ...roleSpecificDiscoveryQuestions(model),
+        "What is happening today?",
+        "When did this last happen?",
+        "What does the current approach cost in time, money, risk, or delay?",
+        "Who owns fixing it?",
+        "What have you already tried?",
+        "What proof would you need before taking a next step?",
+        "What would a useful next step look like?"
+      ]);
+      const discovery = personaDiscoveryQuestionItems(capturedDiscovery, recommendedDiscovery);
       const nextAsk = personaAssetItems(
         offerScopedValue(data, model.primaryOffer?.rowId, "nextStepCta", ""),
         data.nextStepCta
@@ -16961,11 +17531,11 @@
           ["People involved", cleanText(data.peopleInvolved) || `${mappedRoles.length || 1} role${mappedRoles.length === 1 ? "" : "s"} mapped`]
         ],
         modules,
-        message: directMessage || personaMessage(model, values, primary.label),
-        messageSource: directMessage ? "From intake" : "GTM Intelligence OS recommendation",
+        message: personaSuggestedOpening(customerGroup, values.painPriority || group.problem || data.bestFitPrimaryPain || data.quickBuyerProblem, directMessage),
+        messageSource: directMessage && /(?:\?|i(?:'m| am) (?:speaking|talking|working)|would value|curious how)/i.test(directMessage) ? "From intake" : "GTM Intelligence OS recommendation",
         themes: personaAssetItems(values.caresAbout, values.painPriority, data.bestFitPrimaryPain, data.quickPrimaryOutcome),
-        discovery: discovery.length ? discovery : personaAssetItems(roleSpecificDiscoveryQuestions(model).slice(0, 4)),
-        discoverySource: discovery.length ? "From intake" : "GTM Intelligence OS recommendation",
+        discovery,
+        discoverySource: capturedDiscovery.length ? "Intake answers plus GTM Intelligence OS recommendations" : "GTM Intelligence OS recommendation",
         nextAsk: nextAsk.length ? nextAsk : ["Ask for the smallest next step that creates evidence: a focused follow-up, proof review, pilot discussion, or buyer introduction."],
         supportingRoles: mappedRoles.slice(1).map((row) => ({
           role: row.identifiedRole || personaRoleTitle(row, sharedContext, customerGroup),
@@ -17052,7 +17622,7 @@
       ];
       const directMessage = preRevenueMessageToTest(data, "");
       const discoveryInput = pathKind === "dtc" ? data.preDtcDiscoveryQuestions : pathKind === "channel" ? data.preChannelDiscoveryQuestions : [data.preDtcDiscoveryQuestions, data.preChannelDiscoveryQuestions, data.preDiscoveryQuestions];
-      const capturedDiscovery = personaAssetItems(discoveryInput);
+      const capturedDiscovery = personaDiscoveryQuestionItems(discoveryInput, []);
       const evidence = personaAssetItems(evidenceInputs, values.evidenceAvailable, values.evidenceNotes, preRevenueEvidenceItems(row, data));
       const assumptions = personaAssetItems(values.assumptions);
       const gaps = personaAssetItems(
@@ -17063,7 +17633,15 @@
         !personaAssetItems(values.successRequirements).length ? "Confirm how this persona would judge whether the product worked." : ""
       );
       const fieldCount = [specificContext, ...problemValues, urgency, alternatives, values.successRequirements, values.reachability, evidenceInputs, pathRoles].flat().filter((value) => personaAssetItems(value).length).length;
-      const messageFallback = `For ${customerGroup}, lead with ${preRevenuePrimaryProblem(row).toLowerCase()} and ask for a small next step that produces real evidence.`;
+      const recommendedDiscovery = personaDiscoveryQuestionItems([], [
+        ...preRevenueDiscoveryQuestions(row),
+        "When did you last run into this problem?",
+        "What did you use or do instead?",
+        "What was frustrating or costly about that option?",
+        "What would a meaningfully better result look like?",
+        "What would make you hesitate to try or buy a new option?",
+        "What proof would make the next step feel worthwhile?"
+      ]);
       const nextAsk = personaAssetItems(data.preMessageAsk, data.preWedgeOfferType, data.prePositiveSignal, data.preWedgeSuccessCriteria);
       return {
         data,
@@ -17083,15 +17661,14 @@
           ["Primary persona", roleName],
           ["Buying path", pathLabel],
           ["Use case or context", specificContext || "Needs confirmation"],
-          ["Why now", personaAssetItems(values.whyNow, urgency).join("; ") || "Needs confirmation"],
-          ["Evidence strength", cleanText(row?.evidenceStrength) || personaAssetCoverage(fieldCount)]
+          ["Why now", personaAssetItems(values.whyNow, urgency).join("; ") || "Needs confirmation"]
         ],
         modules,
-        message: directMessage || messageFallback,
-        messageSource: directMessage ? "From intake" : "GTM Intelligence OS recommendation",
+        message: personaSuggestedOpening(messagingAudience || customerGroup, preRevenuePrimaryProblem(row), directMessage),
+        messageSource: directMessage && /(?:\?|i(?:'m| am) (?:speaking|talking|working)|would value|curious how)/i.test(directMessage) ? "From intake" : "GTM Intelligence OS recommendation",
         themes: personaAssetItems(problemValues, values.successRequirements, values.whyNow),
-        discovery: capturedDiscovery.length ? capturedDiscovery : preRevenueDiscoveryQuestions(row).slice(0, 5),
-        discoverySource: capturedDiscovery.length ? "From intake" : "GTM Intelligence OS recommendation",
+        discovery: personaDiscoveryQuestionItems(capturedDiscovery, recommendedDiscovery),
+        discoverySource: capturedDiscovery.length ? "Intake answers plus GTM Intelligence OS recommendations" : "GTM Intelligence OS recommendation",
         nextAsk: nextAsk.length ? nextAsk : ["Ask for one measurable next step that fits this buying path."],
         supportingRoles: pathRoles.slice(1).map((role) => ({
           role,
@@ -17564,11 +18141,11 @@
       document.body.dataset.hasPersonaAsset = "true";
       document.title = `${data.companyName || "Company"} Target List Setup Guide`;
       document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} Target List Setup Guide` : "Target List Setup Guide";
-      document.getElementById("generatedMeta").textContent = `Set up one focused working list in ${systemLabel}; do not maintain a duplicate target database in GTM Intelligence OS.`;
+      document.getElementById("generatedMeta").textContent = `Set up one working Target List in ${systemLabel}; do not maintain a duplicate target database in GTM Intelligence OS.`;
       const companyMeta = document.getElementById("companyMeta");
       companyMeta.hidden = false;
       companyMeta.textContent = [profile.customerGroup, profile.offerName, systemLabel].filter(Boolean).join(" | ");
-      document.getElementById("metadataPills").innerHTML = [profile.isPreRevenue ? "Start with 25 targets" : "Start with 25 focused accounts", `System of record: ${systemLabel}`].map((item) => `<span class="metadata-pill">${escapeHtml(item)}</span>`).join("");
+      document.getElementById("metadataPills").innerHTML = [profile.isPreRevenue ? "Start with 25 targets" : "Start with 25 accounts", `System of record: ${systemLabel}`].map((item) => `<span class="metadata-pill">${escapeHtml(item)}</span>`).join("");
       main.querySelectorAll("section").forEach((section) => section.remove());
 
       const criteria = document.createElement("section");
@@ -18616,7 +19193,7 @@
       const companyMeta = document.getElementById("companyMeta");
       companyMeta.hidden = false;
       companyMeta.textContent = [profile.customerGroup, profile.offerName, profile.path].filter(Boolean).join(" | ");
-      document.getElementById("metadataPills").innerHTML = [profile.personaLabel, profile.confidenceLabel, `${profile.supportingRoles.length + 1} role${profile.supportingRoles.length ? "s" : ""} mapped`]
+      document.getElementById("metadataPills").innerHTML = [profile.personaLabel, `${profile.supportingRoles.length + 1} role${profile.supportingRoles.length ? "s" : ""} mapped`]
         .map((item) => `<span class="metadata-pill">${escapeHtml(item)}</span>`).join("");
       main.querySelectorAll("section").forEach((section) => section.remove());
 
@@ -18637,7 +19214,7 @@
       network.id = "persona-buying-network";
       network.dataset.toc = profile.isPreRevenue && /Direct to consumer/i.test(profile.path) ? "Influencers and Supporting Roles" : "Buying Committee and Supporting Roles";
       const networkTitle = network.dataset.toc;
-      network.innerHTML = `<h2>${escapeHtml(networkTitle)}</h2><p class="muted">The primary persona is the focus. These additional roles matter only when they influence, approve, recommend, use, implement, or block the current buying path.</p>`;
+      network.innerHTML = `<h2>${escapeHtml(networkTitle)}</h2><p class="muted">Before outreach, identify which of these roles applies to each target. Use the role to choose the message, discovery questions, and proof.</p>`;
       if (profile.supportingRoles.length) {
         const roleList = document.createElement("div");
         roleList.className = "persona-role-list";
@@ -18649,13 +19226,8 @@
         note.textContent = "No additional role is currently mapped. Add one only if another person meaningfully influences the next decision.";
         network.appendChild(note);
       }
+      network.insertAdjacentHTML("beforeend", `<div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("messaging"))}">Messaging Kit</a><a href="${escapeHtml(reportAssetUrl("targets"))}">Target List Setup</a></div>`);
       main.appendChild(network);
-
-      const evidence = document.createElement("section");
-      evidence.id = "persona-evidence";
-      evidence.dataset.toc = "Evidence and Confidence";
-      evidence.innerHTML = `<h2>Evidence and Confidence</h2><p class="muted">Keep facts, assumptions, and missing evidence separate. This prevents a polished persona from looking more certain than the underlying inputs.</p><div class="persona-evidence-grid"><div class="persona-evidence-column"><h3>Evidence captured</h3>${personaAssetListMarkup(profile.evidence)}</div><div class="persona-evidence-column"><h3>Assumptions to test</h3>${personaAssetListMarkup(profile.assumptions)}</div><div class="persona-evidence-column"><h3>What still needs confirmation</h3>${personaAssetListMarkup(profile.gaps, "No critical persona gap is currently flagged. Continue validating through real buyer behavior.")}</div></div>`;
-      main.appendChild(evidence);
 
       setupReportNavigation();
       configureAssetPdfExport("personas", data, profile.model);
@@ -18681,6 +19253,7 @@
         setupReportNavigation();
         applyStandardActionIcons();
         applyAssetContentContract(asset, data);
+        renderPlanWorkReturnBar();
       };
       if (requestedAsset === "health") {
         renderPlanHealthDashboard(data);

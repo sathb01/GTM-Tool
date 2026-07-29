@@ -26,7 +26,7 @@ try {
     await page.goto(`${baseUrl}/results.html?v=20260723-phase1-ranked&asset=gtm&recordId=${recordId}`, {
       waitUntil: "load"
     });
-    await page.waitForSelector("#revenueImpactPriorities [data-claim-id]", { timeout: 15000 });
+    await page.waitForSelector("#revenueImpactPriorities [data-claim-id]", { state: "attached", timeout: 15000 });
     const priorities = await page.locator("#revenueImpactPriorities [data-claim-id]").evaluateAll((items) => (
       items.map((item) => {
         const controls = Array.from(item.querySelectorAll("a, button"));
@@ -46,7 +46,10 @@ try {
           exactActionCount: exactActions.length,
           exactActionHref: exactActions[0]?.getAttribute("href") || "",
           genericActionCount: genericActions.length,
-          traceSourceCount: trace?.querySelectorAll("li").length || 0,
+          traceVisible: Boolean(trace)
+            && !trace.hidden
+            && window.getComputedStyle(trace).display !== "none"
+            && window.getComputedStyle(trace).visibility !== "hidden",
           rawFieldIdsVisible: /possibleCustomerGroups__|revenueMotionAssessments__|offerAssessments__/i.test(trace?.innerText || "")
         };
       })
@@ -66,7 +69,7 @@ const checks = {
   statusesPresent: allPriorities.every((item) => item.status),
   confidencesPresent: allPriorities.every((item) => item.confidence),
   sourceFieldsRetained: allPriorities.every((item) => item.sourceFields.length > 0),
-  sourceTraceRendered: allPriorities.every((item) => item.traceSourceCount >= 2),
+  internalSourceTraceHidden: allPriorities.every((item) => !item.traceVisible),
   oneExactActionPerPriority: allPriorities.every((item) => item.exactActionCount === 1 && item.exactActionHref),
   oldGenericActionsRemoved: allPriorities.every((item) => item.genericActionCount === 0),
   noRawFieldIdsVisible: allPriorities.every((item) => !item.rawFieldIdsVisible),

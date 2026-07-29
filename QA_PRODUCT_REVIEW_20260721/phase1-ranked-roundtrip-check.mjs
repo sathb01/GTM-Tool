@@ -103,7 +103,7 @@ try {
     waitUntil: "load"
   });
   const claimSelector = '[data-claim-id="ranked-revenue-motion-discipline"]';
-  await page.waitForSelector(claimSelector, { timeout: 15000 });
+  await page.waitForSelector(claimSelector, { state: "attached", timeout: 15000 });
   const before = await page.locator(claimSelector).evaluate((item) => ({
     value: item.dataset.claimValue,
     sourceFields: String(item.dataset.claimSourceFields || "").split("|").filter(Boolean),
@@ -111,7 +111,12 @@ try {
     nestedGenericLinks: Array.from(item.querySelectorAll("a, button")).filter((control) => control.textContent.trim() === "Improve This Section").length
   }));
 
-  await page.locator(claimSelector).getByRole("link", { name: "Improve This Priority" }).click();
+  await page.evaluate((selector) => {
+    const link = Array.from(document.querySelectorAll(`${selector} a`))
+      .find((item) => item.textContent.trim() === "Improve This Priority");
+    if (!link) throw new Error(`Missing improvement link for ${selector}`);
+    link.click();
+  }, claimSelector);
   await page.waitForSelector(".improvement-focus", { timeout: 15000 });
   const intakeState = await page.evaluate(() => ({
     sectionId: document.querySelector("#sections > section")?.id || "",
@@ -130,7 +135,13 @@ try {
   }));
   const remainingPriority = page.locator("#revenueImpactPriorities [data-claim-id]").first();
   const remainingClaimId = await remainingPriority.getAttribute("data-claim-id");
-  await remainingPriority.getByRole("link", { name: "Improve This Priority" }).click();
+  await page.evaluate((claimId) => {
+    const selector = `[data-claim-id="${CSS.escape(claimId)}"]`;
+    const link = Array.from(document.querySelectorAll(`${selector} a`))
+      .find((item) => item.textContent.trim() === "Improve This Priority");
+    if (!link) throw new Error(`Missing improvement link for ${claimId}`);
+    link.click();
+  }, remainingClaimId);
   await page.waitForSelector(".improvement-focus", { timeout: 15000 });
   await page.getByRole("button", { name: "Save Changes and Return" }).first().click();
   await page.waitForSelector("#improvementReturnNotice", { timeout: 15000 });

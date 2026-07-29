@@ -75,7 +75,7 @@ try {
     waitUntil: "load"
   });
   const claimSelector = '[data-claim-id="ranked-crm-data-quality"]';
-  await page.waitForSelector(claimSelector, { timeout: 15000 });
+  await page.waitForSelector(claimSelector, { state: "attached", timeout: 15000 });
   await page.locator(`${claimSelector} a[href*="focus=pipeline"]`).first().evaluate((link) => link.click());
   await page.waitForSelector(".improvement-focus", { timeout: 15000 });
 

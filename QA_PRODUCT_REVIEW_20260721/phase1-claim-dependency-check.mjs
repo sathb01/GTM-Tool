@@ -70,13 +70,11 @@ async function inspectScenario(label, data) {
   });
   try {
     await page.waitForSelector('[data-claim-id="summary-readiness"]', { timeout: 15000 });
-    await page.waitForSelector('[data-claim-trace="summary-risk"]', { state: "attached", timeout: 15000 });
     await page.evaluate(() => {
       document.querySelectorAll("details.summary-support-panel").forEach((details) => {
         details.open = true;
       });
     });
-    await page.waitForSelector('[data-claim-trace="summary-risk"]', { timeout: 15000 });
   } catch (error) {
     const diagnostic = await page.evaluate(() => ({
       title: document.title,
@@ -100,13 +98,8 @@ async function inspectScenario(label, data) {
       statuses: cards.map((card) => card.dataset.claimStatus),
       confidences: cards.map((card) => card.dataset.claimConfidence),
       readinessSourceFields: String(readiness?.dataset.claimSourceFields || "").split("|").filter(Boolean),
-      traceSourceCounts: traces.map((trace) => trace.querySelectorAll("li").length),
-      tracesVisible: traces.every((trace) => {
-        const style = getComputedStyle(trace);
-        const rect = trace.getBoundingClientRect();
-        return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
-      }),
-      rawFieldIdsVisible: traces.some((trace) => /marketUrgency|possibleCustomerGroups__|revenueMotionPortfolio__/i.test(trace.innerText))
+      claimSourceCounts: cards.map((card) => String(card.dataset.claimSourceFields || "").split("|").filter(Boolean).length),
+      rawFieldIdsVisible: /marketUrgency|possibleCustomerGroups__|revenueMotionPortfolio__/i.test(document.querySelector("main")?.innerText || "")
     };
   });
   await context.close();
@@ -118,12 +111,12 @@ try {
   const high = await inspectScenario("high self-assessment", scenarioData(5));
   const checks = {
     allFourClaimsRendered: low.cardCount === 4 && high.cardCount === 4,
-    allFourTracesRendered: low.traceCount === 4 && high.traceCount === 4,
+    internalTracePanelsRemoved: low.traceCount === 0 && high.traceCount === 0,
     readinessRecalculated: high.score > low.score,
     provenanceRetained: low.readinessSourceFields.length >= scoreFields.length && high.readinessSourceFields.length >= scoreFields.length,
+    sourceDependenciesRetainedBehindTheScenes: [...low.claimSourceCounts, ...high.claimSourceCounts].every((count) => count > 0),
     statusesPresent: [...low.statuses, ...high.statuses].every(Boolean),
     confidencesPresent: [...low.confidences, ...high.confidences].every(Boolean),
-    tracesUsableWhenExpanded: low.tracesVisible && high.tracesVisible && [...low.traceSourceCounts, ...high.traceSourceCounts].every((count) => count > 0),
     noRawFieldIdsVisible: !low.rawFieldIdsVisible && !high.rawFieldIdsVisible,
     noPageErrors: low.errors.length === 0 && high.errors.length === 0
   };

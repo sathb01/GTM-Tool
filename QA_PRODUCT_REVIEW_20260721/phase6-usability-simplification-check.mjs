@@ -26,12 +26,22 @@ page.on("pageerror", (error) => pageErrors.push(error.message));
 try {
   for (const recordId of profiles) {
     await page.goto(`${baseUrl}/results.html?asset=active&recordId=${encodeURIComponent(recordId)}`, { waitUntil: "load" });
+    const startWeek = page.locator("#startWeekOneButton");
+    if (await startWeek.count()) {
+      await page.evaluate(() => {
+        document.querySelectorAll("[data-tool-setup-status]").forEach((control) => {
+          control.value = "Ready";
+          control.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+      });
+      await startWeek.click();
+    }
     await page.waitForSelector("#active-plan-this-week", { timeout: 20000 });
     const activeState = await page.evaluate(() => {
       const links = Array.from(document.querySelectorAll("#reportToc a[data-asset]"));
       const priorities = Array.from(document.querySelectorAll("[data-weekly-priority]"));
-      const workLinks = Array.from(document.querySelectorAll(".active-plan-reference a.work-tool-link"));
-      const referenceLinks = Array.from(document.querySelectorAll(".active-plan-reference a.keep-separate-window"));
+      const workLinks = Array.from(document.querySelectorAll(".active-plan-task-resources a:not([data-keep-new-window='true'])"));
+      const referenceLinks = Array.from(document.querySelectorAll(".active-plan-task-resources a[data-keep-new-window='true']"));
       const firstViewportBottom = window.innerHeight;
       return {
         groups: Array.from(document.querySelectorAll("#reportToc .toc-group-label")).map((item) => item.textContent.trim()),
@@ -41,18 +51,17 @@ try {
         companySetupLabel: document.getElementById("navIntakeBackLink")?.textContent.trim() || "",
         currentSectionNavHidden: document.getElementById("currentSectionNav")?.hidden
           || getComputedStyle(document.getElementById("currentSectionNav")).display === "none",
-        commandContext: ["30-day outcome", "current focus", "decision at the end"]
-          .every((label) => document.getElementById("active-plan-objective")?.innerText.toLowerCase().includes(label)),
+        setupComplete: /Tool Setup is complete/i.test(document.getElementById("active-plan-objective")?.innerText || ""),
         currentWorkVisible: Boolean(document.getElementById("active-plan-this-week")?.offsetParent),
         currentWorkInFirstViewport: (document.getElementById("active-plan-this-week")?.getBoundingClientRect().top || Infinity) < firstViewportBottom,
         priorityCount: priorities.length,
         prioritiesSelfContained: priorities.every((priority) => (
-          /This week's output:/i.test(priority.innerText)
-          && /Complete when:/i.test(priority.innerText)
-          && /What to use/i.test(priority.innerText)
+          /Use for this task/i.test(priority.innerText)
+          && /What happened/i.test(priority.innerText)
+          && /What did you learn/i.test(priority.innerText)
           && Boolean(priority.querySelector('[data-weekly-priority-field="status"]'))
           && Boolean(priority.querySelector('[data-weekly-priority-field="owner"]'))
-          && Boolean(priority.querySelector('[data-weekly-priority-field="evidence"]'))
+          && Boolean(priority.querySelector('[data-weekly-priority-field="result"]'))
         )),
         outlookCollapsed: !document.querySelector("#active-plan-weeks > details.section-details")?.open,
         closeWeekCollapsed: !document.querySelector("#active-plan-review > details.section-details")?.open,
@@ -105,7 +114,7 @@ try {
       thisWeekIsThePrimaryPlanWorkspace: activeState.thisWeekIsActive && activeState.navLabels[0] === "This Week",
       companySetupIsSecondaryAndClear: /Company Setup/i.test(activeState.companySetupLabel),
       redundantSamePageNavigationIsHidden: activeState.currentSectionNavHidden,
-      currentContextAndWorkAreImmediatelyVisible: activeState.commandContext
+      toolSetupAndWorkAreImmediatelyClear: activeState.setupComplete
         && activeState.currentWorkVisible
         && activeState.currentWorkInFirstViewport,
       weeklyWorkIsLimitedAndSelfContained: activeState.priorityCount > 0

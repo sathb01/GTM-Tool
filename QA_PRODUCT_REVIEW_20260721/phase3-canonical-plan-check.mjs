@@ -34,20 +34,20 @@ try {
         active: window.GTM_ACTIVE_PLAN_DEFINITION,
         overview: document.querySelector("#active-plan-objective")?.textContent || ""
       }));
-      const expectedTitles = preRevenue.canonical.topActions.map((item) => item.title);
-      const expectedActions = preRevenue.canonical.topActions.map((item) => item.action);
+      const actionFirstTitles = ["Build the Target List", "Test the Offer", "Review the Results"];
       const checks = {
         exactlyThreeCanonicalActions: preRevenue.canonical.topActions.length === 3,
         uniqueSemanticRoles: new Set(preRevenue.canonical.topActions.map((item) => item.role)).size === 3,
         completeActionContracts: preRevenue.canonical.topActions.every((item) =>
           item.owner && item.timing && item.completionRule && item.evidenceRequired && item.reviewDecision && item.destination?.value
         ),
-        activePlanMatchesCanonical: JSON.stringify(preRevenue.active.actions.map((item) => item.title)) === JSON.stringify(expectedTitles)
-          && JSON.stringify(preRevenue.active.actions.map((item) => item.output)) === JSON.stringify(expectedActions),
-        validationModeStaysInternalAndConsistent: preRevenue.canonical.mode.id === "validation"
+        activePlanUsesActionFirstSequence: JSON.stringify(preRevenue.active.actions.map((item) => item.title)) === JSON.stringify(actionFirstTitles)
+          && preRevenue.active.actions.every((item) => item.owner && item.completionRule && item.evidenceRequired && item.decision),
+        validationModeGuidesLogicWithoutUiJargon: preRevenue.canonical.mode.id === "validation"
           && preRevenue.active.mode?.id === "validation"
-          && !preRevenue.overview.includes("Plan Mode")
-          && !preRevenue.overview.includes("Why this plan"),
+          && preRevenue.overview.includes("Tool Setup")
+          && !preRevenue.overview.includes("Why this plan")
+          && !preRevenue.overview.includes("Plan Mode"),
         decisionSequenceEndsWithEvidenceReview: preRevenue.canonical.topActions[2].role === "execution-evidence"
       };
       results.push({
@@ -87,6 +87,7 @@ try {
 
     const expectedTitles = report.canonical.topActions.map((item) => item.title);
     const expectedActions = report.canonical.topActions.map((item) => item.action);
+    const actionFirstTitles = ["Build the Target List", "Test the Offer", "Review the Results"];
     const checks = {
       exactlyThreeCanonicalActions: report.canonical.topActions.length === 3,
       uniqueSemanticRoles: new Set(report.canonical.topActions.map((item) => item.role)).size === report.canonical.topActions.length,
@@ -97,13 +98,13 @@ try {
       phaseOrderMatchesCanonical: expectedActions.every((action, index) => report.phaseText[index]?.includes(action)),
       actionSummaryMatchesCanonical: expectedTitles.every((title) => report.actionTableText.includes(title))
         && expectedActions.every((action) => report.actionTableText.includes(action)),
-      activePlanMatchesCanonical: JSON.stringify(active.actions.map((item) => item.title)) === JSON.stringify(expectedTitles)
-        && JSON.stringify(active.actions.map((item) => item.output)) === JSON.stringify(expectedActions),
-      modeStaysInternalAndConsistent: profile.expectedMode.includes(report.canonical.mode.id)
+      activePlanUsesActionFirstSequence: JSON.stringify(active.actions.map((item) => item.title)) === JSON.stringify(actionFirstTitles)
+        && active.actions.every((item) => item.owner && item.completionRule && item.evidenceRequired && item.decision),
+      modeGuidesLogicWithoutUiJargon: profile.expectedMode.includes(report.canonical.mode.id)
         && active.mode?.id === report.canonical.mode.id
-        && !report.modeText.includes("Plan Mode")
-        && !active.overview.includes("Plan Mode")
-        && !active.overview.includes("Why this plan"),
+        && active.overview.includes("Tool Setup")
+        && !active.overview.includes("Why this plan")
+        && !active.overview.includes("Plan Mode"),
       alternativesDoNotReplacePrimary: !report.canonical.alternativeCustomers.includes(report.canonical.primaryCustomer)
     };
     results.push({

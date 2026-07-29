@@ -206,7 +206,7 @@ const CUSTOMER_USE_CASE_OPTIONS = [
   "Improve reporting or visibility",
   "Create a repeatable sales process",
   "Clarify positioning or messaging",
-  "Build a target-account list",
+  "Build a Target List",
   "Improve proof or buyer confidence",
   "Reduce implementation risk",
   "Other"

@@ -21,6 +21,7 @@ async function resetRecord(recordId) {
   const record = (await response.json()).record;
   const data = structuredClone(record.data || {});
   delete data.activePlanWeeklyWorkspace;
+  delete data.activePlanToolSetupWorkspace;
   Object.keys(data).forEach((key) => {
     if (/^activePlan__(?:action-|weeklyReview__|updatedAt)/.test(key)) delete data[key];
   });
@@ -41,6 +42,14 @@ async function loadWorkspace(recordId) {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(`${baseUrl}/results.html?v=20260724-full-cycle&asset=active&recordId=${recordId}`, { waitUntil: "load" });
+  await page.waitForSelector("#active-plan-objective [data-tool-setup-status]", { timeout: 20000 });
+  await page.evaluate(() => {
+    document.querySelectorAll("[data-tool-setup-status]").forEach((control) => {
+      control.value = "Ready";
+      control.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  });
+  await page.click("#startWeekOneButton");
   await page.waitForSelector("#active-plan-this-week [data-weekly-priority]", { timeout: 20000 });
   return { context, page, errors };
 }
@@ -49,14 +58,14 @@ async function priorityState(page) {
   return page.evaluate(() => Array.from(document.querySelectorAll("[data-weekly-priority]")).map((card) => ({
     title: card.querySelector("h3")?.textContent.trim() || "",
     status: card.querySelector('[data-weekly-priority-field="status"]')?.value || "",
-    evidence: card.querySelector('[data-weekly-priority-field="evidence"]')?.value || ""
+    evidence: card.querySelector('[data-weekly-priority-field="result"]')?.value || ""
   })));
 }
 
 async function setPriority(page, index, status, evidence) {
   const card = page.locator("[data-weekly-priority]").nth(index);
   await card.locator('[data-weekly-priority-field="status"]').selectOption({ label: status });
-  await card.locator('[data-weekly-priority-field="evidence"]').fill(evidence);
+  await card.locator('[data-weekly-priority-field="result"]').fill(evidence);
 }
 
 async function saveProgress(page) {
@@ -80,7 +89,7 @@ async function closeWeek(page, expectedCurrentWeek, options = {}) {
   }
   await page.click("#closeActivePlanWeek");
   const nextWeek = expectedCurrentWeek === 4 ? 1 : expectedCurrentWeek + 1;
-  await page.waitForFunction((week) => document.querySelector("#active-plan-this-week h2")?.textContent.includes(`Week ${week} Priorities`), nextWeek, { timeout: 30000 });
+  await page.waitForFunction((week) => document.querySelector("#active-plan-this-week > details .muted, #active-plan-this-week > .muted")?.textContent.includes(`Week ${week}.`), nextWeek, { timeout: 30000 });
 }
 
 try {
