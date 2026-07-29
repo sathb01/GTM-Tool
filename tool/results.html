@@ -1553,6 +1553,8 @@
       margin-bottom: 0;
     }
     .workspace-return-bar { position: sticky; top: 12px; z-index: 18; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 16px; border: 1px solid #f6b39f; border-left: 4px solid #ff7a59; background: #ffffff; box-shadow: 0 8px 20px rgba(22, 32, 51, 0.08); }
+    html { scroll-padding-top: 130px; }
+    main > section, .score-component-detail, #icp-brief, #persona-overview { scroll-margin-top: 130px; }
     .workspace-return-bar-copy { min-width: 0; }
     .workspace-return-bar-copy span, .workspace-return-bar-copy strong { display: block; overflow-wrap: anywhere; }
     .workspace-return-bar-label { color: #9d3d28; font-size: 12px; font-weight: 800; text-transform: uppercase; }
@@ -3619,6 +3621,11 @@
         purpose: "Turn the chosen message, channel, and proof into a bounded sequence with clear stop rules.",
         requiredContent: ["audience", "channel", "steps and timing", "message", "proof", "stop rules", "learning path"]
       },
+      "weekly-review-setup": {
+        label: "Weekly GTM Review Setup",
+        purpose: "Set the owner, rhythm, scorecard, decisions, and recording location once before weekly evidence review begins.",
+        requiredContent: ["owner", "day and cadence", "scorecard", "decision choices", "recording location", "ready state"]
+      },
       validation: {
         label: "30-Day Validation Plan",
         purpose: "Run one focused hypothesis test and use the evidence to continue, revise, or stop.",
@@ -5534,10 +5541,21 @@
     }
 
     function firstValueClaimOutcome(data, rowId = null) {
-      const row = firstRepeatableWhere(data, rowId ? scopedOfferTable(rowId, "valueClaims") : "valueClaims", (item) => item.values.outcome || item.values.metric || item.values.improvement || item.values.buyerLanguage);
+      const row = firstRepeatableWhere(data, rowId ? scopedOfferTable(rowId, "valueClaims") : "valueClaims", (item) => {
+        const values = item.values || {};
+        return values.outcome || values.outcomeType || values.buyerFacingClaim || values.metric || values.successMetric
+          || values.improvement || values.targetImprovement || values.buyerLanguage || values.baseline || values.timeframe;
+      });
       if (!row) return "";
-      const outcome = firstMeaningfulGeneratedValue([row.values.outcome, row.values.buyerLanguage, row.values.improvement]);
-      const metric = meaningfulGeneratedValue(row.values.metric);
+      const outcome = firstMeaningfulGeneratedValue([
+        row.values.outcome,
+        row.values.outcomeType,
+        row.values.buyerFacingClaim,
+        row.values.buyerLanguage,
+        row.values.improvement,
+        row.values.targetImprovement
+      ]);
+      const metric = meaningfulGeneratedValue(row.values.metric || row.values.successMetric);
       return [outcome, metric ? `measured by ${metric}` : ""].filter(Boolean).join(" ");
     }
 
@@ -5618,7 +5636,8 @@
     function offerReadinessDimensions(data, rowId = null) {
       const activeRowId = rowId || primaryOfferRow(data)?.rowId || null;
       const firstValueClaim = firstRepeatableWhere(data, activeRowId ? scopedOfferTable(activeRowId, "valueClaims") : "valueClaims", (row) => (
-        row.values.outcome && (row.values.metric || row.values.improvement || row.values.buyerLanguage)
+        (row.values.outcome || row.values.outcomeType || row.values.buyerFacingClaim || row.values.buyerLanguage)
+        && (row.values.metric || row.values.successMetric || row.values.improvement || row.values.targetImprovement || row.values.baseline || row.values.timeframe)
       ));
       const proofRows = repeatableRows(data, activeRowId ? scopedOfferTable(activeRowId, "proofReadiness") : "proofReadiness").filter((row) => (
         row.values.claim || row.values.proofType || row.values.assetExists || row.values.strength || row.values.gapNextAction
@@ -5640,7 +5659,7 @@
       return [
         { name: "ICP-offer alignment", score: scoreFromChoice(offerScopedValue(data, activeRowId, "icpOfferAlignment", data.icpOfferAlignment), [[/validated/, 5], [/urgent problem/, 4], [/relevant/, 3], [/unvalidated/, 2], [/not clear/, 1]]), nextMove: "Clarify the priority customer group this offer is built for." },
         { name: "Problem urgency", score: Math.max(scoreFromChoice(offerScopedValue(data, activeRowId, "offerUrgencyLevel", data.offerUrgencyLevel || data.urgencyLevel), [[/critical/, 5], [/high/, 4], [/medium/, 3], [/low/, 2]]), offerScopedValue(data, activeRowId, "offerBuyerProblem", data.offerBuyerProblem) && offerScopedValue(data, activeRowId, "offerTriggerEvent", data.offerTriggerEvent) && offerScopedValue(data, activeRowId, "offerCostOfInaction", data.offerCostOfInaction) ? 3 : 0), nextMove: "Tighten the buyer problem, trigger, cost of inaction, and urgency evidence." },
-        { name: "Measurable value", score: firstValueClaim ? (firstValueClaim.values.proofStrength ? 4 : 3) : 0, nextMove: "Define at least one measurable value claim with metric, baseline, improvement, and timeframe." },
+        { name: "Measurable value", score: firstValueClaim ? (firstValueClaim.values.proofStrength || firstValueClaim.values.evidenceAvailable ? 4 : 3) : 0, nextMove: "Define at least one measurable value claim with metric, baseline, improvement, and timeframe." },
         { name: "Promise and positioning", score: Math.max(scoreFromChoice(offerScopedValue(data, activeRowId, "promiseClarityRating", data.promiseClarityRating), [[/proof-backed|differentiated/, 5], [/specific/, 4], [/generic/, 2], [/unclear/, 1]]), offerScopedValue(data, activeRowId, "oneSentencePromise", data.oneSentencePromise) && offerScopedValue(data, activeRowId, "offerDifferentiator", data.offerDifferentiator) ? 3 : 0), nextMove: "Write the offer promise and differentiator in buyer-facing language." },
         { name: "Buying path", score: Math.max(scoreFromChoice(offerScopedValue(data, activeRowId, "buyingPathClarityRating", data.buyingPathClarityRating), [[/conversion path/, 5], [/requirements/, 4], [/buyer requirements are unclear/, 3], [/vague/, 2], [/no clear/, 1]]), offerScopedValue(data, activeRowId, "firstUseCaseForOffer", data.firstUseCaseForOffer) && offerScopedValue(data, activeRowId, "easiestNextStep", data.easiestNextStep) ? 3 : 0), nextMove: "Define the first use case and easiest next step for the buyer." },
         { name: "Packaging and pricing", score: Math.max(scoreFromChoice(offerScopedValue(data, activeRowId, "packagingClarityRating", data.packagingClarityRating), [[/validated|repeatable/, 5], [/entry, core, and expansion/, 4], [/defined/, 3], [/custom/, 2], [/not packaged/, 1]]), offerPricingConfidence(data, activeRowId) === "High" ? 4 : offerPricingConfidence(data, activeRowId) === "Medium" ? 3 : 0), nextMove: "Clarify entry, core, and expansion packages plus price range and approval level." },
@@ -6664,7 +6683,8 @@
         ${card.progressHtml || ""}
         <p class="metric-copy">${escapeHtml(card.copy || missingText)}</p>
         ${card.badge ? `<span class="status-badge ${card.badge.className || ""}">${escapeHtml(card.badge.label)}</span>` : ""}
-        ${card.target ? `<a class="metric-card-link" href="#${escapeHtml(card.target)}">Learn more</a>` : ""}
+        ${card.target ? `<a class="metric-card-link" href="#${escapeHtml(card.target)}">${escapeHtml(card.actionLabel || "View details")}</a>` : ""}
+        ${card.secondaryHref ? `<a class="metric-card-link secondary" href="${escapeHtml(card.secondaryHref)}">${escapeHtml(card.secondaryLabel || "Open workspace")}</a>` : ""}
       `;
       const detailLink = article.querySelector(".metric-card-link");
       if (detailLink) {
@@ -7023,64 +7043,56 @@
       return `Using the ICP Brief and Persona Brief as reference, build a Target List of 25 ${targetType} for ${customer} in ${system}. Prepare one outreach message, contact the first qualified targets, and record the results in the Weekly GTM Review.`;
     }
 
+    function launchDecisionForScore(score) {
+      const value = Number(score) || 0;
+      if (value >= 82) return { label: "Go", className: "strong", color: "#2d7a52", reason: "The plan is focused enough to launch a controlled test and learn from buyer behavior." };
+      if (value >= 66) return { label: "Conditional Go", className: "medium", color: "#b7791f", reason: "The plan can support a focused test if the team accepts the remaining uncertainty and reviews evidence weekly." };
+      return { label: "Not Ready", className: "warning", color: "#b5443c", reason: "The highest-impact blockers should be completed before adding meaningful GTM volume." };
+    }
+
+    function summaryResumeState(model) {
+      const setup = activePlanToolSetup(model.data, activePlanDefinition(model.data), activePlanWeeklyWorkspace(model.data, activePlanDefinition(model.data)));
+      const complete = setup.tools.filter((tool) => ["Ready", "Complete", "Skip for now"].includes(setup.statuses[tool.id])).length;
+      const current = setup.tools.find((tool) => !["Ready", "Complete", "Skip for now"].includes(setup.statuses[tool.id]));
+      if (current) {
+        return {
+          value: "Resume Tool Setup",
+          copy: `${current.label} is ${String(setup.statuses[current.id] || "in progress").toLowerCase()}. ${complete} of ${setup.tools.length} setup steps are complete; continue with this one task.`,
+          badge: { label: /blocked/i.test(setup.statuses[current.id] || "") ? "Waiting / Blocked" : "In progress", className: /blocked/i.test(setup.statuses[current.id] || "") ? "warning" : "strong" }
+        };
+      }
+      const weekly = model.data.activePlanWeeklyWorkspace || {};
+      const priorities = Array.isArray(weekly.currentPriorities) ? weekly.currentPriorities : [];
+      const open = priorities.filter((item) => item.status !== "Complete").slice(0, 3);
+      return {
+        value: open.length ? `Week ${weekly.currentWeek || 1}: ${open.length} commitment${open.length === 1 ? "" : "s"}` : "Weekly plan ready",
+        copy: open.length ? open.map((item, index) => `${index + 1}. ${item.title} — ${item.status || "Not started"}`).join(" ") : "The setup is ready. Start the next focused commitment when the team has capacity.",
+        badge: { label: "This Week", className: "strong" }
+      };
+    }
+
     function renderWorkspaceDashboard(model) {
       const cards = document.getElementById("workspaceSummaryCards");
       const recommendation = document.getElementById("workspaceRecommendation");
       if (!cards || !recommendation) return;
 
-      const status = scoreStatusInfo(model.readinessScore);
+      const status = launchDecisionForScore(model.readinessScore);
       const dynamicSummary = dynamicPlanSummary(model);
       const topRisk = dynamicSummary.risk;
-      const nextAction = dynamicSummary.nextAction;
-      const decisionContent = executiveDecisionContent(model);
-      const strategicEvidence = buildStrategicInsights(model).slice(0, 3);
       const canonical = canonicalPlanFor(model);
       const topPriority = canonical.rankedPriorities[0];
-      const targetListOpportunity = /target list|customer|icp|segment/i.test(dynamicSummary.opportunity)
-        ? canonical.rankedPriorities.find((priority) => /icp|customer priority/i.test(`${priority.category || ""} ${priority.priority || ""}`)) || {
-            category: "ICP Focus",
-            priority: "Target List",
-            whyItMatters: "A Target List turns the current customer hypothesis into a practical market test.",
-            drivers: model.priorityGroup?.values.groupName
-              ? `The current priority customer group is ${model.priorityGroup.values.groupName}.`
-              : "The plan recommends testing one priority customer group before adding adjacent segments.",
-            recommendedAction: dynamicSummary.opportunity,
-            confidence: "High"
-          }
-        : null;
-      const opportunityPriority = dynamicSummary.feedback.state === "Supported"
-        ? canonical.rankedPriorities.find((priority) => /revenue motion optimization|optimize the proven revenue motion/i.test(`${priority.category || ""} ${priority.priority || ""}`)) || topPriority
-        : targetListOpportunity || topPriority;
-      const riskContext = `${topRisk} ${strategicEvidence.map((item) => `${item.title || ""} ${item.observation || ""}`).join(" ")}`;
-      const riskPriority = /crm|data quality|source attribution|loss reason/i.test(topRisk)
-        ? canonical.rankedPriorities.find((priority) => /crm|data quality/i.test(`${priority.category || ""} ${priority.priority || ""}`))
-        : /conversion|funnel|stage|motion|sales process/i.test(topRisk)
-          ? canonical.rankedPriorities.find((priority) => /revenue motion|conversion/i.test(`${priority.category || ""} ${priority.priority || ""}`))
-          : /proof|business case|case study|buyer evidence/i.test(topRisk)
-          ? canonical.rankedPriorities.find((priority) => /proof/i.test(`${priority.category || ""} ${priority.priority || ""}`))
-          : /crm|data quality|source attribution|loss reason/i.test(riskContext)
-            ? canonical.rankedPriorities.find((priority) => /crm|data quality/i.test(`${priority.category || ""} ${priority.priority || ""}`))
-            : /proof|business case|case study|buyer evidence/i.test(riskContext)
-              ? canonical.rankedPriorities.find((priority) => /proof/i.test(`${priority.category || ""} ${priority.priority || ""}`))
-            : topPriority;
       const scorePercent = Math.max(0, Math.min(100, Number(model.readinessScore) || 0));
-      const owner = model.data.primaryRevenueOwner
-        || model.data.pipelineReviewOwner
-        || (/founder|capacity|executive/i.test(`${topRisk} ${nextAction}`) ? "CEO / Founder" : "CEO / Founder");
-      const assets = actionPanelAssets(model);
+      const resume = summaryResumeState(model);
+      const blockers = (model.readinessDiagnostic?.improvements || []).slice(0, 2);
+      const blockerReady = status.label === "Go" || blockers.length === 0;
       const claims = buildSummaryClaims(model, {
         status,
         dynamicSummary,
-        opportunityPriority,
-        riskPriority,
-        nextAction,
+        opportunityPriority: topPriority,
+        riskPriority: topPriority,
+        nextAction: dynamicSummary.nextAction,
         topRisk
       });
-      const weekly = model.data.activePlanWeeklyWorkspace && typeof model.data.activePlanWeeklyWorkspace === "object"
-        ? model.data.activePlanWeeklyWorkspace
-        : { currentWeek: 1, currentPriorities: [] };
-      const currentPriorities = Array.isArray(weekly.currentPriorities) ? weekly.currentPriorities : [];
-      const completePriorities = currentPriorities.filter((priority) => priority?.status === "Complete").length;
 
       const section = cards.closest("section");
       let guide = section?.querySelector(".decision-summary-guide");
@@ -7090,45 +7102,49 @@
         section.insertBefore(guide, cards);
       }
       if (guide) {
-        guide.innerHTML = `<h3>Start here</h3><p>Review the Priority Opportunity, then open This Week to set up the tools and begin the work. Use Risk only when it changes what the team should do next.</p>`;
+        guide.innerHTML = `<h3>Start here</h3><p>Use the launch decision to choose between a focused test and the highest-impact blockers. Priority Opportunity explains what matters; This Week sequences the commitments that advance it.</p>`;
       }
 
       cards.innerHTML = "";
       renderMetricCard(cards, {
         label: "GTM Readiness Score",
-        valueHtml: `${model.readinessScore} <span class="muted">/ 100</span>`,
-        copy: `${status.label} | Evidence confidence: ${model.readinessDiagnostic?.confidenceLabel || model.scoreConfidence || "Low"} | Execution: ${dynamicSummary.feedback.state}`,
+        value: status.label,
+        copy: `${status.reason} Readiness score: ${model.readinessScore}/100.`,
         badge: status,
         progressHtml: `<div class="score-progress" aria-label="Readiness score progress"><div class="score-progress-bar" style="width:${scorePercent}%; background:${status.color};"></div></div>`,
         tone: "readiness",
         target: "summary-readiness-details",
+        actionLabel: "Review score and launch paths",
         claim: claims.readiness
       });
       renderMetricCard(cards, {
         label: "Priority Opportunity",
         value: "Build the Target List",
-        copy: `Test ${planCustomerName(model)} with ${planOfferName(model)}.`,
+        copy: `Build the first 25-account list because a defined set of qualified ${planCustomerName(model)} accounts is the missing execution gap for testing ${planOfferName(model)}.`,
         badge: { label: "Opportunity", className: "medium" },
         tone: "opportunity",
         target: "summary-opportunity-details",
+        actionLabel: "Build the list",
         claim: claims.opportunity
       });
       renderMetricCard(cards, {
         label: "This Week",
-        value: "Set up the tools and start the list",
-        copy: thisWeekActionCopy(model),
-        badge: { label: "Priority", className: "strong" },
+        value: resume.value,
+        copy: resume.copy,
+        badge: resume.badge,
         tone: "action",
         target: "summary-action-details",
+        actionLabel: "Resume this week",
         claim: claims.action
       });
       renderMetricCard(cards, {
-        label: "Risk",
-        value: topRisk,
-        copy: "Open only when this risk changes the work the team should do next.",
-        badge: { label: /risk|capacity|weak|missing|unclear/i.test(topRisk) ? "Watch" : "Review", className: "warning" },
+        label: "Readiness Blockers / What Needs Attention",
+        value: blockerReady ? "Ready to launch" : `${blockers.length} launch blocker${blockers.length === 1 ? "" : "s"}`,
+        copy: blockerReady ? "No high-impact blocker remains. Start the focused test and use the weekly review to learn." : "Complete these items to launch and learn with confidence.",
+        badge: { label: blockerReady ? "Ready" : "Needs attention", className: blockerReady ? "strong" : "warning" },
         tone: "risk",
         target: "summary-risk-details",
+        actionLabel: blockerReady ? "Start the focused test" : "Complete blockers",
         claim: claims.risk
       });
 
@@ -7136,9 +7152,9 @@
       const readinessPanel = summarySupportPanel({
         id: "summary-readiness-details",
         tone: "readiness",
-        title: "GTM Readiness: Evidence and Score Details",
-        subtitle: "See what supports the score and what would improve it.",
-        content: `<p><strong>Current status:</strong> ${escapeHtml(status.label)} at ${escapeHtml(model.readinessScore)}/100.</p><div class="score-breakdown-host"></div>`
+        title: "GTM Readiness: Score and Launch Decision",
+        subtitle: "Review valid saved evidence, standard weights, and the two launch paths.",
+        content: `<p><strong>${escapeHtml(status.label)}:</strong> ${escapeHtml(status.reason)} The score is ${escapeHtml(model.readinessScore)}/100.</p><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Start the focused test — accept remaining uncertainty</a><a class="secondary" href="#summary-risk-details">Improve the highest-impact blockers</a></div><div class="score-breakdown-host"></div>`
       });
       renderScoreBreakdown(model.readinessDiagnostic, readinessPanel.querySelector(".score-breakdown-host"), model);
       recommendation.appendChild(readinessPanel);
@@ -7146,15 +7162,9 @@
       const opportunityPanel = summarySupportPanel({
         id: "summary-opportunity-details",
         tone: "opportunity",
-        title: "Priority Opportunity",
-        subtitle: "The one opportunity the current plan is built around.",
-        content: `<p class="summary-primary-action">${escapeHtml(priorityOpportunityCopy(model))}</p><div class="summary-secondary-context"><h3>What this is based on</h3><ul>${priorityOpportunityBasis(model).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div><h3>90-Day Focus</h3><p>For the next 90 days, do two things:</p><ol>${ninetyDayFocusItems(model).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol>`
-      });
-      appendReviewLink(opportunityPanel.querySelector(".summary-support-content"), "Improve This Section", claims.opportunity.improvementTopic, {
-        sameTab: true,
-        returnSectionId: "summary-opportunity-details",
-        claim: claims.opportunity,
-        focus: opportunityPriority ? priorityImprovementFocus(opportunityPriority, model) : undefined
+        title: "90-Day GTM Experiment",
+        subtitle: "A learning objective, not a rigid mandate.",
+        content: `<p class="summary-primary-action">Test the current ICP, offer, and revenue motion with an initial 25-account list.</p><div class="summary-secondary-context"><h3>Why this matters</h3><p>A defined set of qualified accounts is the missing execution gap. Buyer responses will show whether the current strategy deserves more investment.</p></div><ol><li>Build and work the first 25-account list.</li><li>Use buyer responses to confirm, refine, or change the ICP, criteria, offer, message, or channel.</li><li>Make any controlled strategy adjustment in the weekly evidence and review loop.</li></ol><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("targets"))}">Build the first list</a></div>`
       });
       recommendation.appendChild(opportunityPanel);
 
@@ -7162,23 +7172,19 @@
         id: "summary-action-details",
         tone: "action",
         title: "This Week",
-        subtitle: "The work to start now.",
-        content: `<p class="summary-primary-action">${escapeHtml(thisWeekActionCopy(model))}</p><ul><li><strong>Customer group:</strong> ${escapeHtml(planCustomerName(model))}</li><li><strong>Owner:</strong> ${escapeHtml(owner)}</li><li><strong>Due:</strong> This week</li><li><strong>Tools needed:</strong> ${escapeHtml(["ICP Brief", "Persona Brief", ...assets].join(", "))}</li></ul><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Work on This Action</a></div>`
+        subtitle: "One to three sequenced commitments, with durable progress.",
+        content: `<p class="summary-primary-action">${escapeHtml(resume.copy)}</p><p class="muted">Statuses are saved as In progress, Waiting / Blocked, Complete, or Continue later. Continue-later items stay available without becoming repeated alerts.</p><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Resume current work</a></div>`
       });
       recommendation.appendChild(actionDetails);
 
       const riskPanel = summarySupportPanel({
         id: "summary-risk-details",
         tone: "risk",
-        title: "Risk",
-        subtitle: "The issue most likely to change the current plan.",
-        content: `<p class="summary-primary-action">${escapeHtml(topRisk)}</p><div class="summary-secondary-context"><h3>What to do about it</h3><p>${escapeHtml(riskPriority?.recommendedAction || model.readinessDiagnostic?.improvements?.[0]?.action || "Resolve this risk before adding more accounts or activity.")}</p></div>`
-      });
-      appendReviewLink(riskPanel.querySelector(".summary-support-content"), "Improve This Section", claims.risk.improvementTopic, {
-        sameTab: true,
-        returnSectionId: "summary-risk-details",
-        claim: claims.risk,
-        focus: riskPriority ? priorityImprovementFocus(riskPriority, model) : undefined
+        title: "Readiness Blockers / What Needs Attention",
+        subtitle: blockerReady ? "The plan is ready for a controlled launch." : "Complete only the highest-impact items.",
+        content: blockerReady
+          ? `<p class="summary-primary-action">Ready to launch. Start the focused test, capture buyer evidence, and review results weekly.</p><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Start the focused test</a></div>`
+          : `<p>Complete these items to launch and learn with confidence.</p><ol>${blockers.map((item) => `<li><strong>${escapeHtml(item.label || item.component || "Readiness blocker")}:</strong> ${escapeHtml(item.action || item.description || topRisk)}</li>`).join("")}</ol><div class="card-actions no-print"><a href="#summary-readiness-details">Complete readiness inputs</a></div>`
       });
       recommendation.appendChild(riskPanel);
     }
@@ -9935,7 +9941,7 @@
       const version = params.get("v") || "20260712-pre-revenue-assets";
       const recordId = activeReportRecordId();
       const query = new URLSearchParams({ v: version, asset });
-      const hashes = { health: "plan-health-dashboard", active: "active-plan-objective", validation: "plan-decision", "validation-workspace": "", gtm: "draft-icp", icp: "icp-brief", personas: "persona-overview", messaging: "messaging-workspace", targets: "target-list-workspace", "proof-assets": "proof-asset-workspace", outreach: "outreach-sequence-workspace", "weekly-review": "weekly-review-workspace", reconciliation: "evidence-reconciliation-workspace" };
+      const hashes = { health: "plan-health-dashboard", active: "active-plan-objective", validation: "plan-decision", "validation-workspace": "", gtm: "draft-icp", icp: "icp-brief", personas: "persona-overview", messaging: "messaging-workspace", targets: "target-list-workspace", "proof-assets": "proof-asset-workspace", outreach: "outreach-sequence-workspace", "weekly-review-setup": "weekly-review-setup-workspace", "weekly-review": "weekly-review-workspace", reconciliation: "evidence-reconciliation-workspace" };
       const hash = Object.prototype.hasOwnProperty.call(hashes, asset) ? hashes[asset] : "draft-icp";
       if (recordId) {
         query.set("recordId", recordId);
@@ -12881,7 +12887,12 @@
       addNavItem("Work Tools", "Target List Setup", reportAssetUrl("targets"), null, "targets");
       addNavItem("Work Tools", "Proof Asset Builder", reportAssetUrl("proof-assets"), null, "proof-assets");
       addNavItem("Work Tools", "Outreach Sequence", reportAssetUrl("outreach"), null, "outreach");
-      addNavItem("Work Tools", "Weekly GTM Review", reportAssetUrl("weekly-review"), null, "weekly-review");
+      addNavItem("Work Tools", "Weekly GTM Review Setup", reportAssetUrl("weekly-review-setup"), null, "weekly-review-setup");
+      const reviewReady = reportDataForNavigation.weeklyGtmReviewSetupWorkspace?.status === "ready"
+        || reportDataForNavigation.weeklyReviewWorkspace?.updatedAt;
+      if (reviewReady || currentAsset === "weekly-review") {
+        addNavItem("Work Tools", "Evidence This Week", reportAssetUrl("weekly-review"), null, "weekly-review");
+      }
       if (currentAsset === "validation-workspace" || document.getElementById("plan-decision") || document.getElementById("draft-icp")) {
         addNavItem("Work Tools", "Validation Workspace", reportAssetUrl("validation-workspace"), null, "validation-workspace");
       }
@@ -13717,7 +13728,7 @@
           "primaryOfferName",
           "primaryGtmOffer"
         ]),
-        scoreEvidenceItem("Offer readiness", `${offerSnapshot.score}/100`, offerRowId ? summaryClaimSourceFields("offer proof", {
+        scoreEvidenceItem("Offer readiness", offerSnapshot.score > 0 ? `${offerSnapshot.score}/100` : "Setup incomplete — add the buyer problem and one measurable value claim.", offerRowId ? summaryClaimSourceFields("offer proof", {
           priorityGroup,
           primaryOffer,
           revenueMotion,
@@ -13768,12 +13779,28 @@
         .slice(0, 2)
         .map((category) => scoreNextInput(category.name, category.lowMove || "Review this readiness area against current evidence.", category.fields || [], "score"));
 
+      const presets = {
+        standard: { evidence: 0.55, execution: 0.35, self: 0.1 },
+        "evidence-led": { evidence: 0.65, execution: 0.25, self: 0.1 },
+        "operating-led": { evidence: 0.45, execution: 0.45, self: 0.1 }
+      };
+      const savedWeights = data.readinessWeightSettings && typeof data.readinessWeightSettings === "object"
+        ? data.readinessWeightSettings
+        : {};
+      const presetName = savedWeights.preset === "custom" || Object.prototype.hasOwnProperty.call(presets, savedWeights.preset)
+        ? savedWeights.preset
+        : "standard";
+      const requestedWeights = presetName === "custom" ? savedWeights.weights : presets[presetName];
+      const requestedTotal = ["evidence", "execution", "self"].reduce((sum, key) => sum + Number(requestedWeights?.[key] || 0), 0);
+      const weights = requestedWeights && Math.abs(requestedTotal - 1) < 0.001
+        ? requestedWeights
+        : presets.standard;
       const components = [
         {
           key: "evidence",
           label: "Customer, offer, and signal foundation",
           score: evidenceScore,
-          weight: 0.55,
+          weight: Number(weights.evidence),
           explanation: "Customer, buyer, offer, proof, and buying-signal readiness.",
           countedEvidence: evidenceCounted,
           nextInputs: evidenceNextInputs
@@ -13782,7 +13809,7 @@
           key: "execution",
           label: "Planned operating readiness",
           score: plannedExecutionScore,
-          weight: 0.35,
+          weight: Number(weights.execution),
           explanation: "Revenue motion, operating rhythm, CRM/data, ownership, and measurement. Completed work is reported separately as execution progress.",
           countedEvidence: executionCounted,
           nextInputs: executionNextInputs
@@ -13791,13 +13818,14 @@
           key: "self",
           label: "Respondent self-assessment",
           score: boundedScore(selfAssessmentScore),
-          weight: 0.1,
+          weight: Number(weights.self),
           explanation: "The 12 readiness ratings from GTM Information. These ratings are supporting context, not the primary source of the score.",
           countedEvidence: selfAssessmentCounted,
           nextInputs: selfAssessmentNextInputs
         }
       ];
 
+      const defaultScore = boundedScore((evidenceScore * 0.55) + (plannedExecutionScore * 0.35) + (boundedScore(selfAssessmentScore) * 0.1));
       const scoreBeforeUncertainty = boundedScore(components.reduce((sum, item) => sum + (item.score * item.weight), 0));
       const uncertaintyPenalty = 0;
       const overallScore = scoreBeforeUncertainty;
@@ -13856,15 +13884,6 @@
           topic: "score",
           fieldIds: schema.scoreFields
         },
-        {
-          area: "Confidence",
-          score: confidenceCompletenessScore,
-          title: "Replace vague or missing answers with specifics.",
-          action: "Resolve blank fields, undefined Other selections, placeholder AI text, and broad claims with named segments, metrics, proof, and owners.",
-          potentialLift: scoreLift(confidenceCompletenessScore, 0.06),
-          topic: "score",
-          fieldIds: supportFields
-        }
       ]
         .filter((item) => item.score < 90)
         .sort((a, b) => b.potentialLift - a.potentialLift || a.score - b.score)
@@ -13872,6 +13891,9 @@
 
       return {
         overallScore,
+        defaultScore,
+        weightPreset: presetName,
+        customizedWeights: presetName !== "standard",
         components,
         improvements,
         evidenceCoverage,
@@ -13899,6 +13921,21 @@
     function renderScoreBreakdown(diagnostic, targetContainer = null, model = null) {
       const container = targetContainer || document.getElementById("scoreBreakdown");
       if (!container || !diagnostic) return;
+      let savedChange = null;
+      if (model) {
+        try {
+          savedChange = JSON.parse(sessionStorage.getItem(`${STORAGE_KEY}:readinessChange`) || "null");
+          sessionStorage.removeItem(`${STORAGE_KEY}:readinessChange`);
+        } catch {
+          savedChange = null;
+        }
+      }
+      const changedComponent = savedChange
+        ? diagnostic.components.find((item) => item.key === savedChange.component)
+        : null;
+      const changeNotice = savedChange && changedComponent
+        ? `<div class="overview-note"><strong>Readiness recalculated.</strong><p>${escapeHtml(changedComponent.label)}: ${escapeHtml(savedChange.componentBefore)}/100 → ${escapeHtml(changedComponent.score)}/100. Overall: ${escapeHtml(savedChange.before)}/100 → ${escapeHtml(diagnostic.overallScore)}/100.${savedChange.before === diagnostic.overallScore ? " The saved input did not change the score." : ""}</p></div>`
+        : "";
       const componentRows = diagnostic.components.map((item) => {
         const counted = (item.countedEvidence || []).length
           ? item.countedEvidence.map((evidence) => `<li><strong>${escapeHtml(evidence.label)}:</strong> ${escapeHtml(evidence.value)}</li>`).join("")
@@ -13906,6 +13943,17 @@
         const nextInputs = (item.nextInputs || []).length
           ? item.nextInputs.map((input) => `<li><strong>${escapeHtml(input.label)}:</strong> ${escapeHtml(input.reason)}</li>`).join("")
           : "<li>No immediate score-changing input is missing in this area.</li>";
+        const inlineFields = (item.nextInputs || [])
+          .flatMap((input) => input.fields || [])
+          .filter(Boolean)
+          .filter((fieldId, index, all) => all.indexOf(fieldId) === index)
+          .slice(0, 3);
+        const inlineEditor = model && inlineFields.length
+          ? `<div class="score-inline-editor" data-score-component="${escapeHtml(item.key)}"><p><strong>Optional readiness improvement.</strong> Add only the smallest score-changing inputs below, or continue without adding them.</p>${inlineFields.map((fieldId) => `<label>${escapeHtml(fieldId.replaceAll("__", " / ").replace(/([a-z])([A-Z])/g, "$1 $2"))}<textarea rows="2" data-score-field="${escapeHtml(fieldId)}">${escapeHtml(model.data[fieldId] || "")}</textarea></label>`).join("")}<div class="card-actions no-print"><button type="button" data-save-score-component="${escapeHtml(item.key)}">Save and recalculate</button><button type="button" class="secondary" data-skip-score-component="${escapeHtml(item.key)}">Continue without adding / Skip for now</button><a class="secondary" href="${escapeHtml(intakeReviewUrl(item.key === "evidence" ? "customer offer proof signals" : item.key === "execution" ? "90-day revenue motion crm" : "score"))}">Open full inputs for deeper rework</a></div><p class="muted" data-score-component-status></p></div>`
+          : "";
+        const offerPath = item.key === "evidence"
+          ? `<div class="overview-note"><strong>Offer readiness path</strong><ol><li>Priority customer, problem, trigger, and cost of inaction</li><li>Buyer-facing promise and differentiator</li><li>First use case and easiest next step</li><li>Measurable value claim with metric, baseline, improvement, and timeframe</li><li>Package and price</li><li>Proof tied to the claim</li><li>Objections and risk reduction</li></ol></div>`
+          : "";
         return `
           <details class="score-component-detail">
             <summary>${escapeHtml(item.label)}: ${escapeHtml(item.score)}/100 - ${escapeHtml(scoreMetricStatus(item.score))} (${escapeHtml(Math.round(item.weight * 100))}% of overall score)</summary>
@@ -13914,6 +13962,8 @@
             <ul>${counted}</ul>
             <h4>Inputs that can change this area</h4>
             <ul>${nextInputs}</ul>
+            ${offerPath}
+            ${inlineEditor}
           </details>
         `;
       }).join("");
@@ -13924,10 +13974,11 @@
           <p class="muted">Estimated score opportunity: up to ${escapeHtml(item.potentialLift)} points if the missing inputs are completed with strong evidence. This is not a guaranteed increase.</p>
         </div>
       `).join("") : "<p>No immediate score improvements are suggested. Continue testing the current plan and record real results.</p>";
-      const progressValue = diagnostic.executionFeedback?.hasEvidence
-        ? `${diagnostic.executionProgressScore}/100`
-        : "Not started";
+      const scoreDelta = diagnostic.overallScore - diagnostic.defaultScore;
+      const defaultDecision = launchDecisionForScore(diagnostic.defaultScore).label;
+      const customDecision = launchDecisionForScore(diagnostic.overallScore).label;
       container.innerHTML = `
+        ${changeNotice}
         <div class="score-metric-strip">
           <div>
             <span>GTM readiness</span>
@@ -13935,39 +13986,77 @@
             <small>Weighted overall score across the three components below</small>
           </div>
           <div>
-            <span>Evidence confidence</span>
-            <strong>${escapeHtml(diagnostic.confidenceCompletenessScore)}/100</strong>
-            <small>${escapeHtml(diagnostic.confidenceLabel || "Low")} input confidence; reported separately from readiness</small>
-          </div>
-          <div>
-            <span>Execution progress</span>
-            <strong>${escapeHtml(progressValue)}</strong>
-            <small>${escapeHtml(diagnostic.executionProgressState || "Untested")}; completed activity does not automatically prove readiness</small>
+            <span>Launch decision</span>
+            <strong>${escapeHtml(customDecision)}</strong>
+            <small>Use buyer evidence from the focused test to revisit this decision weekly.</small>
           </div>
         </div>
         <h3>What goes into GTM readiness</h3>
-        <p class="muted">The overall score is weighted: 55% customer, offer, and signal foundation; 35% planned operating readiness; and 10% respondent self-assessment. Component scores may differ from the overall score. Evidence confidence and completed execution are shown separately.</p>
+        <p class="muted">Standard weights are 55% customer, offer, and signal foundation; 35% planned operating readiness; and 10% respondent self-assessment. Component scores may differ from the overall score.</p>
         <div class="score-component-list">${componentRows}</div>
         <h3>Top 3 ways to improve the score</h3>
         <div class="score-improvement-list">${improvementRows}</div>
+        <details class="score-component-detail score-advanced-settings">
+          <summary>Advanced Settings <small>Presets and optional plan-specific weights</small></summary>
+          <p><strong>Customized weights make this score plan-specific and less comparable with other plans.</strong> Start with a preset; use custom weights only when the launch decision genuinely depends on a different emphasis.</p>
+          <label>Weight preset<select id="readinessWeightPreset">
+            <option value="standard"${diagnostic.weightPreset === "standard" ? " selected" : ""}>Standard — 55 / 35 / 10</option>
+            <option value="evidence-led"${diagnostic.weightPreset === "evidence-led" ? " selected" : ""}>Evidence-led — 65 / 25 / 10</option>
+            <option value="operating-led"${diagnostic.weightPreset === "operating-led" ? " selected" : ""}>Operating-led — 45 / 45 / 10</option>
+            <option value="custom"${diagnostic.weightPreset === "custom" ? " selected" : ""}>Custom</option>
+          </select></label>
+          <div id="customReadinessWeights"${diagnostic.weightPreset === "custom" ? "" : " hidden"}>
+            ${diagnostic.components.map((item) => `<label>${escapeHtml(item.label)} %<input type="number" min="0" max="100" step="1" data-custom-weight="${escapeHtml(item.key)}" value="${escapeHtml(Math.round(item.weight * 100))}"></label>`).join("")}
+          </div>
+          <p><strong>Standard score:</strong> ${escapeHtml(diagnostic.defaultScore)}/100 (${escapeHtml(defaultDecision)}). <strong>Current score:</strong> ${escapeHtml(diagnostic.overallScore)}/100 (${escapeHtml(customDecision)}). <strong>Delta:</strong> ${scoreDelta >= 0 ? "+" : ""}${escapeHtml(scoreDelta)} points. ${diagnostic.customizedWeights ? "The difference comes from the selected plan-specific weights." : "Standard weights are active."} ${defaultDecision === customDecision ? "The launch decision did not change." : `The launch decision changed from ${escapeHtml(defaultDecision)} to ${escapeHtml(customDecision)}.`}</p>
+          <div class="card-actions no-print"><button type="button" id="saveReadinessWeights">Apply weights and recalculate</button></div>
+          <p class="muted" id="readinessWeightStatus"></p>
+        </details>
       `;
       if (model) {
-        container.querySelectorAll("[data-score-improvement]").forEach((element) => {
-          const item = diagnostic.improvements[Number(element.dataset.scoreImprovement)];
-          if (!item) return;
-          appendReviewLink(element, `Improve ${item.area}`, item.topic || immediateActionTopic(item.area), {
-            sameTab: true,
-            returnSectionId: "summary-readiness-details",
-            task: `Improve ${item.area}`,
-            focus: {
-              area: `${item.area}: ${item.score}/100`,
-              why: item.title,
-              missing: [item.action],
-              questions: [item.action],
-              example: "Complete the highlighted inputs, save, and return. The tool will recalculate the score and explain whether it changed.",
-              fieldIds: item.fieldIds || []
+        container.querySelectorAll("[data-save-score-component]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const editor = button.closest("[data-score-component]");
+            const before = diagnostic.overallScore;
+            editor.querySelectorAll("[data-score-field]").forEach((control) => {
+              model.data[control.dataset.scoreField] = control.value.trim();
+            });
+            const statusElement = editor.querySelector("[data-score-component-status]");
+            statusElement.textContent = "Saving and recalculating…";
+            const saved = await persistActivePlanData(model.data, statusElement);
+            if (saved) {
+              const componentBefore = diagnostic.components.find((item) => item.key === editor.dataset.scoreComponent)?.score;
+              sessionStorage.setItem(`${STORAGE_KEY}:readinessChange`, JSON.stringify({ before, componentBefore, component: editor.dataset.scoreComponent }));
+              window.location.reload();
             }
           });
+        });
+        container.querySelectorAll("[data-skip-score-component]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const skipped = Array.isArray(model.data.readinessImprovementSkips) ? model.data.readinessImprovementSkips : [];
+            model.data.readinessImprovementSkips = Array.from(new Set([...skipped, button.dataset.skipScoreComponent]));
+            const statusElement = button.closest("[data-score-component]").querySelector("[data-score-component-status]");
+            statusElement.textContent = "This optional improvement is set aside for now.";
+            await persistActivePlanData(model.data, statusElement);
+          });
+        });
+        const weightPreset = container.querySelector("#readinessWeightPreset");
+        weightPreset?.addEventListener("change", () => {
+          container.querySelector("#customReadinessWeights").hidden = weightPreset.value !== "custom";
+        });
+        container.querySelector("#saveReadinessWeights")?.addEventListener("click", async () => {
+          const preset = weightPreset.value;
+          const weights = {};
+          container.querySelectorAll("[data-custom-weight]").forEach((control) => {
+            weights[control.dataset.customWeight] = (Number(control.value) || 0) / 100;
+          });
+          if (preset === "custom" && Math.abs(Object.values(weights).reduce((sum, value) => sum + value, 0) - 1) > 0.001) {
+            container.querySelector("#readinessWeightStatus").textContent = "Custom weights must total 100%.";
+            return;
+          }
+          model.data.readinessWeightSettings = { preset, weights, updatedAt: new Date().toISOString() };
+          const saved = await persistActivePlanData(model.data, container.querySelector("#readinessWeightStatus"));
+          if (saved) window.location.reload();
         });
       }
     }
@@ -15898,19 +15987,22 @@
           done: "The sequence, timing, owner, and stop rule are ready."
         },
         {
-          id: "weekly-review",
-          label: "Weekly GTM Review",
-          asset: "weekly-review",
+          id: "weekly-review-setup",
+          label: "Weekly GTM Review Setup",
+          asset: "weekly-review-setup",
           type: "tool",
-          purpose: "Prepare the place where results and the weekly decision will be recorded.",
+          purpose: "Set the review owner, day, scorecard, decisions, and recording location once.",
           done: "The review owner, measures, and continue/revise/pause rule are clear."
         }
       ];
+      if (!saved.statuses["weekly-review-setup"] && saved.statuses["weekly-review"]) {
+        saved.statuses["weekly-review-setup"] = saved.statuses["weekly-review"];
+      }
       tools.forEach((tool) => {
         if (saved.statuses[tool.id]) return;
         const autoReady = (tool.id === "messaging" && data.messagingKitWorkspace?.updatedAt)
           || (tool.id === "outreach" && data.outreachSequenceWorkspace?.updatedAt)
-          || (tool.id === "weekly-review" && data.weeklyReviewWorkspace?.updatedAt);
+          || (tool.id === "weekly-review-setup" && (data.weeklyGtmReviewSetupWorkspace?.status === "ready" || data.weeklyReviewWorkspace?.updatedAt));
         saved.statuses[tool.id] = autoReady ? "Ready" : (tool.type === "reference" ? "Needs review" : "Not ready");
       });
       saved.tools = tools;
@@ -16688,31 +16780,58 @@
       const objective = document.createElement("section");
       objective.id = "active-plan-objective";
       objective.dataset.toc = "Tool Setup";
-      const toolCards = toolSetup.tools.map((tool) => {
+      const completedSetupCount = toolSetup.tools.filter((tool) => ["Ready", "Complete", "Skip for now"].includes(toolSetup.statuses[tool.id])).length;
+      const currentSetupTool = toolSetup.tools.find((tool) => !["Ready", "Complete", "Skip for now"].includes(toolSetup.statuses[tool.id])) || toolSetup.tools.at(-1);
+      const toolCards = toolSetup.tools.filter((tool) => tool.id === currentSetupTool?.id).map((tool) => {
         const statusOptions = tool.type === "reference"
-          ? ["Needs review", "Ready", "Skip for now"]
-          : ["Not ready", "Ready", "Skip for now"];
-        const actionLabel = tool.type === "reference" ? "Review" : "Set up";
-        const actionTarget = tool.type === "reference" ? ' target="_blank" rel="noopener"' : "";
+          ? ["Needs review", "In progress", "Waiting / Blocked", "Ready", "Skip for now"]
+          : ["Not ready", "In progress", "Waiting / Blocked", "Ready", "Skip for now"];
+        const actionLabel = tool.id === "targets"
+          ? `Create the list in ${cleanText(data.revenueTrackingSystem) || "HubSpot"}`
+          : tool.type === "reference"
+            ? `I’m ready to use this ${tool.id === "icp" ? "ICP" : "persona"}`
+            : tool.id === "weekly-review-setup"
+              ? "Set the weekly review rhythm"
+              : `Continue ${tool.label}`;
+        const referenceContent = tool.id === "icp"
+          ? `<details class="score-component-detail" open><summary>ICP Brief — read before marking ready</summary><p><strong>Who belongs:</strong> ${escapeHtml(planCustomerName({ data, priorityGroup: selectedCustomerGroup(data), primaryOffer: primaryOfferRow(data) }))}</p><p><strong>Problem:</strong> ${escapeHtml(data.bestFitPrimaryPain || data.quickBuyerProblem || "Confirm the priority problem in the ICP Brief.")}</p><p><strong>Fit and timing:</strong> ${escapeHtml(data.bestFitTrigger || data.quickUrgencyNow || "Use the saved fit and trigger criteria.")}</p></details>`
+          : tool.id === "personas"
+            ? `<details class="score-component-detail" open><summary>Persona Brief — read before marking ready</summary><p><strong>Primary buyer:</strong> ${escapeHtml(data.bestFitDecisionMaker || data.primaryBuyer || "Use the primary buyer saved in the plan.")}</p><p><strong>Concern to test:</strong> ${escapeHtml(data.reviewRequirements || data.dealBlocker || data.quickBuyerProblem || "Confirm the buyer’s concern in conversation.")}</p></details>`
+            : tool.id === "targets"
+              ? `<div class="overview-note"><strong>First-list handoff</strong><p>Start with 25 accounts that match ${escapeHtml(data.bestFitCustomerGroup || data.quickBestFitCustomer || "the priority ICP")}. Required fields: account name, website, ICP fit, trigger, buyer role, source, owner, status, and next action. Keep ICP and Persona briefs available as in-context references.</p></div>`
+              : "";
         return `<article class="active-plan-tool-card">
           <h3>${escapeHtml(tool.label)}</h3>
           <p class="active-plan-tool-purpose">${escapeHtml(tool.purpose)}</p>
           <p class="active-plan-tool-done"><strong>Ready when:</strong> ${escapeHtml(tool.done)}</p>
-          <div class="active-plan-link-row"><a href="${escapeHtml(activePlanToolUrl(tool.asset, "setup"))}"${actionTarget}${tool.type === "reference" ? ' data-keep-new-window="true"' : ""}>${escapeHtml(actionLabel)}</a></div>
+          ${referenceContent}
+          <div class="active-plan-link-row">${tool.type === "reference" ? `<button type="button" data-mark-tool-ready="${escapeHtml(tool.id)}">${escapeHtml(actionLabel)}</button>` : `<a href="${escapeHtml(activePlanToolUrl(tool.asset, "setup"))}">${escapeHtml(actionLabel)}</a>`}</div>
           <label>Status<select data-tool-setup-status="${escapeHtml(tool.id)}">${statusOptions.map((option) => `<option${toolSetup.statuses[tool.id] === option ? " selected" : ""}>${escapeHtml(option)}</option>`).join("")}</select></label>
+          <label>Blocked reason (only when needed)<input data-tool-setup-reason="${escapeHtml(tool.id)}" value="${escapeHtml(toolSetup.reasons?.[tool.id] || "")}" placeholder="What must happen before this can continue?"></label>
         </article>`;
       }).join("");
       objective.innerHTML = toolSetup.started
         ? `<div class="active-plan-tool-ready"><div><strong>Tool Setup is complete.</strong><br><span class="muted">Review or change a tool only when the work has changed.</span></div><button type="button" class="secondary" id="toggleToolSetup">Review Tool Setup</button></div><div class="active-plan-tool-setup" id="activePlanToolSetupDetails" hidden><h2>Tool Setup</h2><p>Before weekly work begins, make sure the reference assets and working tools are usable. Mark a tool Ready or Skip for now.</p><div class="active-plan-tool-grid">${toolCards}</div><div class="active-plan-save-row"><button type="button" id="saveToolSetupButton">Save Tool Setup</button><span class="active-plan-save-status" id="toolSetupStatus"></span></div></div>`
-        : `<div class="active-plan-tool-setup"><div><h2>Tool Setup</h2><p>Prepare these reference assets and work tools before Week 1. Mark each one Ready or Skip for now, then start the weekly plan.</p></div><div class="active-plan-tool-grid">${toolCards}</div><div class="active-plan-save-row"><button type="button" id="startWeekOneButton">Start Week 1</button><span class="active-plan-save-status" id="toolSetupStatus"></span></div></div>`;
+        : `<div class="active-plan-tool-setup"><div><h2>Tool Setup</h2><p><strong>${completedSetupCount} of ${toolSetup.tools.length} complete.</strong> Work on one current setup task at a time. Progress is saved for the next return.</p></div><div class="active-plan-tool-grid">${toolCards}</div><div class="active-plan-save-row"><button type="button" id="saveToolSetupButton">Save progress / Continue later</button>${toolSetup.ready ? '<button type="button" id="startWeekOneButton">Start Week 1</button>' : ""}<span class="active-plan-save-status" id="toolSetupStatus"></span></div></div>`;
       main.appendChild(objective);
 
       const syncToolSetup = () => {
+        toolSetup.reasons = toolSetup.reasons && typeof toolSetup.reasons === "object" ? toolSetup.reasons : {};
         objective.querySelectorAll("[data-tool-setup-status]").forEach((control) => {
           toolSetup.statuses[control.dataset.toolSetupStatus] = control.value;
         });
+        objective.querySelectorAll("[data-tool-setup-reason]").forEach((control) => {
+          toolSetup.reasons[control.dataset.toolSetupReason] = control.value.trim();
+        });
         toolSetup.ready = toolSetup.tools.every((tool) => ["Ready", "Skip for now"].includes(toolSetup.statuses[tool.id]));
       };
+      objective.querySelectorAll("[data-mark-tool-ready]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          toolSetup.statuses[button.dataset.markToolReady] = "Ready";
+          await persistActivePlanData(data, objective.querySelector("#toolSetupStatus"));
+          renderActivePlanWorkspace(data);
+        });
+      });
       objective.querySelector("#toggleToolSetup")?.addEventListener("click", (event) => {
         const details = objective.querySelector("#activePlanToolSetupDetails");
         details.hidden = !details.hidden;
@@ -16725,6 +16844,7 @@
         button.disabled = true;
         await persistActivePlanData(data, status);
         button.disabled = false;
+        if (!toolSetup.started) renderActivePlanWorkspace(data);
       });
       objective.querySelector("#startWeekOneButton")?.addEventListener("click", async (event) => {
         const button = event.currentTarget;
@@ -18152,21 +18272,21 @@
       criteria.id = "target-list-workspace";
       criteria.dataset.toc = "Who Belongs";
       criteria.className = "workspace-section";
-      criteria.innerHTML = `<h2>Who Belongs on the First List</h2><p class="muted">Use the current ICP as the filter. Add an account or person only when you can point to an observable reason they may fit.</p>${personaAssetListMarkup(criteriaItems)}<div class="report-bottom-actions no-print"><a href="${escapeHtml(reportAssetUrl("icp"))}">ICP Brief</a><a href="${escapeHtml(reportAssetUrl("personas"))}">Persona Brief</a></div>`;
+      criteria.innerHTML = `<h2>Who Belongs on the First List</h2><p class="muted">Use the current ICP as the filter. Add an account or person only when you can point to an observable reason they may fit.</p>${personaAssetListMarkup(criteriaItems)}<details class="score-component-detail"><summary>ICP and Persona references</summary><p><strong>ICP:</strong> ${escapeHtml(data.bestFitCustomerGroup || data.quickBestFitCustomer || "Use the priority customer group saved in the plan.")}</p><p><strong>Primary buyer:</strong> ${escapeHtml(data.bestFitDecisionMaker || data.primaryBuyer || "Use the primary buyer saved in the plan.")}</p><p><strong>Trigger:</strong> ${escapeHtml(data.bestFitTrigger || data.quickUrgencyNow || "Use the saved timing and trigger criteria.")}</p></details>`;
       main.appendChild(criteria);
 
       const setup = document.createElement("section");
       setup.id = "target-list-system-setup";
       setup.dataset.toc = "Set Up the List";
       setup.className = "workspace-section";
-      setup.innerHTML = `<h2>Set Up the List in ${escapeHtml(systemLabel)}</h2><div class="persona-guide-grid"><div class="persona-guide-block"><h3>Recommended starting size</h3>${personaAssetListMarkup([profile.isPreRevenue ? "Build a pool of 25 qualified people or accounts, then recruit until the planned interviews or tests are complete." : "Begin with 25 high-quality accounts. Add volume only after the list produces useful conversations or qualified opportunities.", "Keep one row or CRM record per account or person.", "Do not copy the same working list into GTM Intelligence OS."])}</div><div class="persona-guide-block"><h3>Required fields</h3>${personaAssetListMarkup(requiredFields)}</div></div><div class="messaging-editor-actions no-print"><button type="button" id="copyTargetListSetup">Copy Setup Guide</button><a class="secondary" href="${escapeHtml(reportAssetUrl("outreach"))}">Outreach Sequence</a><a class="secondary" href="${escapeHtml(reportAssetUrl("weekly-review"))}">Weekly GTM Review</a><span class="messaging-save-status" id="targetListSetupStatus"></span></div>`;
+      setup.innerHTML = `<h2>Set Up the List in ${escapeHtml(systemLabel)}</h2><div class="persona-guide-grid"><div class="persona-guide-block"><h3>Recommended starting size</h3>${personaAssetListMarkup([profile.isPreRevenue ? "Build a pool of 25 qualified people or accounts, then recruit until the planned interviews or tests are complete." : "Begin with 25 high-quality accounts. Add volume only after the list produces useful conversations or qualified opportunities.", "Keep one row or CRM record per account or person.", "Do not copy the same working list into GTM Intelligence OS."])}</div><div class="persona-guide-block"><h3>Required fields</h3>${personaAssetListMarkup(requiredFields)}</div></div><div class="messaging-editor-actions no-print"><button type="button" id="copyTargetListSetup">Create the list in ${escapeHtml(systemLabel)}</button><span class="messaging-save-status" id="targetListSetupStatus"></span></div><details class="score-component-detail"><summary>Secondary setup resource</summary><p>Copy the criteria and required fields if your CRM or spreadsheet needs a manual setup reference. Messaging, outreach, and weekly review remain separate resumable setup tasks.</p></details>`;
       main.appendChild(setup);
       setup.querySelector("#copyTargetListSetup").addEventListener("click", async () => {
         const text = [`TARGET LIST SETUP - ${data.companyName || "Company"}`, "", "WHO BELONGS", ...criteriaItems.map((item) => `- ${item}`), "", "REQUIRED FIELDS", ...requiredFields.map((item) => `- ${item}`)].join("\n");
         const status = setup.querySelector("#targetListSetupStatus");
         try {
           await copyTextToClipboard(text);
-          status.textContent = "Setup guide copied.";
+          status.textContent = `Criteria copied. Create the first 25-account list in ${systemLabel}, then return to Tool Setup and mark this step Ready.`;
         } catch (error) {
           status.textContent = "Copy failed. Select and copy the guidance above.";
         }
@@ -18634,6 +18754,108 @@
       configureAssetPdfExport("pipeline-workspace", data, profile.model);
     }
 
+    function weeklyReviewSetupState(data) {
+      const stored = data.weeklyGtmReviewSetupWorkspace && typeof data.weeklyGtmReviewSetupWorkspace === "object"
+        ? data.weeklyGtmReviewSetupWorkspace
+        : {};
+      return {
+        version: 1,
+        status: stored.status === "ready" ? "ready" : "in-progress",
+        reviewDay: stored.reviewDay || "",
+        learningSignal: stored.learningSignal || "",
+        decisionsConfirmed: Boolean(stored.decisionsConfirmed),
+        scorecardConfirmed: Boolean(stored.scorecardConfirmed),
+        recordingConfirmed: Boolean(stored.recordingConfirmed),
+        evidenceLocation: stored.evidenceLocation || data.revenueTrackingSystem || "",
+        updatedAt: stored.updatedAt || "",
+        completedAt: stored.completedAt || ""
+      };
+    }
+
+    function renderWeeklyReviewSetup(data) {
+      const main = document.querySelector("main");
+      const state = weeklyReviewSetupState(data);
+      const motion = selectedRevenueMotion(data);
+      const motionId = motion?.rowId || "";
+      const canonicalCadence = data.revenueReportingCadence || (motionId ? data[revenueScopedField(motionId, "nextExperiment", "reviewCadence")] : "") || "Weekly";
+      const owner = data.pipelineReviewOwner || data.primaryRevenueOwner || "";
+      const reviewInputsId = motionId ? revenueScopedField(motionId, "nextExperiment", "reviewInputs") : "";
+      const continueId = motionId ? revenueScopedField(motionId, "nextExperiment", "continueRule") : "preContinueRule";
+      const reviseId = motionId ? revenueScopedField(motionId, "nextExperiment", "reviseRule") : "preReviseRule";
+      const stopId = motionId ? revenueScopedField(motionId, "nextExperiment", "stopRule") : "preStopRule";
+      const defaultInputs = "Activity; responses; conversations; qualified opportunities; one learning signal";
+      const roleOptions = ["Founder", "CEO / President", "VP Sales", "Sales Lead", "Account Executive", "VP Marketing", "Marketing Lead", "Growth Lead", "RevOps", "Customer Success Lead", "Partnerships Lead"];
+      const currentOwnerOptions = owner && !roleOptions.includes(owner) ? ["", ...roleOptions, owner] : ["", ...roleOptions];
+      main.querySelectorAll("section").forEach((section) => section.remove());
+      document.title = `${data.companyName || "Company"} Weekly GTM Review Setup`;
+      document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} Weekly GTM Review Setup` : "Weekly GTM Review Setup";
+      document.getElementById("generatedMeta").textContent = "Set the operating rhythm once. Actual results and decisions belong in Evidence This Week when review time arrives.";
+      const section = document.createElement("section");
+      section.id = "weekly-review-setup-workspace";
+      section.dataset.toc = "Review Setup";
+      section.className = "workspace-section";
+      section.innerHTML = `
+        <h2>Weekly GTM Review Setup</h2>
+        <p>Confirm the saved operating rhythm. Fields already present in the plan are prefilled; only missing information needs attention.</p>
+        <div class="overview-note"><strong>Current plan context</strong><p>90-day learning objective: ${escapeHtml(data.quick90DayGoal || data.goal90 || "Add the learning objective in the plan")}. Success metric: ${escapeHtml(data.quick90DaySuccessMetric || "Add a success metric")}. Protected weekly revenue hours: ${escapeHtml(data.weeklyRevenueHours || "Not set")}. Experiment readiness: ${escapeHtml(data.experimentReadiness || "Not set")}. CRM/data quality: ${escapeHtml([data.revenueTrackingSystem, data.revenueDataQuality].filter(Boolean).join(" — ") || "Not set")}.</p></div>
+        <div class="messaging-results-grid">
+          <label>1. Review owner<select id="weeklySetupOwner">${messagingOptions(currentOwnerOptions, owner)}</select></label>
+          <label>2. Review day<select id="weeklySetupDay">${messagingOptions(["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], state.reviewDay)}</select></label>
+          <label>Review cadence<select id="weeklySetupCadence">${messagingOptions(["Weekly", "Biweekly", "Monthly"], canonicalCadence)}</select></label>
+          <label>Where evidence and decisions are recorded<input id="weeklySetupLocation" value="${escapeHtml(state.evidenceLocation)}" placeholder="Example: HubSpot dashboard and Weekly GTM Review"></label>
+          <label class="wide">One learning signal<input id="weeklySetupLearning" value="${escapeHtml(state.learningSignal)}" placeholder="Example: recurring objection or reason qualified buyers decline"></label>
+          <label class="wide">Continue rule<textarea id="weeklySetupContinue" rows="3">${escapeHtml(data[continueId] || "Continue when the motion creates qualified conversations, useful buyer learning, or enough pipeline to justify another cycle.")}</textarea></label>
+          <label class="wide">Adjust / revise rule<textarea id="weeklySetupRevise" rows="3">${escapeHtml(data[reviseId] || "Adjust one variable when responses show the ICP, offer, message, channel, or criteria need refinement.")}</textarea></label>
+          <label class="wide">Pause / stop rule<textarea id="weeklySetupStop" rows="3">${escapeHtml(data[stopId] || "Pause when the motion creates no qualified conversations or useful learning, or the effort is not justified.")}</textarea></label>
+        </div>
+        <div class="score-component-list">
+          <label class="checkbox-option"><input type="checkbox" id="weeklySetupScorecard"${state.scorecardConfirmed ? " checked" : ""}> Confirm scorecard: activity, responses, conversations, qualified opportunities, and the learning signal above.</label>
+          <label class="checkbox-option"><input type="checkbox" id="weeklySetupDecisions"${state.decisionsConfirmed ? " checked" : ""}> Confirm decisions: Continue, Adjust / Revise, and Pause / Stop.</label>
+          <label class="checkbox-option"><input type="checkbox" id="weeklySetupRecording"${state.recordingConfirmed ? " checked" : ""}> Confirm the recording location above is where the team will keep evidence and decisions.</label>
+        </div>
+        <div class="card-actions no-print"><button type="button" id="setWeeklyReviewReady">Set weekly review ready</button><button type="button" class="secondary" id="saveWeeklyReviewSetup">Continue later</button><a class="secondary" href="${escapeHtml(reportAssetUrl("active"))}">Return to Tool Setup</a></div>
+        <p class="muted" id="weeklyReviewSetupStatus">${state.status === "ready" ? "Weekly review setup is ready." : "Setup is in progress."}</p>
+      `;
+      main.appendChild(section);
+      const save = async (complete) => {
+        state.reviewDay = section.querySelector("#weeklySetupDay").value;
+        state.learningSignal = section.querySelector("#weeklySetupLearning").value.trim();
+        state.evidenceLocation = section.querySelector("#weeklySetupLocation").value.trim();
+        state.scorecardConfirmed = section.querySelector("#weeklySetupScorecard").checked;
+        state.decisionsConfirmed = section.querySelector("#weeklySetupDecisions").checked;
+        state.recordingConfirmed = section.querySelector("#weeklySetupRecording").checked;
+        const selectedOwner = section.querySelector("#weeklySetupOwner").value;
+        const cadence = section.querySelector("#weeklySetupCadence").value;
+        if (selectedOwner) {
+          data.pipelineReviewOwner = selectedOwner;
+          if (!data.primaryRevenueOwner) data.primaryRevenueOwner = selectedOwner;
+        }
+        data.revenueReportingCadence = cadence;
+        if (reviewInputsId) data[reviewInputsId] = defaultInputs;
+        data[continueId] = section.querySelector("#weeklySetupContinue").value.trim();
+        data[reviseId] = section.querySelector("#weeklySetupRevise").value.trim();
+        data[stopId] = section.querySelector("#weeklySetupStop").value.trim();
+        if (!data.revenueTrackingSystem && state.evidenceLocation) data.revenueTrackingSystem = state.evidenceLocation;
+        const missing = [selectedOwner, state.reviewDay, cadence, state.learningSignal, state.evidenceLocation].filter((value) => !cleanText(value)).length;
+        if (complete && (missing || !state.scorecardConfirmed || !state.decisionsConfirmed || !state.recordingConfirmed)) {
+          section.querySelector("#weeklyReviewSetupStatus").textContent = "Confirm the owner, rhythm, learning signal, recording location, scorecard, and decisions before marking ready.";
+          return;
+        }
+        state.status = complete ? "ready" : "in-progress";
+        state.updatedAt = new Date().toISOString();
+        if (complete) state.completedAt = state.updatedAt;
+        data.weeklyGtmReviewSetupWorkspace = state;
+        const setup = data.activePlanToolSetupWorkspace;
+        if (setup?.statuses) setup.statuses["weekly-review-setup"] = complete ? "Ready" : "In progress";
+        const saved = await persistActivePlanData(data, section.querySelector("#weeklyReviewSetupStatus"));
+        if (saved && complete) renderWeeklyReviewSetup(data);
+      };
+      section.querySelector("#saveWeeklyReviewSetup").addEventListener("click", () => save(false));
+      section.querySelector("#setWeeklyReviewReady").addEventListener("click", () => save(true));
+      setupReportNavigation();
+      configureAssetPdfExport("weekly-review-setup", data);
+    }
+
     function weeklyReviewEvidence(data, profile) {
       const messageWorkspace = messagingWorkspaceState(data, profile);
       const proofEvidence = proofBuilderEvidence(data, profile);
@@ -18744,6 +18966,10 @@
     }
 
     function renderWeeklyReviewWorkspace(data) {
+      if (data.weeklyGtmReviewSetupWorkspace?.status !== "ready" && !data.weeklyReviewWorkspace?.updatedAt) {
+        renderWeeklyReviewSetup(data);
+        return;
+      }
       const profile = isPreRevenueReport(data) ? preRevenuePersonaAssetModel(data) : postRevenuePersonaAssetModel(data);
       const evidence = weeklyReviewEvidence(data, profile);
       const learning = weeklyLearningRecommendation(evidence);
@@ -18778,7 +19004,7 @@
       decision.id = "weekly-review-decision";
       decision.dataset.toc = "Decision and Priorities";
       decision.className = "workspace-section";
-      decision.innerHTML = `<h2>Recommended Decision: ${escapeHtml(evidence.decision)}</h2><div class="messaging-recommendation"><p>${escapeHtml(evidence.reason)}</p></div><div class="messaging-results-grid"><label>Final decision<select id="weeklyReviewDecision">${messagingOptions(["Need more evidence", "Continue", "Revise", "Stop current sequence"], evidence.decision)}</select></label><label class="wide">Decision rationale<textarea id="weeklyReviewRationale" rows="4">${escapeHtml(evidence.reason)}</textarea></label></div><div class="messaging-recommendation" id="weeklyLearningChange"><h3>Change One Variable in the Next Cycle</h3><p><strong>Our recommendation: ${escapeHtml(learning.variable)}</strong></p><p>${escapeHtml(learning.reason)}</p><div class="messaging-results-grid"><label>Variable to change<select id="weeklyLearningVariable">${messagingOptions(learning.variables, learning.variable)}</select></label><label class="wide">Specific change for the next cycle<textarea id="weeklyLearningChangeText" rows="4">${escapeHtml(learning.change)}</textarea></label></div><h3>Keep These Constant</h3><ul class="two-column-list" id="weeklyLearningConstants">${learning.constants.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul><p class="muted">If more than one strategic variable changes, the next result will not show which change caused it.</p></div><h3>Three Priorities for the Coming Week</h3><div class="validation-workspace-table-wrap"><table class="validation-workspace-table"><thead><tr><th>#</th><th>Priority action</th><th>Owner</th><th>Due date</th><th>Status</th></tr></thead><tbody>${evidence.actions.map((action, index) => `<tr data-weekly-action><td>${index + 1}</td><td><textarea data-weekly-action-field="action">${escapeHtml(action)}</textarea></td><td><input data-weekly-action-field="owner" value=""></td><td><input type="date" data-weekly-action-field="dueDate" value=""></td><td><select data-weekly-action-field="status">${messagingOptions(["Not started", "In progress", "Waiting", "Complete", "Blocked"], "Not started")}</select></td></tr>`).join("")}</tbody></table></div><div class="messaging-editor-actions no-print"><button type="button" id="saveWeeklyReview">Save This Weekly Review</button><a class="secondary" href="${escapeHtml(reportAssetUrl("active"))}">Active Plan</a><span class="messaging-save-status" id="weeklyReviewSaveStatus"></span></div>`;
+      decision.innerHTML = `<h2>Recommended Decision: ${escapeHtml(evidence.decision)}</h2><div class="messaging-recommendation"><p>${escapeHtml(evidence.reason)}</p></div><div class="messaging-results-grid"><label>Final decision<select id="weeklyReviewDecision">${messagingOptions(["Need more evidence", "Continue", "Revise", "Pause / Stop"], evidence.decision)}</select></label><label class="wide">Decision rationale<textarea id="weeklyReviewRationale" rows="4">${escapeHtml(evidence.reason)}</textarea></label></div><div class="messaging-recommendation" id="weeklyLearningChange"><h3>Form the Next Experiment from Evidence</h3><p><strong>Our recommendation: ${escapeHtml(learning.variable)}</strong></p><p>${escapeHtml(learning.reason)}</p><div class="messaging-results-grid"><label class="wide">Next hypothesis<textarea id="weeklyNextHypothesis" rows="3">If we apply the controlled change below while keeping the other variables constant, qualified buyer response should improve.</textarea></label><label>Audience<input id="weeklyNextAudience" value="${escapeHtml(profile.customerGroup || "")}"></label><label>Channel<input id="weeklyNextChannel" value="${escapeHtml(selectedRevenueMotion(data)?.values.channelSource || data.quickPrimaryRevenueSource || "")}"></label><label>Offer<input id="weeklyNextOffer" value="${escapeHtml(profile.offerName || "")}"></label><label>Success metric<input id="weeklyNextSuccessMetric" value="${escapeHtml(data.quick90DaySuccessMetric || "Qualified opportunities and one learning signal")}"></label><label>Variable to change<select id="weeklyLearningVariable">${messagingOptions(learning.variables, learning.variable)}</select></label><label class="wide">Specific change for the next cycle<textarea id="weeklyLearningChangeText" rows="4">${escapeHtml(learning.change)}</textarea></label></div><h3>Keep These Constant</h3><ul class="two-column-list" id="weeklyLearningConstants">${learning.constants.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul><p class="muted">If more than one strategic variable changes, the next result will not show which change caused it.</p></div><h3>Three Priorities for the Coming Week</h3><div class="validation-workspace-table-wrap"><table class="validation-workspace-table"><thead><tr><th>#</th><th>Priority action</th><th>Owner</th><th>Due date</th><th>Status</th></tr></thead><tbody>${evidence.actions.map((action, index) => `<tr data-weekly-action><td>${index + 1}</td><td><textarea data-weekly-action-field="action">${escapeHtml(action)}</textarea></td><td><input data-weekly-action-field="owner" value=""></td><td><input type="date" data-weekly-action-field="dueDate" value=""></td><td><select data-weekly-action-field="status">${messagingOptions(["Not started", "In progress", "Waiting", "Complete", "Blocked"], "Not started")}</select></td></tr>`).join("")}</tbody></table></div><div class="messaging-editor-actions no-print"><button type="button" id="saveWeeklyReview">Save This Weekly Review</button><a class="secondary" href="${escapeHtml(reportAssetUrl("active"))}">Active Plan</a><span class="messaging-save-status" id="weeklyReviewSaveStatus"></span></div>`;
       main.appendChild(decision);
 
       const history = document.createElement("section");
@@ -18801,7 +19027,16 @@
         const metrics = {};
         overview.querySelectorAll("[data-weekly-metric]").forEach((control) => { metrics[control.dataset.weeklyMetric] = Math.max(0, Number(control.value) || 0); });
         const selectedVariable = decision.querySelector("#weeklyLearningVariable").value;
-        const learningChange = { variable: selectedVariable, change: decision.querySelector("#weeklyLearningChangeText").value, constants: learning.variables.filter((item) => item !== "No strategic change" && item !== selectedVariable).slice(0, 5) };
+        const learningChange = {
+          hypothesis: decision.querySelector("#weeklyNextHypothesis").value,
+          audience: decision.querySelector("#weeklyNextAudience").value,
+          channel: decision.querySelector("#weeklyNextChannel").value,
+          offer: decision.querySelector("#weeklyNextOffer").value,
+          successMetric: decision.querySelector("#weeklyNextSuccessMetric").value,
+          variable: selectedVariable,
+          change: decision.querySelector("#weeklyLearningChangeText").value,
+          constants: learning.variables.filter((item) => item !== "No strategic change" && item !== selectedVariable).slice(0, 5)
+        };
         workspace.reviews.push({ id: `weekly-review-${Date.now()}`, date: new Date().toISOString().slice(0, 10), decision: decision.querySelector("#weeklyReviewDecision").value, rationale: decision.querySelector("#weeklyReviewRationale").value, learningChange, actions, metrics });
         await saveWeeklyReviewWorkspace(data, workspace, decision.querySelector("#weeklyReviewSaveStatus"));
         renderWeeklyReviewWorkspace(data);
@@ -19290,12 +19525,22 @@
         finishAsset("outreach");
         return;
       }
+      if (requestedAsset === "weekly-review-setup") {
+        renderWeeklyReviewSetup(data);
+        finishAsset("weekly-review-setup");
+        return;
+      }
       if (requestedAsset === "pipeline-workspace") {
         renderWeeklyReviewWorkspace(data);
         finishAsset("weekly-review");
         return;
       }
       if (requestedAsset === "weekly-review") {
+        if (data.weeklyGtmReviewSetupWorkspace?.status !== "ready" && !data.weeklyReviewWorkspace?.updatedAt) {
+          renderWeeklyReviewSetup(data);
+          finishAsset("weekly-review-setup");
+          return;
+        }
         renderWeeklyReviewWorkspace(data);
         finishAsset("weekly-review");
         return;
@@ -19366,10 +19611,8 @@
         scoreBox.classList.add(readinessScoreClass(readinessScore));
       }
       document.getElementById("readinessStage").textContent = stageForScore(readinessScore);
-      document.getElementById("scoreConfidence").textContent = `Assessment input confidence: ${confidence}`;
-      document.getElementById("recommendation").textContent = confidence === "Low"
-        ? `${recommendationForScore(readinessScore)} This is a composite diagnostic score. Complete the supporting sections to improve evidence quality and score confidence.`
-        : recommendationForScore(readinessScore);
+      document.getElementById("scoreConfidence").textContent = "Use the score as launch guidance, then update the plan with observed buyer evidence.";
+      document.getElementById("recommendation").textContent = recommendationForScore(readinessScore);
       renderScoreBreakdown(diagnostic);
 
       const body = document.getElementById("scorecardBody");

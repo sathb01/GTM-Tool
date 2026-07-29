@@ -17,6 +17,16 @@ let formStateData = {};
 let activeDataQualityReview = null;
 let preferIntakeStartOnInitialLoad = false;
 let multiSelectDropdownId = 0;
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 // Pin this tab to the record it loaded. localStorage is shared across tabs, so
 // reading the active record from it on every action can update the wrong company.
 let loadedRecordId = localStorage.getItem(ACTIVE_RECORD_KEY) || "";
@@ -4378,6 +4388,9 @@ function createRevenueMotionAssessmentPanel(row, index) {
   const context = document.createElement("div");
   const channelOptions = ["", row.values.channelSource || "", ...revenueChannelOptions].filter((value, idx, list) => list.indexOf(value) === idx);
   const offerOptions = ["", row.values.newOffer || row.values.offer || "", ...collectRevenueOfferOptions(data)].filter((value, idx, list) => list.indexOf(value) === idx);
+  const existingChannelOwner = data[revenueScopedField(motionRowId, "channelPerformance", "owner")] || "";
+  const ownerRoleOptions = ["", existingChannelOwner, "Founder", "CEO / President", "VP Sales", "Sales Lead", "Account Executive", "VP Marketing", "Marketing Lead", "Growth Lead", "RevOps", "Customer Success Lead", "Partnerships Lead", "Other"]
+    .filter((value, idx, list) => list.indexOf(value) === idx);
 
   details.className = "advanced-section revenue-motion-assessment-panel";
   details.open = index === 0;
@@ -4392,7 +4405,7 @@ function createRevenueMotionAssessmentPanel(row, index) {
       <div class="summary-item"><div class="summary-label">Current status</div><div class="summary-value">${row.values.currentStatus || "Not filled yet"}</div></div>
       <div class="summary-item"><div class="summary-label">Customer group / ICP</div><div class="summary-value">${row.values.newCustomerGroup || row.values.customerGroup || "Not filled yet"}</div></div>
       <div class="summary-item"><div class="summary-label">Offer</div><div class="summary-value">${row.values.newOffer || row.values.offer || "Not filled yet"}</div></div>
-      <div class="summary-item"><div class="summary-label">Channel / source</div><div class="summary-value">${row.values.channelSource || "Not filled yet"}</div></div>
+      <div class="summary-item"><div class="summary-label">Channel / source</div><div class="summary-value">${row.values.channelSource ? `<ul>${String(row.values.channelSource).split(";").map((value) => value.trim()).filter(Boolean).map((value) => `<li>${escapeHtml(value)}</li>`).join("")}</ul>` : "Not filled yet"}</div></div>
       <div class="summary-item"><div class="summary-label">Sales motion</div><div class="summary-value">${row.values.salesMotionType || "Not filled yet"}</div></div>
       <div class="summary-item"><div class="summary-label">Primary buyer</div><div class="summary-value">${row.values.primaryBuyer || "Not filled yet"}</div></div>
       <div class="summary-item"><div class="summary-label">Goal</div><div class="summary-value">${row.values.playGoal || "Not filled yet"}</div></div>
@@ -4414,17 +4427,17 @@ function createRevenueMotionAssessmentPanel(row, index) {
       title: "Channel Performance",
       fields: [
         { id: revenueScopedField(motionRowId, "channelPerformance", "activeStatus"), label: "Channel status", type: "select", options: ["", "Active", "Testing", "Planned", "Paused", "Not using yet", "Not sure"] },
-        { id: revenueScopedField(motionRowId, "channelPerformance", "currentActivity"), label: "Current activity", type: "textarea", placeholder: "Example: 100 outbound emails per week, weekly partner referrals, paid search test, CS expansion outreach." },
-        { id: revenueScopedField(motionRowId, "channelPerformance", "last90DayResults"), label: "Last 90-day results", type: "textarea", placeholder: "Example: 180 accounts contacted, 12 replies, 5 demos, 1 closed deal." },
-        { id: revenueScopedField(motionRowId, "channelPerformance", "spendOrEffort"), label: "Spend or effort level", type: "text", placeholder: "Example: $2,000/month, 5 hours/week, founder time only." },
-        { id: revenueScopedField(motionRowId, "channelPerformance", "owner"), label: "Owner", type: "text" },
+        { id: revenueScopedField(motionRowId, "channelPerformance", "currentActivity"), label: "Planned Activity", type: "textarea", placeholder: "Example: 100 outbound emails per week, weekly partner referrals, paid search test, CS expansion outreach." },
+        { id: revenueScopedField(motionRowId, "channelPerformance", "last90DayResults"), label: "Last 90 Day Results", type: "textarea", showWhen: { field: revenueScopedField(motionRowId, "channelPerformance", "activeStatus"), value: "Active" }, placeholder: "Example: 180 accounts contacted, 12 replies, 5 demos, 1 closed deal." },
+        { id: revenueScopedField(motionRowId, "channelPerformance", "spendOrEffort"), label: "Planned spend / effort", type: "text", placeholder: "Example: $2,000/month, 5 hours/week, founder time only." },
+        { id: revenueScopedField(motionRowId, "channelPerformance", "owner"), label: "Owner role", type: "select", otherLabel: "Define other owner role", requireOther: true, options: ownerRoleOptions },
         { id: revenueScopedField(motionRowId, "channelPerformance", "confidence"), label: "Confidence", type: "select", options: ["", "High", "Medium", "Low", "Not sure"] },
         { id: revenueScopedField(motionRowId, "channelPerformance", "notesIssues"), label: "Notes / issues", type: "textarea" },
         { id: revenueScopedField(motionRowId, "channelPerformance", "nextDecision"), label: "Next decision", type: "select", options: ["", "Scale", "Continue testing", "Pause", "Fix tracking", "Refine ICP / offer", "Change channel", "Not sure"] }
       ]
     },
     {
-      title: "Pipeline Metrics",
+      title: "Starting Pipeline Baseline (pre-launch)",
       fields: [
         { id: revenueScopedField(motionRowId, "pipelineMetrics", "accountsOrLeadsAdded"), label: "Leads / accounts added", type: "text" },
         { id: revenueScopedField(motionRowId, "pipelineMetrics", "qualifiedLeads"), label: "Qualified leads / accounts", type: "text" },
@@ -4460,10 +4473,25 @@ function createRevenueMotionAssessmentPanel(row, index) {
         { id: revenueScopedField(motionRowId, "nextExperiment", "decisionRule"), label: "Overall outcome notes", type: "textarea", placeholder: "Use only if the three outcome rules need extra context." }
       ]
     }
-  ].forEach((block) => details.appendChild(renderFieldGrid(block.fields, block.title)));
+  ].filter((block) => block.title !== "Next Experiment").forEach((block) => details.appendChild(renderFieldGrid(block.fields, block.title)));
+
+  const statusId = revenueScopedField(motionRowId, "channelPerformance", "activeStatus");
+  const activityId = revenueScopedField(motionRowId, "channelPerformance", "currentActivity");
+  const effortId = revenueScopedField(motionRowId, "channelPerformance", "spendOrEffort");
+  const updateChannelContextLabels = () => {
+    const status = details.querySelector(`[name="${CSS.escape(statusId)}"]`)?.value || "Planned";
+    const context = status === "Active" ? "Active" : status === "Testing" ? "Testing" : status === "Paused" ? "Paused" : "Planned";
+    const activityLabel = details.querySelector(`[data-field-id="${CSS.escape(activityId)}"] > label`);
+    const effortLabel = details.querySelector(`[data-field-id="${CSS.escape(effortId)}"] > label`);
+    if (activityLabel) activityLabel.textContent = `${context} Activity`;
+    if (effortLabel) effortLabel.textContent = `${context} spend / effort`;
+    updateConditionalFields();
+  };
+  details.querySelector(`[name="${CSS.escape(statusId)}"]`)?.addEventListener("change", updateChannelContextLabels);
+  queueMicrotask(updateChannelContextLabels);
 
   [
-    { id: revenueScopedTable(motionRowId, "conversionStages"), title: "Sales Motion and Conversion Map", hint: "Define the stages, owners, conversion points, and bottlenecks for this motion.", rowLabel: "Stage", addLabel: "Add stage", columns: [
+    { id: revenueScopedTable(motionRowId, "conversionStages"), title: "Optional Sales Motion and Conversion Map", hint: "Use this only when a specific handoff or conversion bottleneck could change the launch decision.", rowLabel: "Stage", addLabel: "Add stage", columns: [
       { id: "stageName", label: "Stage name", type: "text" },
       { id: "owner", label: "Owner", type: "text" },
       { id: "entryCriteria", label: "Entry criteria", type: "text" },
@@ -4488,7 +4516,7 @@ function createRevenueMotionAssessmentPanel(row, index) {
       { id: "gtmLesson", label: "Lesson for GTM", type: "textarea" },
       { id: "shouldBecome", label: "Should this become a...", type: "multiSelectDropdown", options: ["Proof gap", "Objection to handle", "Disqualification rule", "Qualification question", "Sales-process fix", "Pricing / packaging fix", "Nurture rule", "No action"] }
     ] }
-  ].forEach((table) => details.appendChild(createTable({ ...table, layout: "cards", repeatable: true, minRows: 1, maxRows: 20 })));
+  ].filter((table) => table.id.endsWith("__conversionStages")).forEach((table) => details.appendChild(createTable({ ...table, layout: "cards", repeatable: true, minRows: 1, maxRows: 20 })));
 
   details.appendChild(createRevenueMotionSnapshotCard(motionRowId));
   return details;
@@ -5692,14 +5720,14 @@ function updateResultsLink() {
     && Array.isArray(weeklyWorkspace.currentPriorities)
     && weeklyWorkspace.currentPriorities.length
   );
-  const url = resultsUrl(undefined, planStarted ? "active" : "gtm");
+  const url = resultsUrl(undefined, "gtm");
 
   ["viewResultsLink", "topResultsLink"].forEach((id) => {
     const link = document.getElementById(id);
 
     if (link) {
       link.href = url;
-      link.textContent = planStarted ? "Return to This Week" : "View Plan";
+      link.textContent = planStarted ? "Return to Plan Summary" : "View Plan";
     }
   });
 }

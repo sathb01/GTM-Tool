@@ -449,6 +449,8 @@ Tables:
 - `revenueMotionPortfolio`
 - `primaryRevenueMotion`
 
+`revenueMotionPortfolio__motion-N__channelSource` supports one or more channel/source selections. Values use the existing semicolon-delimited multi-select encoding, so legacy records containing one plain string remain valid and read back as one selected value.
+
 Scoped revenue motion fields and tables:
 
 - `channelPerformance`
@@ -521,3 +523,38 @@ Only one proposal can be pending at a time. Applying a proposal writes the appro
 - Migration code must be preserved until old saved records are no longer needed.
 - The frontend schema is the main source of truth. There is no server-side schema validation.
 - Saved records can contain stale fields that are hidden from current UI but still appear in the data object.
+
+## Plan Summary and Weekly Operating State
+
+The consolidated plan experience reuses canonical intake fields and adds only durable workflow state:
+
+- `readinessWeightSettings`
+  - `preset`: `standard`, `evidence-led`, `operating-led`, or `custom`
+  - `weights`: decimal weights for `evidence`, `execution`, and `self`
+  - `updatedAt`
+- `readinessImprovementSkips[]`: score component keys explicitly set aside by the user.
+- `activePlanToolSetupWorkspace`
+  - preserves the existing `started`, `ready`, `statuses`, and `tools` values
+  - `statuses` supports `In progress`, `Waiting / Blocked`, `Ready`, and `Skip for now`
+  - `reasons` stores lightweight blocked reasons by setup-tool ID
+  - legacy `weekly-review` status is copied to `weekly-review-setup`
+- `weeklyGtmReviewSetupWorkspace`
+  - `status`: `in-progress` or `ready`
+  - `reviewDay`
+  - `learningSignal`
+  - `scorecardConfirmed`
+  - `decisionsConfirmed`
+  - `recordingConfirmed`
+  - `evidenceLocation`
+  - `updatedAt`
+  - `completedAt`
+
+Weekly Review Setup does not duplicate plan answers. It prefills and updates the existing `pipelineReviewOwner`, `primaryRevenueOwner`, `revenueReportingCadence`, `revenueTrackingSystem`, and selected revenue motion `nextExperiment` review/rule fields. Actual activity and decisions continue to live under `weeklyReviewWorkspace`.
+
+Revenue motion compatibility rules:
+
+- `revenueMotionPortfolio__motion-N__channelSource` remains semicolon-encoded and accepts one or many values.
+- Legacy single values and unknown custom values remain readable.
+- `Other: ...` remains the encoded form for explained custom sources.
+- Deal-routing and stalled-deal scoped values are retained in saved records but are no longer rendered as core plan-building inputs.
+- Pipeline metric values are retained and presented as the pre-launch starting baseline; new execution results are captured in the weekly evidence workspace.

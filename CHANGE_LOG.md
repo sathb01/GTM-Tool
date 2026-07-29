@@ -4,6 +4,13 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-29 Revenue Acquisition Channel Sources
+
+- Changed `Where would the opportunity come from? (channel / source)` in the Revenue Acquisition Strategy Portfolio from a single-select field to the shared accessible multi-select control.
+- Preserved the existing `revenueMotionPortfolio__motion-N__channelSource` key so legacy single-value records continue to load without a destructive migration.
+- Saved multiple selections with the existing semicolon-delimited multi-select encoding and kept selected values visible as a list on intake and readback.
+- Added focused regression coverage for schema shape, legacy single-value readback, multiple selections, serialization, and `Other` details.
+
 ## 2026-07-23 Product Rename
 
 - Renamed the user-facing product from `GTM OS` and `GTM Tool` to `GTM Intelligence OS`.
@@ -711,3 +718,19 @@ https://gtm-tool-1mib.onrender.com/login
 - Added a two-company, four-week Active Plan cycle test covering partial completion, carry-forward, weekly history, and next-cycle creation.
 - Standardized the fixture generator on the release gate's `GTM_QA_BASE_URL` environment variable so remote seeding cannot silently fall back to localhost.
 - Passed the local blocking release gate with 1,192 of 1,192 checks and the focused Active Plan cycle test with 26 of 26 checks.
+
+## 2026-07-29 - Consolidated Plan Summary and guided operating setup
+
+- Made Plan Summary the default post-plan return destination.
+- Rebuilt the four summary cards around a Go / Conditional Go / Not Ready launch decision, a 90-day learning opportunity, resumable This Week work, and the top one or two readiness blockers.
+- Removed the input-completeness “Evidence confidence” metric from Plan Summary and readiness details.
+- Added score-weight presets, optional custom weights, standard-versus-custom comparison, point delta, and launch-decision-change disclosure.
+- Replaced generic summary detours with specific actions for the focused test, first 25-account list, current weekly work, and readiness blockers.
+- Added consistent expandable readiness components with counted evidence, smallest score-changing inputs, same-page save/recalculation, optional skip, and a secondary deeper-rework path.
+- Corrected offer measurable-value scoring to recognize the current value-claim columns (`outcomeType`, `buyerFacingClaim`, `successMetric`, `targetImprovement`, baseline, and timeframe).
+- Kept channel/source semicolon-compatible multi-select behavior, added status-driven activity and effort labels, limited 90-day results to Active channels, and changed channel owner to a role dropdown.
+- Reframed planning pipeline values as a starting baseline, removed CRM deal-routing and stalled-deal tables from the core planning UI while retaining saved data, and made conversion mapping explicitly optional.
+- Converted Tool Setup into one guided, resumable current task with in-context ICP/persona review, blocked reasons, Continue later / Skip for now, and durable progress.
+- Added a distinct Weekly GTM Review Setup workspace that reuses canonical owner, cadence, CRM, and selected-motion review-rule fields and saves a durable ready/in-progress state.
+- Kept Evidence This Week separate and added a controlled next-experiment exercise built from observed evidence.
+- Added consolidated static/runtime syntax regression coverage to the permanent release gate.

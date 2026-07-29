@@ -230,3 +230,13 @@ These are not yet all confirmed defects. They have been separated from harness a
 - Authenticated Render deployment marker: passed.
 - Authenticated Render permanent release gate: 1,021 passed, 0 failed.
 - First Render archive: `QA_PRODUCT_REVIEW_20260721/releases/2026-07-24T00-08-53-536Z`.
+
+## July 29 Consolidated Redesign Verification
+
+- JavaScript syntax checks passed for `tool/app.js`, `tool/intake-schema.js`, and `server/server.js`.
+- Inline JavaScript from `tool/results.html` parsed successfully.
+- Consolidated redesign gate: 16 passed, 0 failed.
+- Guided headless workflow gate: 9 passed, 0 failed across Plan Summary, one-task Tool Setup, in-context brief completion, and durable Weekly Review Setup.
+- Revenue channel multi-select compatibility gate: 9 passed, 0 failed, including legacy single values, multiple values, unknown legacy values, semicolon serialization, and required Other explanation.
+- The full local release gate could not complete because the worktree's `server/data/records.json` contains no QA fixture records. Fixture-dependent suites returned 404 or timed out waiting for their record-specific views; no customer or fixture data was created as part of this change.
+- No visible browser window was automated. Verification used syntax checks and headless/static regression scripts.
