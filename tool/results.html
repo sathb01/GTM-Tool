@@ -5164,9 +5164,12 @@
       const stalledScore = !stalled.length ? 2 : stalled.some((row) => row.values.nextAction && row.values.gtmLesson && row.values.shouldBecome) ? 5 : stalled.some((row) => row.values.nextAction || row.values.gtmLesson) ? 4 : 2;
       const combinedExperimentCount = Math.max(experiment.length, facilitationExperimentCount);
       const experimentScore = combinedExperimentCount >= 7 ? 5 : combinedExperimentCount >= 5 ? 4 : combinedExperimentCount >= 2 ? 3 : 1;
+      const channelActivityField = revenueScopedField(activeMotionRowId, "channelPerformance", "currentActivity");
+      const experimentMetricField = revenueScopedField(activeMotionRowId, "nextExperiment", "successMetric");
+      const experimentTimeframeField = revenueScopedField(activeMotionRowId, "nextExperiment", "timeframe");
       return [
         { name: "Channel focus", score: contextScore, nextMove: "Narrow the primary motion to one customer group, offer, channel, and buyer." },
-        { name: "Channel evidence", score: channelEvidenceScore, nextMove: "Define 30-day activity and result targets for the selected channel." },
+        { name: "Channel evidence", score: channelEvidenceScore, nextMove: "Define 30-day activity and result targets for the selected channel.", fieldIds: [channelActivityField, experimentMetricField, experimentTimeframeField] },
         { name: "Pipeline visibility", score: pipelineScore, nextMove: "Track leads, qualified opportunities, proposals, wins, losses, revenue, and conversion rates." },
         { name: "Sales process clarity", score: processScore, nextMove: "Define stages, owners, entry and exit criteria, and the biggest stage bottleneck." },
         { name: "Conversion health", score: conversionScore, nextMove: "Identify and improve the biggest funnel drop-off." },
@@ -5630,18 +5633,41 @@
         offerScopedValue(data, rowId, "averageExpectedDealSize", data.averageExpectedDealSize),
         offerScopedValue(data, rowId, "buyerApprovalLevel", data.buyerApprovalLevel)
       ].filter(Boolean).length;
+      const savedRating = scoreFromChoice(data.pricingConfidence, []);
+      if (savedRating >= 4) return "High";
+      if (savedRating >= 2) return "Medium";
       return signals >= 4 ? "High" : signals >= 2 ? "Medium" : "Low";
     }
 
     function offerReadinessDimensions(data, rowId = null) {
       const activeRowId = rowId || primaryOfferRow(data)?.rowId || null;
+      const offer = offerPortfolioRows(data).find((row) => row.rowId === activeRowId);
+      const priorityGroup = selectedCustomerGroup(data);
+      const priorityCustomer = cleanText(priorityGroup?.values.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer);
+      const offerCustomer = cleanText(offer?.values.targetCustomerGroup || data.priorityIcpForOffer || data.offerTargetSegment);
+      const offerBuyer = cleanText(offer?.values.primaryBuyer || data.primaryBuyerForOffer || data.bestFitDecisionMaker);
+      const buyerProblem = cleanText(offerScopedValue(data, activeRowId, "offerBuyerProblem", data.offerBuyerProblem || data.bestFitPrimaryPain || data.quickBuyerProblem));
+      const savedTriggers = [
+        ...repeatableListItems(data, "bestFitTrigger"),
+        ...repeatableListItems(data, "buyingTriggersSummary"),
+        data.quickUrgencyNow,
+        priorityGroup?.values.whyNow
+      ].map(cleanText).filter(Boolean);
+      const offerTrigger = cleanText(offerScopedValue(data, activeRowId, "offerTriggerEvent", data.offerTriggerEvent)) || savedTriggers[0] || "";
+      const costOfInaction = cleanText(offerScopedValue(data, activeRowId, "offerCostOfInaction", data.offerCostOfInaction || data.costOfInaction));
+      const savedPromise = cleanText(offerScopedValue(data, activeRowId, "oneSentencePromise", data.oneSentencePromise || data.quickOfferPromise));
+      const differentiator = cleanText(offerScopedValue(data, activeRowId, "offerDifferentiator", data.offerDifferentiator));
+      const firstUseCase = cleanText(offerScopedValue(data, activeRowId, "firstUseCaseForOffer", data.firstUseCaseForOffer || data.bestFitFirstUseCase));
+      const easiestNextStep = cleanText(offerScopedValue(data, activeRowId, "easiestNextStep", data.easiestNextStep));
       const firstValueClaim = firstRepeatableWhere(data, activeRowId ? scopedOfferTable(activeRowId, "valueClaims") : "valueClaims", (row) => (
         (row.values.outcome || row.values.outcomeType || row.values.buyerFacingClaim || row.values.buyerLanguage)
         && (row.values.metric || row.values.successMetric || row.values.improvement || row.values.targetImprovement || row.values.baseline || row.values.timeframe)
       ));
+      const partialValueEvidence = cleanText(data.quickSuccessMeasure || data.quick90DaySuccessMetric || data.provenCustomerOutcomes);
       const proofRows = repeatableRows(data, activeRowId ? scopedOfferTable(activeRowId, "proofReadiness") : "proofReadiness").filter((row) => (
         row.values.claim || row.values.proofType || row.values.assetExists || row.values.strength || row.values.gapNextAction
       ));
+      const referenceProofRows = meaningfulRows(data, "proofReferenceCandidates", ["customerName", "proofTypes", "outcomeProven", "resultStory", "proofStrength"]);
       const proofTableScore = proofRows.some((row) => /repeatable|strong|measured|high/i.test(row.values.strength || "") || row.values.assetExists === "Yes")
         ? 5
         : proofRows.some((row) => /customer|anecdotal|partially|medium/i.test(`${row.values.strength || ""} ${row.values.assetExists || ""}`))
@@ -5654,17 +5680,44 @@
         : firstValueClaim?.values.evidenceAvailable || firstValueClaim?.values.proofStrength
           ? 3
           : 0;
-      const proofScore = Math.max(proofTableScore, valueClaimProofScore);
+      const referenceProofScore = referenceProofRows.some((row) => /strong|quantified|case study/i.test(`${row.values.proofStrength || ""} ${row.values.proofTypes || ""}`) && row.values.resultStory)
+        ? 5
+        : referenceProofRows.length || cleanText(data.provenCustomerOutcomes)
+          ? 3
+          : 0;
+      const proofScore = Math.max(proofTableScore, valueClaimProofScore, referenceProofScore);
+      const alignmentScore = Math.max(
+        scoreFromChoice(offerScopedValue(data, activeRowId, "icpOfferAlignment", data.icpOfferAlignment), [[/validated/, 5], [/urgent problem/, 4], [/relevant/, 3], [/unvalidated/, 2], [/not clear/, 1]]),
+        priorityCustomer && offerCustomer && offerCustomer.toLowerCase().includes(priorityCustomer.toLowerCase()) && offerBuyer ? 4 : offerCustomer ? 3 : 0
+      );
+      const urgencyScore = Math.max(
+        scoreFromChoice(offerScopedValue(data, activeRowId, "offerUrgencyLevel", data.offerUrgencyLevel || data.urgencyLevel), [[/critical/, 5], [/high/, 4], [/medium/, 3], [/low/, 2]]),
+        buyerProblem && offerTrigger && costOfInaction ? 4 : buyerProblem && offerTrigger ? 3 : buyerProblem ? 2 : 0
+      );
+      const promiseScore = Math.max(
+        scoreFromChoice(offerScopedValue(data, activeRowId, "promiseClarityRating", data.promiseClarityRating), [[/proof-backed|differentiated/, 5], [/specific/, 4], [/generic/, 2], [/unclear/, 1]]),
+        savedPromise && differentiator ? 4 : savedPromise ? 3 : 0
+      );
+      const buyingPathScore = Math.max(
+        scoreFromChoice(offerScopedValue(data, activeRowId, "buyingPathClarityRating", data.buyingPathClarityRating), [[/conversion path/, 5], [/requirements/, 4], [/buyer requirements are unclear/, 3], [/vague/, 2], [/no clear/, 1]]),
+        firstUseCase && easiestNextStep ? 3 : firstUseCase ? 2 : 0
+      );
+      const portfolioRiskEvidence = cleanText([
+        offer?.values.buyingCommitteeLikelyObjection,
+        offer?.values.buyingCommitteePrimaryConcern,
+        offer?.values.buyingCommitteeProofNeeded
+      ].filter(Boolean).join(" "));
+      const valueClaimPrefix = activeRowId ? `${scopedOfferTable(activeRowId, "valueClaims")}__value-claim-1__` : "valueClaims__value-claim-1__";
 
       return [
-        { name: "ICP-offer alignment", score: scoreFromChoice(offerScopedValue(data, activeRowId, "icpOfferAlignment", data.icpOfferAlignment), [[/validated/, 5], [/urgent problem/, 4], [/relevant/, 3], [/unvalidated/, 2], [/not clear/, 1]]), nextMove: "Clarify the priority customer group this offer is built for." },
-        { name: "Problem urgency", score: Math.max(scoreFromChoice(offerScopedValue(data, activeRowId, "offerUrgencyLevel", data.offerUrgencyLevel || data.urgencyLevel), [[/critical/, 5], [/high/, 4], [/medium/, 3], [/low/, 2]]), offerScopedValue(data, activeRowId, "offerBuyerProblem", data.offerBuyerProblem) && offerScopedValue(data, activeRowId, "offerTriggerEvent", data.offerTriggerEvent) && offerScopedValue(data, activeRowId, "offerCostOfInaction", data.offerCostOfInaction) ? 3 : 0), nextMove: "Tighten the buyer problem, trigger, cost of inaction, and urgency evidence." },
-        { name: "Measurable value", score: firstValueClaim ? (firstValueClaim.values.proofStrength || firstValueClaim.values.evidenceAvailable ? 4 : 3) : 0, nextMove: "Define at least one measurable value claim with metric, baseline, improvement, and timeframe." },
-        { name: "Promise and positioning", score: Math.max(scoreFromChoice(offerScopedValue(data, activeRowId, "promiseClarityRating", data.promiseClarityRating), [[/proof-backed|differentiated/, 5], [/specific/, 4], [/generic/, 2], [/unclear/, 1]]), offerScopedValue(data, activeRowId, "oneSentencePromise", data.oneSentencePromise) && offerScopedValue(data, activeRowId, "offerDifferentiator", data.offerDifferentiator) ? 3 : 0), nextMove: "Write the offer promise and differentiator in buyer-facing language." },
-        { name: "Buying path", score: Math.max(scoreFromChoice(offerScopedValue(data, activeRowId, "buyingPathClarityRating", data.buyingPathClarityRating), [[/conversion path/, 5], [/requirements/, 4], [/buyer requirements are unclear/, 3], [/vague/, 2], [/no clear/, 1]]), offerScopedValue(data, activeRowId, "firstUseCaseForOffer", data.firstUseCaseForOffer) && offerScopedValue(data, activeRowId, "easiestNextStep", data.easiestNextStep) ? 3 : 0), nextMove: "Define the first use case and easiest next step for the buyer." },
+        { name: "ICP-offer alignment", score: alignmentScore, nextMove: "Connect the primary offer to the saved priority customer and buyer.", fieldIds: [activeRowId ? `offerPortfolio__${activeRowId}__targetCustomerGroup` : "priorityIcpForOffer"] },
+        { name: "Problem urgency", score: urgencyScore, nextMove: costOfInaction ? "Add stronger urgency evidence for the saved problem and trigger." : "Add the cost of inaction for the saved buyer problem and timing trigger.", fieldIds: [activeRowId ? scopedOfferField(activeRowId, "offerCostOfInaction") : "offerCostOfInaction"] },
+        { name: "Measurable value", score: firstValueClaim ? (firstValueClaim.values.proofStrength || firstValueClaim.values.evidenceAvailable ? 4 : 3) : partialValueEvidence ? 2 : 0, nextMove: partialValueEvidence ? "Turn the saved success measure into one measurable value claim by adding baseline, target improvement, and timeframe." : "Define one measurable value claim with metric, baseline, improvement, and timeframe.", fieldIds: [`${valueClaimPrefix}baselineStatus`, `${valueClaimPrefix}targetImprovementDescription`, `${valueClaimPrefix}timeToImpact`] },
+        { name: "Promise and positioning", score: promiseScore, nextMove: savedPromise ? "Add the differentiator that makes the saved buyer-facing promise credible and distinct." : "Write the offer promise and differentiator in buyer-facing language.", fieldIds: [activeRowId ? scopedOfferField(activeRowId, "offerDifferentiator") : "offerDifferentiator"] },
+        { name: "Buying path", score: buyingPathScore, nextMove: firstUseCase ? "Add the easiest next step for the saved first use case." : "Define the first use case and easiest next step for the buyer.", fieldIds: [activeRowId ? scopedOfferField(activeRowId, firstUseCase ? "easiestNextStep" : "firstUseCaseForOffer") : (firstUseCase ? "easiestNextStep" : "firstUseCaseForOffer")] },
         { name: "Packaging and pricing", score: Math.max(scoreFromChoice(offerScopedValue(data, activeRowId, "packagingClarityRating", data.packagingClarityRating), [[/validated|repeatable/, 5], [/entry, core, and expansion/, 4], [/defined/, 3], [/custom/, 2], [/not packaged/, 1]]), offerPricingConfidence(data, activeRowId) === "High" ? 4 : offerPricingConfidence(data, activeRowId) === "Medium" ? 3 : 0), nextMove: "Clarify entry, core, and expansion packages plus price range and approval level." },
         { name: "Proof readiness", score: proofScore, nextMove: "Attach proof to the claims buyers must believe before they buy." },
-        { name: "Risk reduction", score: (offerScopedValue(data, activeRowId, "buyerAlternativesToday", data.alternatives) && firstRepeatableWhere(data, activeRowId ? scopedOfferTable(activeRowId, "objectionHandling") : "objectionHandling", (row) => row.values.bestResponse || row.values.proofAssetNeeded)) ? 4 : offerScopedValue(data, activeRowId, "offerObjections", data.objections) ? 2 : 0, nextMove: "Map alternatives and objections to responses and proof assets." }
+        { name: "Risk reduction", score: (offerScopedValue(data, activeRowId, "buyerAlternativesToday", data.alternatives) && firstRepeatableWhere(data, activeRowId ? scopedOfferTable(activeRowId, "objectionHandling") : "objectionHandling", (row) => row.values.bestResponse || row.values.proofAssetNeeded)) ? 4 : portfolioRiskEvidence ? 3 : offerScopedValue(data, activeRowId, "offerObjections", data.objections) ? 2 : 0, nextMove: "Map the saved objections and concerns to responses and proof assets." }
       ];
     }
 
@@ -5875,28 +5928,54 @@
 
     function signalReadinessDimensions(data, playRowId = null) {
       const activePlayRowId = playRowId || primarySignalPlayRowId(data);
+      const play = signalPlayRows(data).find((row) => row.rowId === activePlayRowId);
+      const priorityGroup = selectedCustomerGroup(data);
       const triggers = signalRows(data, activePlayRowId, "buyingTriggerEvents").filter((row) => row.values.triggerEvent || row.values.whyUrgent || row.values.howObserved);
       const fitSignals = signalRows(data, activePlayRowId, "fitSignals").filter((row) => row.values.signal || row.values.signalCategory);
       const negativeSignals = signalRows(data, activePlayRowId, "negativeSignalRules").filter((row) => row.values.negativeSignal || row.values.notes);
       const sourceRows = repeatableRows(data, "signalDataSourceReadiness").filter((row) => row.values.source || row.values.availableToday || row.values.owner);
       const routingRules = signalRows(data, activePlayRowId, "signalRoutingRules").filter((row) => row.values.signal || row.values.scoreImpact || row.values.recommendedAction);
       const actionRows = signalRows(data, activePlayRowId, "signalActionPlan").filter((row) => row.values.highPrioritySignal || row.values.outreachAngle || row.values.channel);
-      const triggerScore = !triggers.length ? 1 : triggers.some((row) => row.values.priority === "High" && row.values.buyerProblem && row.values.source) ? 5 : triggers.some((row) => row.values.source && row.values.timingWindow) ? 4 : triggers.some((row) => row.values.whyUrgent) ? 3 : 2;
+      const savedTriggers = [
+        ...repeatableListItems(data, "bestFitTrigger"),
+        ...repeatableListItems(data, "buyingTriggersSummary"),
+        data.quickUrgencyNow,
+        priorityGroup?.values.whyNow
+      ].map(cleanText).filter(Boolean);
+      const savedFitSignals = [
+        ...repeatableListItems(data, "icpMustHaveSignals"),
+        priorityGroup?.values.observableSignals,
+        priorityGroup?.values.listBuildingClues
+      ].map(cleanText).filter(Boolean);
+      const savedNegativeSignals = [
+        ...repeatableListItems(data, "bestFitDisqualificationSignals"),
+        ...repeatableListItems(data, "icpDisqualificationRules"),
+        data.quickWhoToAvoid
+      ].map(cleanText).filter(Boolean);
+      const savedProblem = cleanText(data.bestFitPrimaryPain || data.quickBuyerProblem);
+      const triggerScore = !triggers.length
+        ? savedTriggers.length && savedProblem ? 3 : savedTriggers.length ? 2 : 1
+        : triggers.some((row) => row.values.priority === "High" && row.values.buyerProblem && row.values.source) ? 5
+          : triggers.some((row) => row.values.source && row.values.timingWindow) ? 4
+            : triggers.some((row) => row.values.whyUrgent) ? 3 : 2;
       const fitCategories = new Set(fitSignals.map((row) => row.values.signalCategory).filter(Boolean));
-      const fitScore = !fitSignals.length ? 1 : ["Company fit", "Buyer fit", "Use-case fit"].every((category) => fitCategories.has(category)) ? 5 : fitSignals.some((row) => row.values.visibility && row.values.source) ? 4 : fitSignals.some((row) => row.values.signalCategory) ? 3 : 2;
-      const negativeScore = !negativeSignals.length ? 1 : negativeSignals.some((row) => row.values.action && row.values.whyItMatters) ? 5 : negativeSignals.some((row) => row.values.action) ? 4 : negativeSignals.some((row) => row.values.whyItMatters) ? 3 : 2;
+      const fitScore = !fitSignals.length ? savedFitSignals.length ? 3 : 1 : ["Company fit", "Buyer fit", "Use-case fit"].every((category) => fitCategories.has(category)) ? 5 : fitSignals.some((row) => row.values.visibility && row.values.source) ? 4 : fitSignals.some((row) => row.values.signalCategory) ? 3 : 2;
+      const negativeScore = !negativeSignals.length ? savedNegativeSignals.length ? 3 : 1 : negativeSignals.some((row) => row.values.action && row.values.whyItMatters) ? 5 : negativeSignals.some((row) => row.values.action) ? 4 : negativeSignals.some((row) => row.values.whyItMatters) ? 3 : 2;
       const sourceScore = !data.signalDataSources ? 1 : !sourceRows.length ? 2 : sourceRows.some((row) => row.values.availableToday === "Yes" && row.values.owner && row.values.reliability === "High" && row.values.collectionMethod) ? 5 : sourceRows.some((row) => row.values.availableToday === "Yes" && row.values.owner) ? 4 : sourceRows.some((row) => row.values.availableToday === "Yes" || row.values.availableToday === "Partial") ? 3 : 2;
       const routingTypes = new Set(routingRules.map((row) => row.values.signalType).filter(Boolean));
       const routingScore = !routingRules.length ? 1 : ["Trigger", "Fit", "Negative"].every((type) => routingTypes.has(type)) ? 5 : routingRules.some((row) => row.values.recommendedAction && row.values.owner) ? 4 : routingRules.some((row) => row.values.scoreImpact) ? 3 : 2;
-      const actionScore = !actionRows.length ? 1 : actionRows.some((row) => row.values.highPrioritySignal && row.values.outreachAngle && row.values.channel && row.values.buyerPersona && row.values.proofOrAsset && row.values.followUpAction) ? 5 : actionRows.some((row) => row.values.channel && row.values.buyerPersona && (row.values.proofOrAsset || row.values.firstMessageIdea)) ? 4 : actionRows.some((row) => row.values.channel || row.values.buyerPersona) ? 3 : 2;
+      const portfolioActionContext = cleanText([play?.values.primaryBuyerPersona, play?.values.gtmMotion, play?.values.offerOrUseCase, play?.values.playNotes].filter(Boolean).join(" "));
+      const actionScore = !actionRows.length ? portfolioActionContext ? 3 : 1 : actionRows.some((row) => row.values.highPrioritySignal && row.values.outreachAngle && row.values.channel && row.values.buyerPersona && row.values.proofOrAsset && row.values.followUpAction) ? 5 : actionRows.some((row) => row.values.channel && row.values.buyerPersona && (row.values.proofOrAsset || row.values.firstMessageIdea)) ? 4 : actionRows.some((row) => row.values.channel || row.values.buyerPersona) ? 3 : 2;
+      const routingPrefix = activePlayRowId ? `${signalScopedTable(activePlayRowId, "signalRoutingRules")}__signal-rule-1__` : "signalRoutingRules__signal-rule-1__";
+      const actionPrefix = activePlayRowId ? `${signalScopedTable(activePlayRowId, "signalActionPlan")}__signal-action-1__` : "signalActionPlan__signal-action-1__";
 
       return [
-        { name: "Trigger clarity", score: triggerScore, nextMove: "Define the top 3 buying trigger events for the priority ICP and connect each to a buyer problem." },
-        { name: "Fit signal clarity", score: fitScore, nextMove: "Define company, buyer, and use-case fit signals that can be observed in public or internal data." },
-        { name: "Negative signal clarity", score: negativeScore, nextMove: "Add negative signals from ICP disqualification rules and delivery risks." },
+        { name: "Trigger clarity", score: triggerScore, nextMove: savedTriggers.length ? "Add observation source and timing to the saved buying trigger." : "Define a buying trigger event for the priority ICP and connect it to the saved buyer problem.", fieldIds: [activePlayRowId ? `${signalScopedTable(activePlayRowId, "buyingTriggerEvents")}__trigger-event-1__howObserved` : "bestFitTrigger__item-1"] },
+        { name: "Fit signal clarity", score: fitScore, nextMove: savedFitSignals.length ? "Add source and visibility to the saved fit signal." : "Define an observable company, buyer, or use-case fit signal.", fieldIds: [activePlayRowId ? `${signalScopedTable(activePlayRowId, "fitSignals")}__fit-signal-1__source` : "icpMustHaveSignals__item-1"] },
+        { name: "Negative signal clarity", score: negativeScore, nextMove: savedNegativeSignals.length ? "Add the action to take when the saved disqualification signal appears." : "Add one negative signal from the ICP disqualification rules.", fieldIds: [activePlayRowId ? `${signalScopedTable(activePlayRowId, "negativeSignalRules")}__negative-signal-1__action` : "bestFitDisqualificationSignals__item-1"] },
         { name: "Data source availability", score: sourceScore, nextMove: "Assign owners for CRM, LinkedIn, enrichment, website analytics, and other key signal sources." },
-        { name: "Scoring / routing readiness", score: routingScore, nextMove: "Create scoring and routing rules for trigger, fit, and negative signals." },
-        { name: "Signal-based action readiness", score: actionScore, nextMove: "Build one outreach play for the highest-priority trigger, including persona, message, channel, proof asset, and follow-up." }
+        { name: "Scoring / routing readiness", score: routingScore, nextMove: "Add a score impact, owner, and next action for the saved highest-priority signal.", fieldIds: [`${routingPrefix}scoreImpact`, `${routingPrefix}owner`, `${routingPrefix}recommendedAction`] },
+        { name: "Signal-based action readiness", score: actionScore, nextMove: portfolioActionContext ? "Add the proof asset and follow-up action for the saved signal play." : "Build one outreach play for the highest-priority trigger, including persona, message, channel, proof asset, and follow-up.", fieldIds: [`${actionPrefix}proofOrAsset`, `${actionPrefix}followUpAction`] }
       ];
     }
 
@@ -6688,9 +6767,14 @@
       `;
       const detailLink = article.querySelector(".metric-card-link");
       if (detailLink) {
-        detailLink.addEventListener("click", () => {
-          const details = document.getElementById(card.target);
-          if (details?.tagName === "DETAILS") details.open = true;
+        detailLink.addEventListener("click", (event) => {
+          const target = document.getElementById(card.target);
+          const details = target?.tagName === "DETAILS" ? target : target?.closest("details");
+          if (details) details.open = true;
+          if (target) {
+            event.preventDefault();
+            requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block: "start" }));
+          }
         });
       }
       container.appendChild(article);
@@ -7085,6 +7169,7 @@
       const resume = summaryResumeState(model);
       const blockers = (model.readinessDiagnostic?.improvements || []).slice(0, 2);
       const blockerReady = status.label === "Go" || blockers.length === 0;
+      const blockerTarget = blockerReady ? "summary-risk-details" : "readiness-improvement-0";
       const claims = buildSummaryClaims(model, {
         status,
         dynamicSummary,
@@ -7143,7 +7228,7 @@
         copy: blockerReady ? "No high-impact blocker remains. Start the focused test and use the weekly review to learn." : "Complete these items to launch and learn with confidence.",
         badge: { label: blockerReady ? "Ready" : "Needs attention", className: blockerReady ? "strong" : "warning" },
         tone: "risk",
-        target: "summary-risk-details",
+        target: blockerTarget,
         actionLabel: blockerReady ? "Start the focused test" : "Complete blockers",
         claim: claims.risk
       });
@@ -7154,7 +7239,7 @@
         tone: "readiness",
         title: "GTM Readiness: Score and Launch Decision",
         subtitle: "Review valid saved evidence, standard weights, and the two launch paths.",
-        content: `<p><strong>${escapeHtml(status.label)}:</strong> ${escapeHtml(status.reason)} The score is ${escapeHtml(model.readinessScore)}/100.</p><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Start the focused test — accept remaining uncertainty</a><a class="secondary" href="#summary-risk-details">Improve the highest-impact blockers</a></div><div class="score-breakdown-host"></div>`
+        content: `<p><strong>${escapeHtml(status.label)}:</strong> ${escapeHtml(status.reason)} The score is ${escapeHtml(model.readinessScore)}/100.</p><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Start the focused test — accept remaining uncertainty</a><a class="secondary" data-readiness-target="${escapeHtml(blockerTarget)}" href="#${escapeHtml(blockerTarget)}">Improve the highest-impact blockers</a></div><div class="score-breakdown-host"></div>`
       });
       renderScoreBreakdown(model.readinessDiagnostic, readinessPanel.querySelector(".score-breakdown-host"), model);
       recommendation.appendChild(readinessPanel);
@@ -7184,9 +7269,19 @@
         subtitle: blockerReady ? "The plan is ready for a controlled launch." : "Complete only the highest-impact items.",
         content: blockerReady
           ? `<p class="summary-primary-action">Ready to launch. Start the focused test, capture buyer evidence, and review results weekly.</p><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Start the focused test</a></div>`
-          : `<p>Complete these items to launch and learn with confidence.</p><ol>${blockers.map((item) => `<li><strong>${escapeHtml(item.label || item.component || "Readiness blocker")}:</strong> ${escapeHtml(item.action || item.description || topRisk)}</li>`).join("")}</ol><div class="card-actions no-print"><a href="#summary-readiness-details">Complete readiness inputs</a></div>`
+          : `<p>Complete these items to launch and learn with confidence.</p><ol>${blockers.map((item) => `<li><strong>${escapeHtml(item.label || item.area || item.component || "Readiness blocker")}:</strong> ${escapeHtml(item.action || item.description || topRisk)}</li>`).join("")}</ol><div class="card-actions no-print"><a data-readiness-target="${escapeHtml(blockerTarget)}" href="#${escapeHtml(blockerTarget)}">Complete readiness inputs</a></div>`
       });
       recommendation.appendChild(riskPanel);
+      recommendation.querySelectorAll("[data-readiness-target]").forEach((link) => {
+        link.addEventListener("click", (event) => {
+          const target = document.getElementById(link.dataset.readinessTarget);
+          if (!target) return;
+          event.preventDefault();
+          const details = target.closest("details");
+          if (details) details.open = true;
+          requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block: "start" }));
+        });
+      });
     }
 
     function appendPlanOutputLinks() {
@@ -13542,11 +13637,40 @@
       };
     }
 
+    function scoreFieldHasValue(data, fieldId) {
+      if (!fieldId) return false;
+      if (cleanText(data[fieldId])) return true;
+      const prefix = `${fieldId}__`;
+      return Object.entries(data).some(([key, value]) => key.startsWith(prefix) && cleanText(value));
+    }
+
+    function missingDimensionFields(data, snapshot) {
+      return [...new Set((snapshot?.gaps || [])
+        .flatMap((item) => item.fieldIds || [])
+        .filter((fieldId) => fieldId && !scoreFieldHasValue(data, fieldId)))];
+    }
+
     function scoreMetricStatus(score) {
       const value = boundedScore(score);
       if (value >= 80) return "Strong";
       if (value >= 50) return "Needs validation";
       return "Needs attention";
+    }
+
+    function scoreFieldLabel(fieldId) {
+      const field = String(fieldId || "").split("__").pop() || "";
+      const labels = {
+        baselineStatus: "Current baseline status",
+        targetImprovementDescription: "Target improvement",
+        timeToImpact: "Timeframe to impact",
+        easiestNextStep: "Easiest next step",
+        scoreImpact: "Signal score impact",
+        recommendedAction: "Signal next action",
+        currentActivity: "30-day activity target",
+        successMetric: "30-day result target",
+        timeframe: "Experiment timeframe"
+      };
+      return labels[field] || field.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (letter) => letter.toUpperCase());
     }
 
     function savedConversionBottleneck(data) {
@@ -13765,11 +13889,11 @@
       const evidenceNextInputs = [
         customerPriorityScore < 80 ? scoreNextInput("Customer-priority evidence", "Add observable fit, urgency, economic value, winability, and evidence for the selected group.", summaryClaimSourceFields("customer icp priority", { priorityGroup, primaryOffer, revenueMotion, signalPlay, conversionStages: motionStages }), "customer icp priority") : null,
         buyerScore < 80 ? scoreNextInput("Buyer evidence", "Name the buyer, budget owner, buying situation, and approval requirements.", OUTPUT_SOURCE_MAP.buyer.fields, "buyer committee") : null,
-        offerSnapshot.score < 80 ? scoreNextInput("Offer and proof evidence", offerSnapshot.nextMoves?.[0] || "Complete the primary offer's measurable outcome and proof.", summaryClaimSourceFields("offer proof", { priorityGroup, primaryOffer, revenueMotion, signalPlay, conversionStages: motionStages }), "offer proof") : null,
-        signalSnapshot.score < 80 ? scoreNextInput("Buying-signal evidence", signalSnapshot.nextMoves?.[0] || "Define observable triggers, fit signals, sources, and actions.", summaryClaimSourceFields("signals triggers", { priorityGroup, primaryOffer, revenueMotion, signalPlay, conversionStages: motionStages }), "signals triggers") : null
+        offerSnapshot.score < 80 ? scoreNextInput("Offer and proof evidence", offerSnapshot.nextMoves?.[0] || "Complete the primary offer's measurable outcome and proof.", missingDimensionFields(data, offerSnapshot), "offer proof") : null,
+        signalSnapshot.score < 80 ? scoreNextInput("Buying-signal evidence", signalSnapshot.nextMoves?.[0] || "Define observable triggers, fit signals, sources, and actions.", missingDimensionFields(data, signalSnapshot), "signals triggers") : null
       ].filter(Boolean);
       const executionNextInputs = [
-        revenueSnapshot.score < 80 ? scoreNextInput("Revenue-motion operating detail", revenueSnapshot.nextMoves?.[0] || "Complete the selected motion, channel, stages, measurement, owner, and review rule.", summaryClaimSourceFields("revenue motion pipeline", { priorityGroup, primaryOffer, revenueMotion, signalPlay, conversionStages: motionStages }), "revenue motion") : null,
+        revenueSnapshot.score < 80 ? scoreNextInput("Revenue-motion operating detail", revenueSnapshot.nextMoves?.[0] || "Complete the selected motion, channel, stages, measurement, owner, and review rule.", missingDimensionFields(data, revenueSnapshot), "revenue motion") : null,
         operatingRhythmScore < 80 ? scoreNextInput("90-day operating rhythm", "Define the goal, success metric, owner, weekly capacity, and review cadence.", ["quick90DayGoal", "goal90", "quick90DaySuccessMetric", "weeklyRevenueHours", "primaryRevenueOwner", "revenueReportingCadence"], "90-day revenue goal") : null,
         crmScore < 80 ? scoreNextInput("Tracking and data discipline", "Name the source of truth, review cadence, and current data quality.", ["revenueTrackingSystem", "revenueReportingCadence", "revenueDataQuality"], "revenue motion crm") : null
       ].filter(Boolean);
@@ -13837,6 +13961,7 @@
           action: "Define must-have, caution, and disqualification rules for the customer group the next GTM motion will target.",
           potentialLift: scoreLift(customerPriorityScore, 0.12),
           topic: "customer icp priority",
+          componentKey: "evidence",
           fieldIds: evidenceNextInputs.find((item) => item.label === "Customer-priority evidence")?.fields || []
         },
         {
@@ -13846,6 +13971,7 @@
           action: offerSnapshot.nextMoves?.[0] || "Add a measurable value claim, proof asset, buyer alternative, and objection response for the primary offer.",
           potentialLift: scoreLift(offerSnapshot.score, 0.12),
           topic: "offer proof",
+          componentKey: "evidence",
           fieldIds: evidenceNextInputs.find((item) => item.label === "Offer and proof evidence")?.fields || []
         },
         {
@@ -13855,6 +13981,7 @@
           action: signalSnapshot.nextMoves?.[0] || "Define trigger events, fit signals, negative signals, data sources, and routing actions.",
           potentialLift: scoreLift(signalSnapshot.score, 0.1),
           topic: "signals triggers",
+          componentKey: "evidence",
           fieldIds: evidenceNextInputs.find((item) => item.label === "Buying-signal evidence")?.fields || []
         },
         {
@@ -13864,6 +13991,7 @@
           action: revenueSnapshot.nextMoves?.[0] || "Choose one motion with customer group, channel, owner, weekly activity target, success metric, and review rule.",
           potentialLift: scoreLift(revenueSnapshot.score, 0.1),
           topic: "revenue motion",
+          componentKey: "execution",
           fieldIds: executionNextInputs.find((item) => item.label === "Revenue-motion operating detail")?.fields || []
         },
         {
@@ -13873,6 +14001,7 @@
           action: "Define the 90-day goal, success metric, owner, protected weekly revenue hours, and review cadence.",
           potentialLift: scoreLift(operatingRhythmScore, 0.08),
           topic: "90-day revenue goal",
+          componentKey: "execution",
           fieldIds: executionNextInputs.find((item) => item.label === "90-day operating rhythm")?.fields || []
         },
         {
@@ -13882,11 +14011,16 @@
           action: categories.slice().sort((a, b) => a.score - b.score)[0]?.lowMove || "Update the weakest readiness area with stronger evidence and execution detail.",
           potentialLift: scoreLift(Math.min(...categories.map((category) => boundedScore(category.score * 20))), 0.06),
           topic: "score",
+          componentKey: "self",
           fieldIds: schema.scoreFields
         },
       ]
-        .filter((item) => item.score < 90)
-        .sort((a, b) => b.potentialLift - a.potentialLift || a.score - b.score)
+        .map((item) => ({
+          ...item,
+          fieldIds: (item.fieldIds || []).filter((fieldId) => !scoreFieldHasValue(data, fieldId))
+        }))
+        .filter((item) => item.score < 90 && item.fieldIds.length)
+        .sort((a, b) => b.potentialLift - a.potentialLift)
         .slice(0, 3);
 
       return {
@@ -13946,13 +14080,11 @@
         const inlineFields = (item.nextInputs || [])
           .flatMap((input) => input.fields || [])
           .filter(Boolean)
+          .filter((fieldId) => !model || !scoreFieldHasValue(model.data, fieldId))
           .filter((fieldId, index, all) => all.indexOf(fieldId) === index)
           .slice(0, 3);
         const inlineEditor = model && inlineFields.length
-          ? `<div class="score-inline-editor" data-score-component="${escapeHtml(item.key)}"><p><strong>Optional readiness improvement.</strong> Add only the smallest score-changing inputs below, or continue without adding them.</p>${inlineFields.map((fieldId) => `<label>${escapeHtml(fieldId.replaceAll("__", " / ").replace(/([a-z])([A-Z])/g, "$1 $2"))}<textarea rows="2" data-score-field="${escapeHtml(fieldId)}">${escapeHtml(model.data[fieldId] || "")}</textarea></label>`).join("")}<div class="card-actions no-print"><button type="button" data-save-score-component="${escapeHtml(item.key)}">Save and recalculate</button><button type="button" class="secondary" data-skip-score-component="${escapeHtml(item.key)}">Continue without adding / Skip for now</button><a class="secondary" href="${escapeHtml(intakeReviewUrl(item.key === "evidence" ? "customer offer proof signals" : item.key === "execution" ? "90-day revenue motion crm" : "score"))}">Open full inputs for deeper rework</a></div><p class="muted" data-score-component-status></p></div>`
-          : "";
-        const offerPath = item.key === "evidence"
-          ? `<div class="overview-note"><strong>Offer readiness path</strong><ol><li>Priority customer, problem, trigger, and cost of inaction</li><li>Buyer-facing promise and differentiator</li><li>First use case and easiest next step</li><li>Measurable value claim with metric, baseline, improvement, and timeframe</li><li>Package and price</li><li>Proof tied to the claim</li><li>Objections and risk reduction</li></ol></div>`
+          ? `<div class="score-inline-editor" data-score-component="${escapeHtml(item.key)}"><p><strong>Optional readiness improvement.</strong> Add only the smallest score-changing inputs below, or continue without adding them.</p>${inlineFields.map((fieldId) => `<label>${escapeHtml(scoreFieldLabel(fieldId))}<textarea rows="2" data-score-field="${escapeHtml(fieldId)}"></textarea></label>`).join("")}<div class="card-actions no-print"><button type="button" data-save-score-component="${escapeHtml(item.key)}">Save and recalculate</button><button type="button" class="secondary" data-skip-score-component="${escapeHtml(item.key)}">Continue without adding / Skip for now</button><a class="secondary" href="${escapeHtml(intakeReviewUrl(item.key === "evidence" ? "customer offer proof signals" : item.key === "execution" ? "90-day revenue motion crm" : "score"))}">Open full inputs for deeper rework</a></div><p class="muted" data-score-component-status></p></div>`
           : "";
         return `
           <details class="score-component-detail">
@@ -13962,18 +14094,27 @@
             <ul>${counted}</ul>
             <h4>Inputs that can change this area</h4>
             <ul>${nextInputs}</ul>
-            ${offerPath}
             ${inlineEditor}
           </details>
         `;
       }).join("");
-      const improvementRows = diagnostic.improvements.length ? diagnostic.improvements.map((item, index) => `
-        <div class="score-improvement" data-score-improvement="${index}">
+      const improvementRows = diagnostic.improvements.length ? diagnostic.improvements.map((item, index) => {
+        const fields = (item.fieldIds || [])
+          .filter((fieldId) => !model || !scoreFieldHasValue(model.data, fieldId))
+          .filter((fieldId, fieldIndex, all) => all.indexOf(fieldId) === fieldIndex)
+          .slice(0, 3);
+        const editor = model && fields.length
+          ? `<div class="score-inline-editor" data-score-component="${escapeHtml(item.componentKey || "evidence")}">${fields.map((fieldId) => `<label>${escapeHtml(scoreFieldLabel(fieldId))}<textarea rows="2" data-score-field="${escapeHtml(fieldId)}"></textarea></label>`).join("")}<div class="card-actions no-print"><button type="button" data-save-score-component="${escapeHtml(item.componentKey || "evidence")}">Save and recalculate</button><button type="button" class="secondary" data-skip-score-component="${escapeHtml(item.componentKey || "evidence")}">Continue without adding / Skip for now</button></div><p class="muted" data-score-component-status></p></div>`
+          : "";
+        return `
+        <div class="score-improvement"${model ? ` id="readiness-improvement-${index}"` : ""} data-score-improvement="${index}">
           <h4>${index + 1}. ${escapeHtml(item.area)}</h4>
           <p>${escapeHtml(item.action)}</p>
+          ${editor}
           <p class="muted">Estimated score opportunity: up to ${escapeHtml(item.potentialLift)} points if the missing inputs are completed with strong evidence. This is not a guaranteed increase.</p>
         </div>
-      `).join("") : "<p>No immediate score improvements are suggested. Continue testing the current plan and record real results.</p>";
+      `;
+      }).join("") : "<p>No immediate score improvements are suggested. Continue testing the current plan and record real results.</p>";
       const scoreDelta = diagnostic.overallScore - diagnostic.defaultScore;
       const defaultDecision = launchDecisionForScore(diagnostic.defaultScore).label;
       const customDecision = launchDecisionForScore(diagnostic.overallScore).label;

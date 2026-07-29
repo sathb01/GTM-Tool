@@ -4,6 +4,13 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-29 Canonical Readiness Mapping and Direct Blocker Actions
+
+- Counted saved priority-customer, buyer, offer-portfolio, quick offer, proof-reference, trigger, fit, disqualification, signal-play, and pricing evidence in readiness scoring when scoped assessment rows are absent.
+- Kept genuine gaps explicit: ClientRenew still needs structured measurable-value details and 30-day activity/result targets.
+- Changed Plan Summary blocker actions to open the specific empty inline inputs in one action, with already-filled fields excluded.
+- Removed the long offer-readiness explainer from the inline action path and added a ClientRenew-specific headless regression check.
+
 ## 2026-07-29 Revenue Acquisition Channel Sources
 
 - Changed `Where would the opportunity come from? (channel / source)` in the Revenue Acquisition Strategy Portfolio from a single-select field to the shared accessible multi-select control.
