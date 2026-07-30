@@ -40,7 +40,6 @@ const forbiddenTargetCopy = [
   "Recommended starting size",
   "Saved customer group:",
   "Account criteria and filters",
-  "Exclusions",
   "Do not copy the same working list"
 ];
 
@@ -48,14 +47,14 @@ const checks = [];
 const check = (name, passed, detail = "") => checks.push({ name, passed: Boolean(passed), ...(detail ? { detail } : {}) });
 
 check("Correct ClientRenew record loaded", /ClientRenew/i.test(record.name || data.companyName), record.name || data.companyName);
-check("Target page starts with practical setup heading", /<h2>Set Up the List in \$\{escapeHtml\(systemLabel\)\}<\/h2>/.test(targetSource));
+check("Target page starts with practical discovery heading", /<h2>Find target companies<\/h2>/.test(targetSource));
 forbiddenTargetCopy.forEach((copy) => check(`Target page omits redundant narrative: ${copy}`, !targetSource.includes(copy)));
 requiredFields.forEach((field) => check(`Required field retained: ${field}`, targetSource.includes(`"${field}"`)));
-check("Target page has one compact record-count input", /Qualified account count in \$\{systemLabel\}/.test(targetSource) && /id="targetListInitialCount" type="number"/.test(targetSource));
-check("Target page exposes the exact confirm-and-continue action", /id="confirmTargetListCreated">Mark list created \/ record count \/ continue/.test(targetSource));
+check("Target page has one compact record-count input", /Accepted companies added or verified in \$\{systemLabel\}/.test(targetSource) && /id="targetListInitialCount" type="number"/.test(targetSource));
+check("Target page exposes the exact confirm-and-continue action", /id="confirmAcceptedTargetsAdded"/.test(targetSource) && /Confirm HubSpot additions and continue/.test(targetSource));
 check("Target page exposes the exact fields-copy action", /id="copyTargetListFields">Copy Fields list/.test(targetSource));
 check("Target page removes old setup and progress actions", !/openTargetListSetup|saveTargetListProgress|targetListSetupProgress|Continue later in Tool Setup/.test(targetSource));
-check("Copy action copies required fields only", /const text = \["REQUIRED FIELDS", \.\.\.requiredFields\.map/.test(targetSource) && !/ACCOUNT CRITERIA|EXCLUSIONS|COMPLETION/.test(targetSource));
+check("Copy action copies required fields only", /copyTextToClipboard\(\["REQUIRED FIELDS", \.\.\.requiredFields\.map/.test(targetSource) && !/ACCOUNT CRITERIA|COMPLETION/.test(targetSource));
 check("Confirmation marks the external setup ready", /toolSetup\.statuses\.targets = "Ready"/.test(targetSource));
 check("Confirmation advances directly to the next ordered tool", /nextTool[\s\S]*?reportAssetUrlWithState\("active", \{ setupTask: nextTool\.id \}\)/.test(targetSource));
 check("Every active setup card has a positive completion path", /Mark \$\{tool\.label\} ready and continue/.test(activeSource) && /Set up and confirm the list/.test(activeSource) && /Complete Messaging Kit and continue/.test(activeSource) && /Complete Outreach Sequence and continue/.test(activeSource) && /Complete GTM Review recommendations and continue/.test(activeSource));

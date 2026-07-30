@@ -75,6 +75,17 @@ Important endpoints:
 - `GET /login`
 - `POST /login`
 
+### `tool/target-discovery.js`
+
+Pure browser-safe helpers for Target List discovery:
+
+- derives observable search variables from saved ICP context
+- creates focused search approaches with evidence boundaries
+- builds the copy-only AI discovery prompt
+- parses and normalizes sourced candidate JSON
+
+The module performs no network or CRM writes.
+
 Important environment variables:
 
 - `PORT`
@@ -320,4 +331,3 @@ Read these first:
 - There are no external package dependencies at the moment.
 - Syntax checks can be run with Node's `--check`.
 - Since there is no test suite, verification currently relies on syntax checks, local HTTP checks, and browser/manual testing.
-

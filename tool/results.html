@@ -3712,6 +3712,7 @@
   <script src="gtm-taxonomy.js?v=20260617-revenue-motions"></script>
   <script src="intake-schema.js?v=20260723-revenue-motion-buyer-roles-1"></script>
   <script src="guided-task-context.js?v=20260729-contextual-next-step-1"></script>
+  <script src="target-discovery.js?v=20260730-guided-discovery-1"></script>
   <script>
     const schema = window.GTM_INTAKE_SCHEMA;
     const STORAGE_KEY = schema.storageKey;
@@ -19183,7 +19184,7 @@
       configureAssetPdfExport("targets", data, profile.model);
     }
 
-    function renderTargetListWorkspace(data) {
+    function renderSimpleTargetListWorkspace(data) {
       const profile = isPreRevenueReport(data) ? preRevenuePersonaAssetModel(data) : postRevenuePersonaAssetModel(data);
       const systemLabel = cleanText(data.crmName || data.crmSystem || data.currentCrm || data.revenueTrackingSystem) || "HubSpot";
       const requiredFields = [
@@ -19273,6 +19274,369 @@
           ? reportAssetUrlWithState("active", { setupTask: nextTool.id })
           : reportAssetUrl("active");
       });
+      setupReportNavigation();
+      configureAssetPdfExport("targets", data, profile.model);
+    }
+
+    function renderTargetListWorkspace(data) {
+      const profile = isPreRevenueReport(data) ? preRevenuePersonaAssetModel(data) : postRevenuePersonaAssetModel(data);
+      const systemLabel = cleanText(data.crmName || data.crmSystem || data.currentCrm || data.revenueTrackingSystem) || "HubSpot";
+      const targetWorkspace = data.targetListWorkspace && typeof data.targetListWorkspace === "object"
+        ? data.targetListWorkspace
+        : { targets: [] };
+      targetWorkspace.targets = Array.isArray(targetWorkspace.targets) ? targetWorkspace.targets : [];
+      const discoveryContext = {
+        icp: cleanText(data.bestFitCustomerGroup || data.quickBestFitCustomer),
+        industry: cleanText(data.industryLabel || data.industryGroup),
+        geography: cleanText(data.geography),
+        size: cleanText(data.sizeFit || data.companySize),
+        mustHave: repeatableListItems(data, "icpMustHaveSignals"),
+        exclusions: repeatableListItems(data, "avoidSegments"),
+        disqualifications: repeatableListItems(data, "icpDisqualificationRules"),
+        referralPaths: [
+          cleanText(data.quickPrimaryRevenueSource),
+          ...claimListValue(selectedRevenueMotion(data)?.values.channelSource || "")
+        ].filter(Boolean)
+      };
+      const derived = window.GTM_TARGET_DISCOVERY.deriveSearchVariables(discoveryContext);
+      const storedDiscovery = targetWorkspace.discovery && typeof targetWorkspace.discovery === "object"
+        ? targetWorkspace.discovery
+        : {};
+      const discovery = {
+        version: 1,
+        variables: {
+          ...derived,
+          ...(storedDiscovery.variables && typeof storedDiscovery.variables === "object" ? storedDiscovery.variables : {})
+        },
+        approaches: Array.isArray(storedDiscovery.approaches) && storedDiscovery.approaches.length
+          ? storedDiscovery.approaches
+          : window.GTM_TARGET_DISCOVERY.buildSearchApproaches(derived),
+        candidates: Array.isArray(storedDiscovery.candidates)
+          ? storedDiscovery.candidates.map((item, index) => window.GTM_TARGET_DISCOVERY.normalizeCandidate(item, index))
+          : [],
+        feedback: storedDiscovery.feedback && typeof storedDiscovery.feedback === "object" ? storedDiscovery.feedback : {},
+        updatedAt: storedDiscovery.updatedAt || ""
+      };
+      targetWorkspace.discovery = discovery;
+      const requiredFields = [
+        "Company or account name",
+        "Website or profile URL",
+        "Primary contact and role",
+        "Observable ICP fit signals",
+        "Fit tier and reason",
+        "Source or channel",
+        "Owner",
+        "Outreach status or CRM stage",
+        "Last activity date",
+        "Next action and due date",
+        "Message or sequence used",
+        "Buyer response, objection, or learning"
+      ];
+      const main = document.querySelector("main");
+      document.body.dataset.hasIcpAsset = "true";
+      document.body.dataset.hasPersonaAsset = "true";
+      document.title = `${data.companyName || "Company"} Target Company Discovery`;
+      document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} Target Company Discovery` : "Target Company Discovery";
+      document.getElementById("generatedMeta").textContent = "Find a small, evidence-backed batch. The user approves every company before manual HubSpot entry.";
+      const companyMeta = document.getElementById("companyMeta");
+      companyMeta.hidden = false;
+      companyMeta.textContent = [systemLabel, `${discovery.candidates.length} candidates`, `${discovery.candidates.filter((item) => item.status === "Accepted").length} accepted`].join(" | ");
+      document.getElementById("metadataPills").innerHTML = "";
+      main.querySelectorAll("section").forEach((section) => section.remove());
+
+      const setup = document.createElement("section");
+      setup.id = "target-company-discovery";
+      setup.dataset.toc = "Find Companies";
+      setup.className = "workspace-section";
+      const subject = `target-company discovery for ${data.companyName || "the saved GTM plan"}`;
+      const variableFields = [
+        guidedInputMarkup({
+          id: "targetDiscoveryCategories",
+          label: `Observable company categories for ${subject}`,
+          subject,
+          why: "Public category language is searchable; the full saved ICP sentence is not.",
+          answer: "Enter 1-3 semicolon-separated public category phrases, such as managed IT services or IT consulting.",
+          scoreEffect: "This changes the discovery search pack, not the readiness score.",
+          optional: true,
+          control: `<textarea id="targetDiscoveryCategories" rows="2">${escapeHtml(discovery.variables.categories.join("; "))}</textarea>`
+        }),
+        guidedInputMarkup({
+          id: "targetDiscoveryGeographySize",
+          label: `Public geography and approximate size for ${subject}`,
+          subject,
+          why: "A bounded market and approximate employee range keep each discovery batch reviewable.",
+          answer: "Enter a public geography label and whole-number minimum/maximum employee estimates. These remain hypotheses until a source confirms them.",
+          scoreEffect: "This changes the discovery search pack, not the readiness score.",
+          optional: true,
+          control: `<div class="grid"><label>Search geography<input id="targetDiscoveryGeography" value="${escapeHtml(discovery.variables.geography)}"></label><label>Minimum employees<input id="targetDiscoveryEmployeeMin" type="number" min="0" value="${escapeHtml(discovery.variables.employeeMin)}"></label><label>Maximum employees<input id="targetDiscoveryEmployeeMax" type="number" min="0" value="${escapeHtml(discovery.variables.employeeMax)}"></label></div>`
+        }),
+        guidedInputMarkup({
+          id: "targetDiscoveryTechnology",
+          label: `Public technology signals for ${subject}`,
+          subject,
+          why: "A website, partner-directory, integration, or job mention can support investigation without proving current technology use.",
+          answer: "Enter semicolon-separated public signals to investigate. Keep each item phrased as observable evidence.",
+          scoreEffect: "This changes the discovery search pack, not the readiness score.",
+          optional: true,
+          control: `<textarea id="targetDiscoveryTechnology" rows="3">${escapeHtml(discovery.variables.technologySignals.join("; "))}</textarea>`
+        }),
+        guidedInputMarkup({
+          id: "targetDiscoveryServiceTeam",
+          label: `Recurring-service and team-structure signals for ${subject}`,
+          subject,
+          why: "Service language is observable. Team structure may support a hypothesis, but absence of a customer-success function is never a verified fact by itself.",
+          answer: "Enter semicolon-separated public service signals and team/job signals to investigate.",
+          scoreEffect: "This changes the discovery search pack, not the readiness score.",
+          optional: true,
+          wide: true,
+          control: `<label>Recurring-service signals<textarea id="targetDiscoveryService" rows="3">${escapeHtml(discovery.variables.serviceSignals.join("; "))}</textarea></label><label>Team-structure signals<textarea id="targetDiscoveryTeam" rows="3">${escapeHtml(discovery.variables.teamSignals.join("; "))}</textarea></label>`
+        }),
+        guidedInputMarkup({
+          id: "targetDiscoveryPathsExclusions",
+          label: `Referral paths and exclusions for ${subject}`,
+          subject,
+          why: "Access paths can prioritize research, while explicit exclusions prevent obvious poor-fit candidates from entering the review batch.",
+          answer: "Enter semicolon-separated referral paths and exclusion rules. Do not convert an unverified inference into an exclusion fact.",
+          scoreEffect: "This changes the discovery search pack, not the readiness score.",
+          optional: true,
+          wide: true,
+          control: `<label>Referral or access paths<textarea id="targetDiscoveryReferralPaths" rows="2">${escapeHtml(discovery.variables.referralPaths.join("; "))}</textarea></label><label>Exclusions<textarea id="targetDiscoveryExclusions" rows="3">${escapeHtml(discovery.variables.exclusions.join("; "))}</textarea></label>`
+        }),
+        guidedInputMarkup({
+          id: "targetDiscoveryBatch",
+          label: `Discovery batch and initial-list target for ${subject}`,
+          subject,
+          why: "A small batch supports evidence review before the team commits to a 25-company working list.",
+          answer: "Choose 1-10 companies per discovery batch and the initial qualified-list target. Revisit the target after meaningful buyer responses or repeated disqualification patterns.",
+          scoreEffect: "This changes workflow scope, not the readiness score.",
+          optional: false,
+          control: `<div class="grid"><label>Companies per review batch<input id="targetDiscoveryBatchSize" type="number" min="1" max="10" value="${escapeHtml(discovery.variables.batchSize)}"></label><label>Initial qualified-list target<input id="targetDiscoveryInitialTarget" type="number" min="1" value="${escapeHtml(discovery.variables.initialTarget)}"></label></div>`
+        })
+      ];
+      setup.innerHTML = `
+        <h2>Find target companies</h2>
+        <p>Start from the current ICP, then translate it into observable public signals. Do not paste the full ICP into a search engine, and do not treat an inferred fit as a fact.</p>
+        <div class="overview-note"><strong>Observable facts versus inferences</strong><p>Category, geography, public company size, website language, directories, technology mentions, team pages, and job posts can be observed and sourced. Recurring-contract volume, current HubSpot use, and the absence of a dedicated customer-success function remain unknown until evidence confirms them.</p></div>
+        <div class="guided-input-grid">${variableFields.join("")}</div>
+        <div class="card-actions no-print"><button type="button" id="buildTargetSearchPack">Build focused search pack</button><button type="button" class="secondary" id="copyTargetDiscoveryPrompt">Copy AI discovery prompt</button></div>
+        <p class="messaging-save-status" id="targetDiscoverySetupStatus"></p>
+      `;
+      main.appendChild(setup);
+
+      const approachesSection = document.createElement("section");
+      approachesSection.id = "target-search-approaches";
+      approachesSection.dataset.toc = "Search Approaches";
+      approachesSection.className = "workspace-section";
+      main.appendChild(approachesSection);
+      const renderApproaches = () => {
+        approachesSection.innerHTML = `
+          <h2>Focused search approaches</h2>
+          <p>Use these separately. Each query tests one observable part of the current hypothesis.</p>
+          <div class="active-plan-actions">${discovery.approaches.map((item) => `<article class="active-plan-action"><div class="active-plan-action-copy"><h3>${escapeHtml(item.label)}</h3><p><strong>Query:</strong> ${escapeHtml(item.query)}</p><p><strong>Why:</strong> ${escapeHtml(item.why)}</p><p><strong>Evidence boundary:</strong> ${escapeHtml(item.evidenceBoundary)}</p><div class="active-plan-link-row"><a href="https://www.google.com/search?q=${encodeURIComponent(item.query)}" target="_blank" rel="noopener">Open this focused search</a></div></div></article>`).join("")}</div>
+          <div class="overview-note"><strong>Controlled AI step</strong><p>No paid browser-triggered research runs here. Copy the AI discovery prompt into an approved research session, then paste its sourced JSON results below.</p></div>
+        `;
+      };
+      renderApproaches();
+
+      const candidateInput = document.createElement("section");
+      candidateInput.id = "target-candidate-input";
+      candidateInput.dataset.toc = "Candidate Results";
+      candidateInput.className = "workspace-section";
+      const candidatePasteField = guidedInputMarkup({
+        id: "targetCandidateResults",
+        label: `Sourced candidate-company results for ${subject}`,
+        subject,
+        why: "The app needs structured public evidence before it can present a company for user approval.",
+        answer: "Paste the JSON returned by the copied AI prompt. Each candidate must include company, source URL, observed evidence, inferred fit, missing information, and risks.",
+        scoreEffect: "Reviewing candidates advances Target List Setup; it does not change the readiness score.",
+        optional: true,
+        wide: true,
+        control: '<textarea id="targetCandidateResults" rows="10" placeholder="{ &quot;candidates&quot;: [...] }"></textarea>'
+      });
+      candidateInput.innerHTML = `<h2>Review a sourced candidate batch</h2><div class="guided-input-grid">${candidatePasteField}</div><div class="card-actions no-print"><button type="button" id="reviewTargetCandidates">Review pasted candidate batch</button></div><p class="messaging-save-status" id="targetCandidateInputStatus"></p>`;
+      main.appendChild(candidateInput);
+
+      const candidateReview = document.createElement("section");
+      candidateReview.id = "target-candidate-review";
+      candidateReview.dataset.toc = "Approve Companies";
+      candidateReview.className = "workspace-section";
+      main.appendChild(candidateReview);
+      const candidateList = (items, fallback) => items.length ? personaAssetListMarkup(items) : `<p class="muted">${escapeHtml(fallback)}</p>`;
+      const renderCandidates = () => {
+        candidateReview.innerHTML = `
+          <h2>Approve, reject, or refine</h2>
+          <p>The user remains the approver. Accepted means “qualified enough for manual HubSpot verification,” not “proven fit.”</p>
+          ${discovery.candidates.length ? `<div class="active-plan-actions">${discovery.candidates.map((candidate) => `<article class="active-plan-action" data-target-candidate="${escapeHtml(candidate.id)}"><div class="active-plan-action-copy"><h3>${escapeHtml(candidate.company)}</h3><p><a href="${escapeHtml(candidate.url)}" target="_blank" rel="noopener">${escapeHtml(candidate.sourceLabel || candidate.url)}</a></p><h4>Observed fit evidence</h4>${candidateList(candidate.observedEvidence, "No observed evidence was supplied.")}<h4>Inferred fit — hypothesis only</h4>${candidateList(candidate.inferredFit, "No inference was supplied.")}<h4>Missing information</h4>${candidateList(candidate.missingInformation, "No missing-information note was supplied.")}<h4>Exclusion or risk notes</h4>${candidateList(candidate.risks, "No risk note was supplied.")}<div class="guided-input-grid">${guidedInputMarkup({
+            id: `candidate-decision-${candidate.id}`,
+            label: `Approval decision for ${candidate.company}`,
+            subject: candidate.company,
+            why: "Only the user can decide whether this evidence is sufficient for manual HubSpot verification.",
+            answer: "Choose Pending review, Accepted, or Rejected, then record the evidence or pattern that should affect the next batch.",
+            scoreEffect: "This changes discovery workflow status, not the readiness score.",
+            optional: false,
+            control: `<select data-candidate-status>${messagingOptions(["Pending review", "Accepted", "Rejected"], candidate.status)}</select><textarea data-candidate-reason rows="2" placeholder="Why accept/reject, or what pattern should change?">${escapeHtml(candidate.decisionReason)}</textarea>`
+          })}</div><div class="card-actions no-print"><button type="button" data-save-candidate-decision>Save this decision</button></div></div></article>`).join("")}</div>` : '<p class="muted">No sourced candidates are ready for review. Build the search pack, run the controlled research step, and paste the returned JSON.</p>'}
+          <p class="messaging-save-status" id="targetCandidateDecisionStatus"></p>
+        `;
+        candidateReview.querySelectorAll("[data-save-candidate-decision]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const card = button.closest("[data-target-candidate]");
+            const candidate = discovery.candidates.find((item) => item.id === card.dataset.targetCandidate);
+            candidate.status = card.querySelector("[data-candidate-status]").value;
+            candidate.decisionReason = card.querySelector("[data-candidate-reason]").value.trim();
+            discovery.updatedAt = new Date().toISOString();
+            await saveTargetListWorkspace(data, targetWorkspace, profile, candidateReview.querySelector("#targetCandidateDecisionStatus"));
+            renderCandidates();
+            renderHandoff();
+          });
+        });
+      };
+
+      const refinement = document.createElement("section");
+      refinement.id = "target-discovery-refinement";
+      refinement.dataset.toc = "Refine Next Batch";
+      refinement.className = "workspace-section";
+      const feedbackField = guidedInputMarkup({
+        id: "targetDiscoveryFeedback",
+        label: `Next-batch refinements for ${subject}`,
+        subject,
+        why: "Accepted, rejected, and repeatedly disqualified companies should improve the next search batch instead of merely accumulating notes.",
+        answer: "Record concise changes by category. Leave a line blank when that variable should stay unchanged.",
+        scoreEffect: "This changes the next discovery prompt, not the readiness score.",
+        optional: true,
+        wide: true,
+        control: `<div class="grid"><label>Industry pattern<input data-discovery-feedback="industry" value="${escapeHtml(discovery.feedback.industry || "")}"></label><label>Geography pattern<input data-discovery-feedback="geography" value="${escapeHtml(discovery.feedback.geography || "")}"></label><label>Size pattern<input data-discovery-feedback="size" value="${escapeHtml(discovery.feedback.size || "")}"></label><label>Technology-signal pattern<input data-discovery-feedback="technology" value="${escapeHtml(discovery.feedback.technology || "")}"></label><label>Referral-path pattern<input data-discovery-feedback="referral" value="${escapeHtml(discovery.feedback.referral || "")}"></label><label>New exclusion pattern<input data-discovery-feedback="exclusion" value="${escapeHtml(discovery.feedback.exclusion || "")}"></label></div>`
+      });
+      refinement.innerHTML = `<h2>Refine the next batch</h2><div class="guided-input-grid">${feedbackField}</div><div class="card-actions no-print"><button type="button" id="saveTargetDiscoveryFeedback">Save refinements and rebuild search pack</button></div><p class="messaging-save-status" id="targetDiscoveryFeedbackStatus"></p>`;
+      main.appendChild(refinement);
+
+      const handoff = document.createElement("section");
+      handoff.id = "target-hubspot-handoff";
+      handoff.dataset.toc = "Add to HubSpot";
+      handoff.className = "workspace-section";
+      main.appendChild(handoff);
+      const renderHandoff = () => {
+        const accepted = discovery.candidates.filter((item) => item.status === "Accepted");
+        const countField = guidedInputMarkup({
+          id: "targetListInitialCount",
+          label: `Accepted companies added or verified in ${systemLabel}`,
+          subject: `The approved target-company batch for ${data.companyName || "the saved plan"}`,
+          why: `Accepted candidates still require manual ${systemLabel} entry and property verification because no CRM connector is being used.`,
+          answer: "Enter the whole-number count actually added or verified in HubSpot, not the number merely accepted in discovery.",
+          scoreEffect: "This completes Target List Setup and advances Tool Setup; it does not change the readiness score.",
+          optional: false,
+          control: `<input id="targetListInitialCount" type="number" min="0" step="1" value="${escapeHtml(targetWorkspace.initialCount ?? accepted.length)}">`
+        });
+        handoff.innerHTML = `
+          <h2>Add accepted companies to ${escapeHtml(systemLabel)}</h2>
+          <p>${accepted.length ? `${accepted.length} candidate${accepted.length === 1 ? "" : "s"} accepted for manual verification: ${escapeHtml(accepted.map((item) => item.company).join(", "))}.` : "Accept at least one sourced candidate before completing the HubSpot handoff."}</p>
+          <h3>Required Fields</h3>${personaAssetListMarkup(requiredFields)}
+          <div class="guided-input-grid">${countField}</div>
+          <div class="card-actions no-print"><button type="button" id="confirmAcceptedTargetsAdded"${accepted.length ? "" : " disabled"}>Confirm HubSpot additions and continue</button><button type="button" class="secondary" id="copyTargetListFields">Copy Fields list</button></div>
+          <p class="messaging-save-status" id="targetHubSpotStatus"></p>
+        `;
+        handoff.querySelector("#copyTargetListFields").addEventListener("click", async () => {
+          const status = handoff.querySelector("#targetHubSpotStatus");
+          try {
+            await copyTextToClipboard(["REQUIRED FIELDS", ...requiredFields.map((item) => `- ${item}`)].join("\n"));
+            status.textContent = "Required Fields list copied.";
+          } catch (error) {
+            status.textContent = "Copy failed. Select and copy the Required Fields list above.";
+          }
+        });
+        handoff.querySelector("#confirmAcceptedTargetsAdded").addEventListener("click", async (event) => {
+          const count = Math.max(0, Number(handoff.querySelector("#targetListInitialCount").value) || 0);
+          targetWorkspace.initialCount = count;
+          targetWorkspace.setupStatus = count > 0 ? "First qualified accounts added" : "List created with required fields";
+          const plan = activePlanDefinition(data);
+          const weeklyWorkspace = activePlanWeeklyWorkspace(data, plan);
+          const toolSetup = activePlanToolSetup(data, plan, weeklyWorkspace);
+          toolSetup.statuses.targets = "Ready";
+          delete toolSetup.reasons.targets;
+          toolSetup.ready = toolSetup.tools.every((tool) => ["Ready", "Complete", "Skip for now"].includes(toolSetup.statuses[tool.id]));
+          const nextTool = toolSetup.tools.find((tool) => !["Ready", "Complete", "Skip for now"].includes(toolSetup.statuses[tool.id]));
+          const status = handoff.querySelector("#targetHubSpotStatus");
+          event.currentTarget.disabled = true;
+          const saved = await saveTargetListWorkspace(data, targetWorkspace, profile, status);
+          event.currentTarget.disabled = false;
+          if (saved) window.location.href = nextTool ? reportAssetUrlWithState("active", { setupTask: nextTool.id }) : reportAssetUrl("active");
+        });
+      };
+
+      const splitInput = (value) => String(value || "").split(/\s*;\s*/).map((item) => item.trim()).filter(Boolean);
+      const collectVariables = () => {
+        discovery.variables = {
+          categories: splitInput(setup.querySelector("#targetDiscoveryCategories").value),
+          geography: setup.querySelector("#targetDiscoveryGeography").value.trim(),
+          employeeMin: Math.max(0, Number(setup.querySelector("#targetDiscoveryEmployeeMin").value) || 0) || "",
+          employeeMax: Math.max(0, Number(setup.querySelector("#targetDiscoveryEmployeeMax").value) || 0) || "",
+          technologySignals: splitInput(setup.querySelector("#targetDiscoveryTechnology").value),
+          serviceSignals: splitInput(setup.querySelector("#targetDiscoveryService").value),
+          teamSignals: splitInput(setup.querySelector("#targetDiscoveryTeam").value),
+          referralPaths: splitInput(setup.querySelector("#targetDiscoveryReferralPaths").value),
+          exclusions: splitInput(setup.querySelector("#targetDiscoveryExclusions").value),
+          batchSize: Math.max(1, Math.min(10, Number(setup.querySelector("#targetDiscoveryBatchSize").value) || 5)),
+          initialTarget: Math.max(1, Number(setup.querySelector("#targetDiscoveryInitialTarget").value) || 25)
+        };
+      };
+      setup.querySelector("#buildTargetSearchPack").addEventListener("click", async () => {
+        collectVariables();
+        discovery.approaches = window.GTM_TARGET_DISCOVERY.buildSearchApproaches(discovery.variables);
+        discovery.updatedAt = new Date().toISOString();
+        await saveTargetListWorkspace(data, targetWorkspace, profile, setup.querySelector("#targetDiscoverySetupStatus"));
+        renderApproaches();
+        approachesSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      setup.querySelector("#copyTargetDiscoveryPrompt").addEventListener("click", async () => {
+        collectVariables();
+        discovery.approaches = window.GTM_TARGET_DISCOVERY.buildSearchApproaches(discovery.variables);
+        const prompt = window.GTM_TARGET_DISCOVERY.buildDiscoveryPrompt({
+          company: data.companyName,
+          variables: discovery.variables,
+          approaches: discovery.approaches,
+          feedback: discovery.feedback
+        });
+        const status = setup.querySelector("#targetDiscoverySetupStatus");
+        try {
+          await copyTextToClipboard(prompt);
+          status.textContent = "AI discovery prompt copied. Run it in an approved research session, then paste the sourced JSON candidate batch below.";
+        } catch (error) {
+          status.textContent = "Copy failed. Use the focused search links or select and copy the generated search variables.";
+        }
+      });
+      candidateInput.querySelector("#reviewTargetCandidates").addEventListener("click", async () => {
+        const status = candidateInput.querySelector("#targetCandidateInputStatus");
+        try {
+          const parsed = window.GTM_TARGET_DISCOVERY.parseCandidateResults(candidateInput.querySelector("#targetCandidateResults").value)
+            .slice(0, discovery.variables.batchSize);
+          const existingByUrl = new Map(discovery.candidates.map((item) => [item.url.toLowerCase(), item]));
+          parsed.forEach((item) => {
+            const existing = existingByUrl.get(item.url.toLowerCase());
+            if (existing) Object.assign(existing, { ...item, id: existing.id, status: existing.status, decisionReason: existing.decisionReason });
+            else discovery.candidates.push(item);
+          });
+          discovery.updatedAt = new Date().toISOString();
+          await saveTargetListWorkspace(data, targetWorkspace, profile, status);
+          status.textContent = `${parsed.length} sourced candidate${parsed.length === 1 ? "" : "s"} added for user review.`;
+          candidateInput.querySelector("#targetCandidateResults").value = "";
+          renderCandidates();
+          renderHandoff();
+        } catch (error) {
+          status.textContent = `Candidate results were not added: ${error.message}`;
+        }
+      });
+      refinement.querySelector("#saveTargetDiscoveryFeedback").addEventListener("click", async () => {
+        refinement.querySelectorAll("[data-discovery-feedback]").forEach((control) => {
+          discovery.feedback[control.dataset.discoveryFeedback] = control.value.trim();
+        });
+        collectVariables();
+        discovery.approaches = window.GTM_TARGET_DISCOVERY.buildSearchApproaches(discovery.variables);
+        discovery.updatedAt = new Date().toISOString();
+        await saveTargetListWorkspace(data, targetWorkspace, profile, refinement.querySelector("#targetDiscoveryFeedbackStatus"));
+        renderApproaches();
+      });
+      renderCandidates();
+      renderHandoff();
       setupReportNavigation();
       configureAssetPdfExport("targets", data, profile.model);
     }

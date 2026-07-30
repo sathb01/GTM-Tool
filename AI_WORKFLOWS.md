@@ -75,6 +75,20 @@ The copyable prompt remains documented as a fallback if API research is unavaila
 
 This avoids OpenAI API usage fees from the app.
 
+## Target-Company Discovery
+
+Target List Setup uses a controlled prompt-and-review workflow rather than sending the full ICP to a search engine.
+
+1. The browser derives editable observable variables from the saved ICP: public category language, geography, approximate employee range, technology mentions, recurring-service language, team/job signals, referral paths, and exclusions.
+2. The browser builds several small search approaches. Each approach states why it is useful and which claims remain unverified.
+3. The user may open an individual focused web search or copy an AI discovery prompt into an approved research session.
+4. The frontend does not call `/api/research` for target discovery and does not pretend a search ran.
+5. The copied prompt requires sourced JSON that separates observed evidence, inferred fit, missing information, and exclusion risks.
+6. The user pastes the sourced JSON into Target List Setup and explicitly accepts or rejects every candidate.
+7. Accepted candidates still require manual HubSpot verification; no CRM write or outreach is automated.
+
+This preserves the current cost/control boundary while giving a future authorized search service a stable variables, evidence, and candidate-review contract.
+
 ## Frontend Prompt Workflow
 
 Main functions in `tool/app.js`:

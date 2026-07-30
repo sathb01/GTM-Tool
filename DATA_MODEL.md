@@ -526,6 +526,28 @@ Only one proposal can be pending at a time. Applying a proposal writes the appro
 
 ## Plan Summary and Weekly Operating State
 
+### Target-company discovery workspace
+
+`targetListWorkspace` remains the canonical Target List workflow object. Discovery state is nested under `targetListWorkspace.discovery` so existing target rows, setup status, and account counts remain compatible.
+
+- `version`: currently `1`
+- `variables`
+  - `categories[]`, `geography`, `employeeMin`, `employeeMax`
+  - `technologySignals[]`, `serviceSignals[]`, `teamSignals[]`
+  - `referralPaths[]`, `exclusions[]`, `batchSize`, `initialTarget`
+- `approaches[]`
+  - `id`, `label`, `query`, `why`, `evidenceBoundary`
+- `candidates[]`
+  - `id`, `company`, `url`, `sourceLabel`
+  - `observedEvidence[]`, `inferredFit[]`, `missingInformation[]`, `risks[]`
+  - `status`: `Pending review`, `Accepted`, or `Rejected`
+  - `decisionReason`
+- `feedback`
+  - `industry`, `geography`, `size`, `technology`, `referral`, `exclusion`
+- `updatedAt`
+
+Records without `targetListWorkspace.discovery` are initialized from canonical ICP fields on read. Existing discovery values take precedence, so later user refinement is not overwritten by a newly derived default.
+
 The consolidated plan experience reuses canonical intake fields and adds only durable workflow state:
 
 - `readinessWeightSettings`

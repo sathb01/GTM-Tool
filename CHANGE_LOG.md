@@ -4,6 +4,15 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-30 Target-Company Discovery
+
+- Replaced literal full-ICP searching with an editable observable-variable model for category, geography, size, public technology evidence, recurring-service language, team/job hypotheses, referral paths, and exclusions.
+- Added four focused search approaches that explain why each query is useful and which apparent fit remains unverified.
+- Added a controlled copy-only AI discovery prompt and user-initiated focused search links without reconnecting paid browser research.
+- Added sourced candidate JSON review with separate observed evidence, inferred fit, missing information, exclusion risks, and explicit user Accept/Reject decisions.
+- Added next-batch pattern feedback for industry, geography, size, technology, referral path, and exclusion criteria.
+- Preserved manual HubSpot approval and the Required Fields checklist; no CRM writes, contact discovery, outreach, or external messages are automated.
+
 ## 2026-07-30 State-Aware Readiness Navigation and Setup Blockers
 
 - Renamed the pre-launch sidebar entry from `This Week` to `Readiness`; it now names and opens the exact current setup task. The label returns to `This Week` only after Tool Setup is ready.
