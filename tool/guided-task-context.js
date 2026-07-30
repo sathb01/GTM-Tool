@@ -120,11 +120,36 @@
     };
   }
 
+  function readinessNavigationGuidance(context = {}) {
+    const currentTool = clean(context.currentTool) || "the current setup task";
+    const currentStatus = clean(context.currentStatus) || "Not ready";
+    const blocker = clean(context.blocker);
+    if (!context.ready) {
+      return {
+        label: "Readiness",
+        meta: blocker ? `Blocked: ${currentTool}` : `Start here: ${currentTool}`,
+        title: blocker ? `Setup blocked - ${currentTool}` : "Continue Readiness",
+        copy: blocker
+          ? `${blocker} Resolve this before launch, then complete the guided ${currentTool} task or choose Continue later.`
+          : `${currentTool} is ${currentStatus.toLowerCase()}. Complete this current setup task before weekly execution begins.`,
+        actionLabel: blocker ? `Resolve ${currentTool} blocker` : `Continue ${currentTool}`
+      };
+    }
+    return {
+      label: "This Week",
+      meta: context.started ? "In progress" : "Ready to start",
+      title: context.started ? "Resume This Week" : "Start This Week",
+      copy: "Tool Setup is ready. Continue with the saved weekly execution plan.",
+      actionLabel: context.started ? "Resume This Week" : "Start This Week"
+    };
+  }
+
   root.GTM_GUIDED_TASK_CONTEXT = Object.freeze({
     isMeaningfulNextStep,
     smallestEvidenceProducingNextStep,
     targetListProgressGuidance,
     targetListCreationPlan,
-    focusedTestRouteGuidance
+    focusedTestRouteGuidance,
+    readinessNavigationGuidance
   });
 })(typeof window !== "undefined" ? window : globalThis);
