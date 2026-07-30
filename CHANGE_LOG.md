@@ -4,6 +4,13 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-29 Contextual Guided Work
+
+- Added a shared guided-input pattern that names the saved plan item, explains why the question is being asked now, defines the answer and unit or format, states the readiness effect, and offers a continue-later path when optional.
+- Replaced duplicate score-improvement entry points with one ordered contextual task stack. Plan Summary blocker actions now open the same first executable task directly.
+- Made the measurable-value and buying-signal tasks use the saved success condition, signal, customer, buyer, motion, channels, and owner instead of generic labels.
+- Routed Resume Tool Setup directly to the current setup workspace, applied contextual prompts to Tool Setup and Weekly GTM Review, and reduced the lower Plan Summary to one explicitly labeled supporting action-plan reference.
+
 ## 2026-07-29 Canonical Readiness Mapping and Direct Blocker Actions
 
 - Counted saved priority-customer, buyer, offer-portfolio, quick offer, proof-reference, trigger, fit, disqualification, signal-play, and pricing evidence in readiness scoring when scoped assessment rows are absent.

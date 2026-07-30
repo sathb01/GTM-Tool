@@ -449,6 +449,136 @@
       margin-bottom: 8px;
     }
 
+    .guided-task-stack {
+      display: grid;
+      gap: 16px;
+      margin: 18px 0;
+    }
+
+    .guided-task {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent-coral);
+      border-radius: 8px;
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+    }
+
+    .guided-task h3,
+    .guided-task h4,
+    .guided-task p {
+      margin: 0;
+    }
+
+    .guided-task-context {
+      background: #f7f9fc;
+      border-radius: 6px;
+      display: grid;
+      gap: 6px;
+      padding: 12px 14px;
+    }
+
+    .guided-task-context p {
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .guided-task-context strong {
+      color: var(--text);
+    }
+
+    .guided-input-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .guided-input {
+      align-content: start;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      display: grid;
+      gap: 7px;
+      min-width: 0;
+      padding: 13px;
+    }
+
+    .guided-input.wide {
+      grid-column: 1 / -1;
+    }
+
+    .guided-input label,
+    .guided-input-label {
+      color: var(--text);
+      display: block;
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .guided-input p {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .guided-input input,
+    .guided-input select,
+    .guided-input textarea {
+      background: #ffffff;
+      border: 1px solid #aeb8c6;
+      border-radius: 6px;
+      color: var(--text);
+      font: inherit;
+      margin-top: 3px;
+      min-height: 42px;
+      padding: 9px 10px;
+      width: 100%;
+    }
+
+    .guided-input textarea {
+      line-height: 1.45;
+      min-height: 84px;
+      resize: vertical;
+    }
+
+    .guided-input .checkbox-option {
+      align-items: flex-start;
+      display: flex;
+      font-weight: 600;
+      gap: 9px;
+    }
+
+    .guided-input .checkbox-option input {
+      flex: 0 0 auto;
+      margin-top: 2px;
+      min-height: auto;
+      width: auto;
+    }
+
+    .guided-input-meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .guided-input-meta strong {
+      color: var(--text);
+    }
+
+    .score-optional-diagnostics {
+      border-top: 1px solid var(--border);
+      margin-top: 20px;
+      padding-top: 14px;
+    }
+
+    .score-optional-diagnostics > summary {
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 800;
+    }
+
     @media (max-width: 760px) {
       .score-metric-strip {
         grid-template-columns: 1fr;
@@ -457,6 +587,14 @@
       .score-metric-strip > div + div {
         border-left: 0;
         border-top: 1px solid var(--border);
+      }
+
+      .guided-input-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .guided-input.wide {
+        grid-column: auto;
       }
     }
 
@@ -3355,6 +3493,11 @@
 
     <section data-toc="Ranked Action Plan">
       <h2>Ranked Action Plan</h2>
+      <div class="overview-note">
+        <strong>Supporting reference</strong>
+        <p>This explains why the current work was selected. Use This Week to execute the current priority; this list is not a second work queue.</p>
+        <div class="card-actions no-print"><a data-summary-active-plan href="#">Work the current priority in This Week</a></div>
+      </div>
       <div id="revenueImpactPriorities"></div>
     </section>
 
@@ -3417,37 +3560,37 @@
       <div id="gtmFocus"></div>
     </section>
 
-    <section data-toc="Customer Priority">
+    <section class="removed-section" data-toc="Customer Priority">
       <h2>Customer Priority Plan</h2>
       <div id="icpPlaybook"></div>
     </section>
 
-    <section data-toc="Offer">
+    <section class="removed-section" data-toc="Offer">
       <h2>Offer and Value Proof Plan</h2>
       <div id="offerStrategy"></div>
     </section>
 
-    <section data-toc="Buyer Personas">
+    <section class="removed-section" data-toc="Buyer Personas">
       <h2>Buyer Personas</h2>
       <div id="buyerPersonaBlueprint"></div>
     </section>
 
-    <section data-toc="Targeting Signals">
+    <section class="removed-section" data-toc="Targeting Signals">
       <h2>Targeting Signal Plan</h2>
       <div id="triggerSignalStrategy"></div>
     </section>
 
-    <section data-toc="Revenue Motion">
+    <section class="removed-section" data-toc="Revenue Motion">
       <h2>Revenue Motion Plan</h2>
       <div id="salesMotionBlueprint"></div>
     </section>
 
-    <section data-toc="CRM Setup">
+    <section class="removed-section" data-toc="CRM Setup">
       <h2>CRM Setup Plan</h2>
       <div id="crmBlueprint"></div>
     </section>
 
-    <section data-toc="Activity Planning">
+    <section class="removed-section" data-toc="Activity Planning">
       <h2>Activity Plan</h2>
       <div id="activityModel"></div>
     </section>
@@ -5661,7 +5804,7 @@
       const easiestNextStep = cleanText(offerScopedValue(data, activeRowId, "easiestNextStep", data.easiestNextStep));
       const firstValueClaim = firstRepeatableWhere(data, activeRowId ? scopedOfferTable(activeRowId, "valueClaims") : "valueClaims", (row) => (
         (row.values.outcome || row.values.outcomeType || row.values.buyerFacingClaim || row.values.buyerLanguage)
-        && (row.values.metric || row.values.successMetric || row.values.improvement || row.values.targetImprovement || row.values.baseline || row.values.timeframe)
+        && (row.values.metric || row.values.successMetric || row.values.improvement || row.values.targetImprovement || row.values.targetImprovementValue || row.values.baseline || row.values.baselineValue || row.values.timeframe || row.values.timeToImpact)
       ));
       const partialValueEvidence = cleanText(data.quickSuccessMeasure || data.quick90DaySuccessMetric || data.provenCustomerOutcomes);
       const proofRows = repeatableRows(data, activeRowId ? scopedOfferTable(activeRowId, "proofReadiness") : "proofReadiness").filter((row) => (
@@ -5712,7 +5855,7 @@
       return [
         { name: "ICP-offer alignment", score: alignmentScore, nextMove: "Connect the primary offer to the saved priority customer and buyer.", fieldIds: [activeRowId ? `offerPortfolio__${activeRowId}__targetCustomerGroup` : "priorityIcpForOffer"] },
         { name: "Problem urgency", score: urgencyScore, nextMove: costOfInaction ? "Add stronger urgency evidence for the saved problem and trigger." : "Add the cost of inaction for the saved buyer problem and timing trigger.", fieldIds: [activeRowId ? scopedOfferField(activeRowId, "offerCostOfInaction") : "offerCostOfInaction"] },
-        { name: "Measurable value", score: firstValueClaim ? (firstValueClaim.values.proofStrength || firstValueClaim.values.evidenceAvailable ? 4 : 3) : partialValueEvidence ? 2 : 0, nextMove: partialValueEvidence ? "Turn the saved success measure into one measurable value claim by adding baseline, target improvement, and timeframe." : "Define one measurable value claim with metric, baseline, improvement, and timeframe.", fieldIds: [`${valueClaimPrefix}baselineStatus`, `${valueClaimPrefix}targetImprovementDescription`, `${valueClaimPrefix}timeToImpact`] },
+        { name: "Measurable value", score: firstValueClaim ? (firstValueClaim.values.proofStrength || firstValueClaim.values.evidenceAvailable ? 4 : 3) : partialValueEvidence ? 2 : 0, nextMove: partialValueEvidence ? `Make "${firstSavedMetric(data)}" measurable by adding its current value, target value, and timeframe.` : "Define one measurable value claim with metric, current value, target improvement, and timeframe.", fieldIds: [`${valueClaimPrefix}baselineValue`, `${valueClaimPrefix}targetImprovementValue`, `${valueClaimPrefix}timeToImpact`] },
         { name: "Promise and positioning", score: promiseScore, nextMove: savedPromise ? "Add the differentiator that makes the saved buyer-facing promise credible and distinct." : "Write the offer promise and differentiator in buyer-facing language.", fieldIds: [activeRowId ? scopedOfferField(activeRowId, "offerDifferentiator") : "offerDifferentiator"] },
         { name: "Buying path", score: buyingPathScore, nextMove: firstUseCase ? "Add the easiest next step for the saved first use case." : "Define the first use case and easiest next step for the buyer.", fieldIds: [activeRowId ? scopedOfferField(activeRowId, firstUseCase ? "easiestNextStep" : "firstUseCaseForOffer") : (firstUseCase ? "easiestNextStep" : "firstUseCaseForOffer")] },
         { name: "Packaging and pricing", score: Math.max(scoreFromChoice(offerScopedValue(data, activeRowId, "packagingClarityRating", data.packagingClarityRating), [[/validated|repeatable/, 5], [/entry, core, and expansion/, 4], [/defined/, 3], [/custom/, 2], [/not packaged/, 1]]), offerPricingConfidence(data, activeRowId) === "High" ? 4 : offerPricingConfidence(data, activeRowId) === "Medium" ? 3 : 0), nextMove: "Clarify entry, core, and expansion packages plus price range and approval level." },
@@ -6762,10 +6905,10 @@
         ${card.progressHtml || ""}
         <p class="metric-copy">${escapeHtml(card.copy || missingText)}</p>
         ${card.badge ? `<span class="status-badge ${card.badge.className || ""}">${escapeHtml(card.badge.label)}</span>` : ""}
-        ${card.target ? `<a class="metric-card-link" href="#${escapeHtml(card.target)}">${escapeHtml(card.actionLabel || "View details")}</a>` : ""}
+        ${card.href ? `<a class="metric-card-link" href="${escapeHtml(card.href)}">${escapeHtml(card.actionLabel || "Open workspace")}</a>` : card.target ? `<a class="metric-card-link" href="#${escapeHtml(card.target)}">${escapeHtml(card.actionLabel || "View details")}</a>` : ""}
         ${card.secondaryHref ? `<a class="metric-card-link secondary" href="${escapeHtml(card.secondaryHref)}">${escapeHtml(card.secondaryLabel || "Open workspace")}</a>` : ""}
       `;
-      const detailLink = article.querySelector(".metric-card-link");
+      const detailLink = card.target ? article.querySelector(".metric-card-link") : null;
       if (detailLink) {
         detailLink.addEventListener("click", (event) => {
           const target = document.getElementById(card.target);
@@ -7218,8 +7361,8 @@
         copy: resume.copy,
         badge: resume.badge,
         tone: "action",
-        target: "summary-action-details",
-        actionLabel: "Resume this week",
+        href: reportAssetUrl("active"),
+        actionLabel: "Resume Tool Setup",
         claim: claims.action
       });
       renderMetricCard(cards, {
@@ -7269,7 +7412,10 @@
         subtitle: blockerReady ? "The plan is ready for a controlled launch." : "Complete only the highest-impact items.",
         content: blockerReady
           ? `<p class="summary-primary-action">Ready to launch. Start the focused test, capture buyer evidence, and review results weekly.</p><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Start the focused test</a></div>`
-          : `<p>Complete these items to launch and learn with confidence.</p><ol>${blockers.map((item) => `<li><strong>${escapeHtml(item.label || item.area || item.component || "Readiness blocker")}:</strong> ${escapeHtml(item.action || item.description || topRisk)}</li>`).join("")}</ol><div class="card-actions no-print"><a data-readiness-target="${escapeHtml(blockerTarget)}" href="#${escapeHtml(blockerTarget)}">Complete readiness inputs</a></div>`
+          : `<p>Complete these items to launch and learn with confidence.</p><ol>${blockers.map((item, index) => {
+            const task = readinessTaskForImprovement(item, model, index);
+            return `<li><strong>${escapeHtml(task.title || item.area)}:</strong> ${escapeHtml(task.summary || item.action || topRisk)}</li>`;
+          }).join("")}</ol><div class="card-actions no-print"><a data-readiness-target="${escapeHtml(blockerTarget)}" href="#${escapeHtml(blockerTarget)}">Complete the first readiness task</a></div>`
       });
       recommendation.appendChild(riskPanel);
       recommendation.querySelectorAll("[data-readiness-target]").forEach((link) => {
@@ -7712,8 +7858,6 @@
 
     function renderInsightsScoreCard(container, model) {
       const card = document.createElement("div");
-      const details = document.createElement("details");
-      const breakdown = document.createElement("div");
       const recommendationBullets = listItemsFromText(model.recommendation).length
         ? listItemsFromText(model.recommendation)
         : String(model.recommendation || "")
@@ -7732,12 +7876,8 @@
           ${recommendationBullets.map((item) => `<li>${escapeHtml(item.replace(/\.$/, ""))}</li>`).join("")}
         </ul>
       `;
-      details.className = "revenue-impact-details";
-      details.innerHTML = `<summary>See score details</summary>`;
-      details.appendChild(breakdown);
-      card.appendChild(details);
+      card.insertAdjacentHTML("beforeend", '<p class="muted">The active score explanation and readiness tasks appear only in Plan Summary.</p>');
       container.appendChild(card);
-      renderScoreBreakdown(model.readinessDiagnostic, breakdown, model);
     }
 
     function renderExecutiveInsights(model) {
@@ -13073,6 +13213,9 @@
     }
 
     function renderBlueprint(model) {
+      document.querySelectorAll("[data-summary-active-plan]").forEach((link) => {
+        link.href = reportAssetUrl("active");
+      });
       safeRenderSection("Workspace Dashboard", () => renderWorkspaceDashboard(model));
       safeRenderSection("Insights", () => renderExecutiveInsights(model));
       safeRenderSection("Blueprint Header", () => renderBlueprintHeader(model));
@@ -13673,6 +13816,265 @@
       return labels[field] || field.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (letter) => letter.toUpperCase());
     }
 
+    function guidedScoreFieldAnswer(fieldId, subject) {
+      const field = String(fieldId || "").split("__").pop() || "";
+      const answers = {
+        easiestNextStep: `Describe the smallest concrete commitment the buyer can make next for ${subject}.`,
+        offerDifferentiator: `State one specific reason this offer is more credible or useful than the buyer's current alternative.`,
+        offerCostOfInaction: `Describe the business consequence of leaving the saved buyer problem unresolved, including a measurable impact when known.`,
+        firstUseCaseForOffer: `Name the first narrow use case the saved buyer can adopt and evaluate.`,
+        currentActivity: `Enter a count and activity for the current test window.`,
+        successMetric: `Enter a count, outcome type, and measurement window for the current test.`,
+        timeframe: `Enter the decision window as a number of days.`,
+        revenueTrackingSystem: `Name the system and view used as the source of truth for this work.`,
+        revenueDataQuality: `Describe the current completeness and freshness of the records used for this decision.`
+      };
+      return answers[field] || `Enter the smallest concrete answer needed for ${subject}; include a count, unit, timeframe, role, or format when it applies.`;
+    }
+
+    function guidedInputMarkup({
+      id,
+      label,
+      subject,
+      why,
+      answer,
+      scoreEffect = "This answer does not change readiness directly.",
+      optional = true,
+      control,
+      wide = false
+    }) {
+      return `<div class="guided-input${wide ? " wide" : ""}">
+        <label for="${escapeHtml(id)}">${escapeHtml(label)}</label>
+        <p><strong>Applies to:</strong> ${escapeHtml(subject)}</p>
+        <p><strong>Why now:</strong> ${escapeHtml(why)}</p>
+        <p><strong>What to enter:</strong> ${escapeHtml(answer)}</p>
+        <p class="guided-input-meta"><strong>Readiness effect:</strong> ${escapeHtml(scoreEffect)}</p>
+        ${control}
+        ${optional ? '<p class="guided-input-meta">Optional for now. You may continue without adding it.</p>' : ""}
+      </div>`;
+    }
+
+    function guidedTaskMarkup({ id, title, subject, why, savedContext, fields, actions = "", status = "" }) {
+      return `<article class="guided-task" id="${escapeHtml(id)}">
+        <div>
+          <h3>${escapeHtml(title)}</h3>
+          <p>${escapeHtml(why)}</p>
+        </div>
+        <div class="guided-task-context">
+          <p><strong>Saved plan item:</strong> ${escapeHtml(subject)}</p>
+          ${savedContext ? `<p><strong>Using saved context:</strong> ${escapeHtml(savedContext)}</p>` : ""}
+        </div>
+        <div class="guided-input-grid">${fields.join("")}</div>
+        ${actions}
+        ${status}
+      </article>`;
+    }
+
+    function guidedOwnerRoleOptions(selected = "") {
+      const roles = ["", "Founder", "CEO / President", "VP Sales", "Sales Lead", "Account Executive", "VP Marketing", "Marketing Lead", "Growth Lead", "RevOps", "Customer Success Lead", "Partnerships Lead"];
+      const saved = cleanText(selected);
+      return saved && !roles.includes(saved) ? [...roles, saved] : roles;
+    }
+
+    function firstSavedMetric(data) {
+      return cleanText(data.quickSuccessMeasure || data.quick90DaySuccessMetric || data.provenCustomerOutcomes)
+        .split(/[;,]/)
+        .map((value) => cleanText(value))
+        .find(Boolean) || "the saved success condition";
+    }
+
+    function readinessTaskForImprovement(item, model, index) {
+      const data = model.data;
+      const motion = model.revenueMotion || selectedRevenueMotion(data);
+      const signalPlay = model.signalPlay || selectedSignalPlay(data);
+      const customer = cleanText(model.priorityGroup?.values.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer) || "the priority customer group";
+      const buyer = cleanText(signalPlay?.values.primaryBuyerPersona || model.buyer?.label || data.bestFitDecisionMaker) || "the primary buyer";
+      const motionName = cleanText(motion?.values.playName || motion?.values.salesMotionType || data.quickCurrentSalesMotion) || "the primary revenue motion";
+      const channels = cleanText(motion?.values.channelSource || data.quickPrimaryRevenueSource) || "the selected channel";
+      const savedActivity = cleanText(signalPlay?.values.playNotes || signalPlay?.values.playName);
+      const savedResultTarget = cleanText(data.quick90DaySuccessMetric || data.quickSuccessMeasure);
+      const signalName = cleanText(repeatableListItems(data, "bestFitTrigger")[0] || repeatableListItems(data, "buyingTriggersSummary")[0] || data.quickUrgencyNow) || "the saved buying signal";
+      const owner = cleanText(data.signalRoutingOwner || data.signalOperatingOwner || data.primaryRevenueOwner);
+      const metric = firstSavedMetric(data);
+      const offerRowId = model.primaryOffer?.rowId || primaryOfferRow(data)?.rowId || "offer-1";
+      const valuePrefix = `${scopedOfferTable(offerRowId, "valueClaims")}__value-claim-1__`;
+      const routingPrefix = `${signalScopedTable(signalPlay?.rowId || "play-1", "signalRoutingRules")}__signal-rule-1__`;
+      const taskId = `readiness-improvement-${index}`;
+      const actions = `<div class="card-actions no-print"><button type="button" data-save-score-component="${escapeHtml(item.componentKey || "evidence")}">Save this readiness task and recalculate</button><button type="button" class="secondary" data-skip-score-component="${escapeHtml(item.componentKey || "evidence")}">Continue without adding / Skip for now</button></div>`;
+      const status = `<p class="muted" data-score-component-status></p>`;
+      const missingItemFields = (item.fieldIds || []).filter((fieldId) => !scoreFieldHasValue(data, fieldId));
+
+      if (item.area === "Revenue Motion" && missingItemFields.some((fieldId) => /currentActivity|successMetric|timeframe/.test(fieldId))) {
+        const activityField = revenueScopedField(motion?.rowId || "motion-1", "channelPerformance", "currentActivity");
+        const resultField = revenueScopedField(motion?.rowId || "motion-1", "nextExperiment", "successMetric");
+        const timeframeField = revenueScopedField(motion?.rowId || "motion-1", "nextExperiment", "timeframe");
+        return {
+          title: `Set 30-day targets for ${motionName}`,
+          summary: `Confirm the activity count and result threshold for ${motionName} through ${channels}.`,
+          derivedWrites: {},
+          html: guidedTaskMarkup({
+            id: taskId,
+            title: `Set the 30-day targets for ${motionName}`,
+            subject: `${motionName} through ${channels}`,
+            why: "The motion and channels are saved, but readiness cannot tell what result will make this test successful until the activity and result thresholds are confirmed.",
+            savedContext: [savedActivity, savedResultTarget].filter(Boolean).join(" Saved 90-day condition: "),
+            fields: [
+              guidedInputMarkup({
+                id: `guided-${index}-activity`,
+                label: `30-day activity target for ${motionName}`,
+                subject: `${motionName} through ${channels}`,
+                why: "This defines the amount of work the team commits to before judging the channel.",
+                answer: "Enter a count plus the activity, such as “Contact 40 matched accounts.”",
+                scoreEffect: "Completes the channel-evidence input used by Planned operating readiness.",
+                control: `<textarea id="guided-${index}-activity" rows="3" data-score-field="${escapeHtml(activityField)}">${escapeHtml(data[activityField] || savedActivity)}</textarea>`
+              }),
+              guidedInputMarkup({
+                id: `guided-${index}-result`,
+                label: `30-day result threshold for ${motionName}`,
+                subject: `${motionName} for ${customer}`,
+                why: "This tells the weekly review whether the controlled test earned another cycle.",
+                answer: "Enter the expected count and result type, such as qualified conversations, qualified opportunities, pilots, or closed customers.",
+                scoreEffect: "Completes the experiment-success input used by Planned operating readiness.",
+                control: `<textarea id="guided-${index}-result" rows="3" data-score-field="${escapeHtml(resultField)}">${escapeHtml(data[resultField] || savedResultTarget)}</textarea>`
+              }),
+              guidedInputMarkup({
+                id: `guided-${index}-timeframe`,
+                label: `Decision window for ${motionName}`,
+                subject: `${motionName} through ${channels}`,
+                why: "The team needs one review window so results are not judged too early or allowed to drift.",
+                answer: "Enter a duration in days. The current plan uses a 90-day objective; use 30 days for this first controlled cycle unless the saved plan requires otherwise.",
+                scoreEffect: "Completes the experiment-timeframe input used by Planned operating readiness.",
+                control: `<input id="guided-${index}-timeframe" data-score-field="${escapeHtml(timeframeField)}" value="${escapeHtml(data[timeframeField] || "30 days")}">`
+              })
+            ],
+            actions,
+            status
+          })
+        };
+      }
+
+      if (item.area === "Offer and Proof" && missingItemFields.some((fieldId) => /baselineValue|targetImprovementValue|timeToImpact/.test(fieldId))) {
+        const baselineField = `${valuePrefix}baselineValue`;
+        const targetField = `${valuePrefix}targetImprovementValue`;
+        const timeframeField = `${valuePrefix}timeToImpact`;
+        const buyerClaim = cleanText(data.quickOfferPromise || `${metric} for ${customer}`);
+        return {
+          title: `Make "${metric}" measurable`,
+          summary: `Convert the saved success condition "${cleanText(data.quickSuccessMeasure || data.quick90DaySuccessMetric)}" into one measurable value claim for ${customer}.`,
+          derivedWrites: {
+            [`${valuePrefix}buyerFacingClaim`]: buyerClaim,
+            [`${valuePrefix}successMetric`]: metric
+          },
+          html: guidedTaskMarkup({
+            id: taskId,
+            title: `Make “${metric}” measurable for ${customer}`,
+            subject: cleanText(data.quickSuccessMeasure || data.quick90DaySuccessMetric),
+            why: `This converts the experiment’s saved success condition into one buyer-facing value claim. Start with “${metric}” so the user does not have to define every saved measure at once.`,
+            savedContext: `Offer: ${cleanText(model.primaryOffer?.values.offerName || data.primaryOfferName)}. Buyer: ${buyer}.`,
+            fields: [
+              guidedInputMarkup({
+                id: `guided-${index}-baseline`,
+                label: `Current ${metric.toLowerCase()} for the managed-service account portfolio (%)`,
+                subject: `The saved measure “${metric}”`,
+                why: "A current percentage is needed to show the buyer what is expected to improve.",
+                answer: "Enter the current percentage from 0 to 100. Use the share of recurring client accounts currently covered by the renewal process.",
+                scoreEffect: "Adds the baseline used by the Measurable value dimension.",
+                control: `<input id="guided-${index}-baseline" type="number" min="0" max="100" step="1" inputmode="numeric" data-score-field="${escapeHtml(baselineField)}" value="${escapeHtml(data[baselineField] || "")}" placeholder="0-100">`
+              }),
+              guidedInputMarkup({
+                id: `guided-${index}-target`,
+                label: `Target ${metric.toLowerCase()} after the experiment (%)`,
+                subject: `The saved measure “${metric}”`,
+                why: "The target makes the claimed improvement testable in the weekly review.",
+                answer: "Enter the target percentage from 0 to 100 for the same recurring-account portfolio.",
+                scoreEffect: "Adds the target improvement used by the Measurable value dimension.",
+                control: `<input id="guided-${index}-target" type="number" min="0" max="100" step="1" inputmode="numeric" data-score-field="${escapeHtml(targetField)}" value="${escapeHtml(data[targetField] || "")}" placeholder="0-100">`
+              }),
+              guidedInputMarkup({
+                id: `guided-${index}-value-timeframe`,
+                label: `Time allowed to improve ${metric.toLowerCase()}`,
+                subject: `The saved 90-day success condition for ${customer}`,
+                why: "A timeframe prevents the value claim from implying immediate results.",
+                answer: "Confirm the saved 90-day window or replace it with the number of days the buyer should reasonably expect.",
+                scoreEffect: "Adds the timeframe used by the Measurable value dimension.",
+                control: `<input id="guided-${index}-value-timeframe" data-score-field="${escapeHtml(timeframeField)}" value="${escapeHtml(data[timeframeField] || "Within 60-90 days")}">`
+              })
+            ],
+            actions,
+            status
+          })
+        };
+      }
+
+      if (item.area === "Buying Signals" && missingItemFields.some((fieldId) => /scoreImpact|owner|recommendedAction/.test(fieldId))) {
+        const impactField = `${routingPrefix}scoreImpact`;
+        const ownerField = `${routingPrefix}owner`;
+        const actionField = `${routingPrefix}recommendedAction`;
+        return {
+          title: `Route "${signalName}"`,
+          summary: `When "${signalName}" appears for ${customer}, confirm who acts for ${buyer} and what happens next.`,
+          derivedWrites: {
+            [`${routingPrefix}signal`]: signalName,
+            [`${routingPrefix}signalType`]: "Trigger"
+          },
+          html: guidedTaskMarkup({
+            id: taskId,
+            title: `When “${signalName}” appears, who acts and what happens next?`,
+            subject: `${signalName} for ${customer}`,
+            why: `The signal is already saved for ${buyer}. Readiness only needs the routing decision that turns it into action.`,
+            savedContext: `Buyer: ${buyer}. Saved motion: ${cleanText(signalPlay?.values.gtmMotion || motionName)}.`,
+            fields: [
+              guidedInputMarkup({
+                id: `guided-${index}-impact`,
+                label: `Priority change when “${signalName}” appears`,
+                subject: `${signalName} for ${customer}`,
+                why: "This tells the target-list workflow how strongly the signal should affect account priority.",
+                answer: "Choose a point change: +3 strong priority, +2 medium priority, +1 slight priority, or 0 for review only.",
+                scoreEffect: "Adds the score-impact rule used by Buying-signal readiness.",
+                control: `<select id="guided-${index}-impact" data-score-field="${escapeHtml(impactField)}">${messagingOptions(["", "+3", "+2", "+1", "0"], data[impactField])}</select>`
+              }),
+              guidedInputMarkup({
+                id: `guided-${index}-owner`,
+                label: `Person who acts when “${signalName}” appears`,
+                subject: `${signalName} for ${buyer}`,
+                why: "A named role prevents the signal from remaining an unowned observation.",
+                answer: "Choose or confirm the role responsible for reviewing the account and starting the next step.",
+                scoreEffect: "Adds the routing owner used by Buying-signal readiness.",
+                control: `<select id="guided-${index}-owner" data-score-field="${escapeHtml(ownerField)}">${messagingOptions(guidedOwnerRoleOptions(data[ownerField] || owner), data[ownerField] || owner)}</select>`
+              }),
+              guidedInputMarkup({
+                id: `guided-${index}-action`,
+                label: `Action triggered by “${signalName}”`,
+                subject: `${signalName} for ${customer}`,
+                why: "This connects the saved signal to the outbound motion instead of leaving the response implicit.",
+                answer: "Choose the single next action the owner should take when the signal appears.",
+                scoreEffect: "Adds the recommended action used by Buying-signal readiness.",
+                control: `<select id="guided-${index}-action" data-score-field="${escapeHtml(actionField)}">${messagingOptions(["", "Add to target list", "Prioritize outreach", "Send to sales", "Nurture", "Disqualify", "Needs review", "Ask qualification question"], data[actionField])}</select>`
+              })
+            ],
+            actions,
+            status
+          })
+        };
+      }
+
+      const fields = missingItemFields.slice(0, 3).map((fieldId, fieldIndex) => guidedInputMarkup({
+        id: `guided-${index}-${fieldIndex}`,
+        label: `${scoreFieldLabel(fieldId)} for ${item.area}`,
+        subject: item.title || item.area,
+        why: item.action,
+        answer: guidedScoreFieldAnswer(fieldId, item.title || item.area),
+        scoreEffect: "This field is included in the readiness calculation for this area.",
+        control: `<textarea id="guided-${index}-${fieldIndex}" rows="3" data-score-field="${escapeHtml(fieldId)}">${escapeHtml(data[fieldId] || "")}</textarea>`
+      }));
+      return {
+        title: item.title || item.area,
+        summary: item.action,
+        derivedWrites: {},
+        html: guidedTaskMarkup({ id: taskId, title: item.title || item.area, subject: item.area, why: item.action, fields, actions, status })
+      };
+    }
+
     function savedConversionBottleneck(data) {
       const motionRowId = primaryRevenueMotionRowId(data);
       const fieldId = revenueScopedField(motionRowId, "pipelineMetrics", "biggestDropoff");
@@ -14077,15 +14479,6 @@
         const nextInputs = (item.nextInputs || []).length
           ? item.nextInputs.map((input) => `<li><strong>${escapeHtml(input.label)}:</strong> ${escapeHtml(input.reason)}</li>`).join("")
           : "<li>No immediate score-changing input is missing in this area.</li>";
-        const inlineFields = (item.nextInputs || [])
-          .flatMap((input) => input.fields || [])
-          .filter(Boolean)
-          .filter((fieldId) => !model || !scoreFieldHasValue(model.data, fieldId))
-          .filter((fieldId, index, all) => all.indexOf(fieldId) === index)
-          .slice(0, 3);
-        const inlineEditor = model && inlineFields.length
-          ? `<div class="score-inline-editor" data-score-component="${escapeHtml(item.key)}"><p><strong>Optional readiness improvement.</strong> Add only the smallest score-changing inputs below, or continue without adding them.</p>${inlineFields.map((fieldId) => `<label>${escapeHtml(scoreFieldLabel(fieldId))}<textarea rows="2" data-score-field="${escapeHtml(fieldId)}"></textarea></label>`).join("")}<div class="card-actions no-print"><button type="button" data-save-score-component="${escapeHtml(item.key)}">Save and recalculate</button><button type="button" class="secondary" data-skip-score-component="${escapeHtml(item.key)}">Continue without adding / Skip for now</button><a class="secondary" href="${escapeHtml(intakeReviewUrl(item.key === "evidence" ? "customer offer proof signals" : item.key === "execution" ? "90-day revenue motion crm" : "score"))}">Open full inputs for deeper rework</a></div><p class="muted" data-score-component-status></p></div>`
-          : "";
         return `
           <details class="score-component-detail">
             <summary>${escapeHtml(item.label)}: ${escapeHtml(item.score)}/100 - ${escapeHtml(scoreMetricStatus(item.score))} (${escapeHtml(Math.round(item.weight * 100))}% of overall score)</summary>
@@ -14094,27 +14487,15 @@
             <ul>${counted}</ul>
             <h4>Inputs that can change this area</h4>
             <ul>${nextInputs}</ul>
-            ${inlineEditor}
           </details>
         `;
       }).join("");
-      const improvementRows = diagnostic.improvements.length ? diagnostic.improvements.map((item, index) => {
-        const fields = (item.fieldIds || [])
-          .filter((fieldId) => !model || !scoreFieldHasValue(model.data, fieldId))
-          .filter((fieldId, fieldIndex, all) => all.indexOf(fieldId) === fieldIndex)
-          .slice(0, 3);
-        const editor = model && fields.length
-          ? `<div class="score-inline-editor" data-score-component="${escapeHtml(item.componentKey || "evidence")}">${fields.map((fieldId) => `<label>${escapeHtml(scoreFieldLabel(fieldId))}<textarea rows="2" data-score-field="${escapeHtml(fieldId)}"></textarea></label>`).join("")}<div class="card-actions no-print"><button type="button" data-save-score-component="${escapeHtml(item.componentKey || "evidence")}">Save and recalculate</button><button type="button" class="secondary" data-skip-score-component="${escapeHtml(item.componentKey || "evidence")}">Continue without adding / Skip for now</button></div><p class="muted" data-score-component-status></p></div>`
-          : "";
-        return `
-        <div class="score-improvement"${model ? ` id="readiness-improvement-${index}"` : ""} data-score-improvement="${index}">
-          <h4>${index + 1}. ${escapeHtml(item.area)}</h4>
-          <p>${escapeHtml(item.action)}</p>
-          ${editor}
-          <p class="muted">Estimated score opportunity: up to ${escapeHtml(item.potentialLift)} points if the missing inputs are completed with strong evidence. This is not a guaranteed increase.</p>
-        </div>
-      `;
-      }).join("") : "<p>No immediate score improvements are suggested. Continue testing the current plan and record real results.</p>";
+      const readinessTasks = model
+        ? diagnostic.improvements.map((item, index) => readinessTaskForImprovement(item, model, index))
+        : [];
+      const improvementRows = readinessTasks.length
+        ? readinessTasks.map((task) => task.html).join("")
+        : "<p>No immediate score improvements are suggested. Continue testing the current plan and record real results.</p>";
       const scoreDelta = diagnostic.overallScore - diagnostic.defaultScore;
       const defaultDecision = launchDecisionForScore(diagnostic.defaultScore).label;
       const customDecision = launchDecisionForScore(diagnostic.overallScore).label;
@@ -14132,13 +14513,17 @@
             <small>Use buyer evidence from the focused test to revisit this decision weekly.</small>
           </div>
         </div>
-        <h3>What goes into GTM readiness</h3>
-        <p class="muted">Standard weights are 55% customer, offer, and signal foundation; 35% planned operating readiness; and 10% respondent self-assessment. Component scores may differ from the overall score.</p>
-        <div class="score-component-list">${componentRows}</div>
-        <h3>Top 3 ways to improve the score</h3>
-        <div class="score-improvement-list">${improvementRows}</div>
-        <details class="score-component-detail score-advanced-settings">
-          <summary>Advanced Settings <small>Presets and optional plan-specific weights</small></summary>
+        <h3>Readiness work, in order</h3>
+        <p class="muted">Start with the first task. Each task names the saved plan item, asks only for the missing score-changing detail, and can be set aside for now.</p>
+        <div class="guided-task-stack score-improvement-list">${improvementRows}</div>
+        <details class="score-optional-diagnostics">
+          <summary>Optional score diagnostics and weight settings</summary>
+          <p>This reference explains what is counted. It is separate from the direct completion tasks above.</p>
+          <h3>What goes into GTM readiness</h3>
+          <p class="muted">Standard weights are 55% customer, offer, and signal foundation; 35% planned operating readiness; and 10% respondent self-assessment. Component scores may differ from the overall score.</p>
+          <div class="score-component-list">${componentRows}</div>
+          <div class="score-component-detail score-advanced-settings">
+          <h3>Advanced Settings <small>Presets and optional plan-specific weights</small></h3>
           <p><strong>Customized weights make this score plan-specific and less comparable with other plans.</strong> Start with a preset; use custom weights only when the launch decision genuinely depends on a different emphasis.</p>
           <label>Weight preset<select id="readinessWeightPreset">
             <option value="standard"${diagnostic.weightPreset === "standard" ? " selected" : ""}>Standard — 55 / 35 / 10</option>
@@ -14152,22 +14537,29 @@
           <p><strong>Standard score:</strong> ${escapeHtml(diagnostic.defaultScore)}/100 (${escapeHtml(defaultDecision)}). <strong>Current score:</strong> ${escapeHtml(diagnostic.overallScore)}/100 (${escapeHtml(customDecision)}). <strong>Delta:</strong> ${scoreDelta >= 0 ? "+" : ""}${escapeHtml(scoreDelta)} points. ${diagnostic.customizedWeights ? "The difference comes from the selected plan-specific weights." : "Standard weights are active."} ${defaultDecision === customDecision ? "The launch decision did not change." : `The launch decision changed from ${escapeHtml(defaultDecision)} to ${escapeHtml(customDecision)}.`}</p>
           <div class="card-actions no-print"><button type="button" id="saveReadinessWeights">Apply weights and recalculate</button></div>
           <p class="muted" id="readinessWeightStatus"></p>
+          </div>
         </details>
       `;
       if (model) {
         container.querySelectorAll("[data-save-score-component]").forEach((button) => {
           button.addEventListener("click", async () => {
-            const editor = button.closest("[data-score-component]");
+            const editor = button.closest(".guided-task");
+            const taskIndex = Number(editor?.id?.replace("readiness-improvement-", ""));
+            const task = readinessTasks[taskIndex];
             const before = diagnostic.overallScore;
             editor.querySelectorAll("[data-score-field]").forEach((control) => {
               model.data[control.dataset.scoreField] = control.value.trim();
+            });
+            Object.entries(task?.derivedWrites || {}).forEach(([fieldId, value]) => {
+              if (!scoreFieldHasValue(model.data, fieldId) && cleanText(value)) model.data[fieldId] = value;
             });
             const statusElement = editor.querySelector("[data-score-component-status]");
             statusElement.textContent = "Saving and recalculating…";
             const saved = await persistActivePlanData(model.data, statusElement);
             if (saved) {
-              const componentBefore = diagnostic.components.find((item) => item.key === editor.dataset.scoreComponent)?.score;
-              sessionStorage.setItem(`${STORAGE_KEY}:readinessChange`, JSON.stringify({ before, componentBefore, component: editor.dataset.scoreComponent }));
+              const componentKey = button.dataset.saveScoreComponent;
+              const componentBefore = diagnostic.components.find((item) => item.key === componentKey)?.score;
+              sessionStorage.setItem(`${STORAGE_KEY}:readinessChange`, JSON.stringify({ before, componentBefore, component: componentKey }));
               window.location.reload();
             }
           });
@@ -14176,7 +14568,7 @@
           button.addEventListener("click", async () => {
             const skipped = Array.isArray(model.data.readinessImprovementSkips) ? model.data.readinessImprovementSkips : [];
             model.data.readinessImprovementSkips = Array.from(new Set([...skipped, button.dataset.skipScoreComponent]));
-            const statusElement = button.closest("[data-score-component]").querySelector("[data-score-component-status]");
+            const statusElement = button.closest(".guided-task").querySelector("[data-score-component-status]");
             statusElement.textContent = "This optional improvement is set aside for now.";
             await persistActivePlanData(model.data, statusElement);
           });
@@ -16941,14 +17333,34 @@
             : tool.id === "targets"
               ? `<div class="overview-note"><strong>First-list handoff</strong><p>Start with 25 accounts that match ${escapeHtml(data.bestFitCustomerGroup || data.quickBestFitCustomer || "the priority ICP")}. Required fields: account name, website, ICP fit, trigger, buyer role, source, owner, status, and next action. Keep ICP and Persona briefs available as in-context references.</p></div>`
               : "";
+        const statusInputId = `tool-setup-status-${tool.id}`;
+        const reasonInputId = `tool-setup-reason-${tool.id}`;
+        const statusGuidance = guidedInputMarkup({
+          id: statusInputId,
+          label: `${tool.label} setup status`,
+          subject: tool.label,
+          why: "The saved status determines which setup task This Week resumes on the next visit.",
+          answer: "Choose In progress while working, Waiting / Blocked when another event must happen, Ready when the stated completion condition is met, or Skip for now to continue without reminders.",
+          scoreEffect: "This changes workflow progress only; it does not change the readiness score.",
+          optional: false,
+          control: `<select id="${escapeHtml(statusInputId)}" data-tool-setup-status="${escapeHtml(tool.id)}">${statusOptions.map((option) => `<option${toolSetup.statuses[tool.id] === option ? " selected" : ""}>${escapeHtml(option)}</option>`).join("")}</select>`
+        });
+        const reasonGuidance = guidedInputMarkup({
+          id: reasonInputId,
+          label: `${tool.label} blocker and unblock condition`,
+          subject: tool.label,
+          why: "This is used only when the setup status is Waiting / Blocked so the next person knows what must happen.",
+          answer: "Write one sentence naming the blocker and the event, decision, or person needed to continue.",
+          scoreEffect: "This records workflow context only; it does not change the readiness score.",
+          control: `<input id="${escapeHtml(reasonInputId)}" data-tool-setup-reason="${escapeHtml(tool.id)}" value="${escapeHtml(toolSetup.reasons?.[tool.id] || "")}" placeholder="Example: Waiting for CRM access; sales operations grants access.">`
+        });
         return `<article class="active-plan-tool-card">
           <h3>${escapeHtml(tool.label)}</h3>
           <p class="active-plan-tool-purpose">${escapeHtml(tool.purpose)}</p>
           <p class="active-plan-tool-done"><strong>Ready when:</strong> ${escapeHtml(tool.done)}</p>
           ${referenceContent}
           <div class="active-plan-link-row">${tool.type === "reference" ? `<button type="button" data-mark-tool-ready="${escapeHtml(tool.id)}">${escapeHtml(actionLabel)}</button>` : `<a href="${escapeHtml(activePlanToolUrl(tool.asset, "setup"))}">${escapeHtml(actionLabel)}</a>`}</div>
-          <label>Status<select data-tool-setup-status="${escapeHtml(tool.id)}">${statusOptions.map((option) => `<option${toolSetup.statuses[tool.id] === option ? " selected" : ""}>${escapeHtml(option)}</option>`).join("")}</select></label>
-          <label>Blocked reason (only when needed)<input data-tool-setup-reason="${escapeHtml(tool.id)}" value="${escapeHtml(toolSetup.reasons?.[tool.id] || "")}" placeholder="What must happen before this can continue?"></label>
+          <div class="guided-input-grid">${statusGuidance}${reasonGuidance}</div>
         </article>`;
       }).join("");
       objective.innerHTML = toolSetup.started
@@ -18925,8 +19337,117 @@
       const reviseId = motionId ? revenueScopedField(motionId, "nextExperiment", "reviseRule") : "preReviseRule";
       const stopId = motionId ? revenueScopedField(motionId, "nextExperiment", "stopRule") : "preStopRule";
       const defaultInputs = "Activity; responses; conversations; qualified opportunities; one learning signal";
-      const roleOptions = ["Founder", "CEO / President", "VP Sales", "Sales Lead", "Account Executive", "VP Marketing", "Marketing Lead", "Growth Lead", "RevOps", "Customer Success Lead", "Partnerships Lead"];
-      const currentOwnerOptions = owner && !roleOptions.includes(owner) ? ["", ...roleOptions, owner] : ["", ...roleOptions];
+      const currentOwnerOptions = guidedOwnerRoleOptions(owner);
+      const motionName = cleanText(motion?.values.playName || data.quickCurrentSalesMotion) || "the saved revenue motion";
+      const customerName = cleanText(selectedCustomerGroup(data)?.values.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer) || "the saved priority customer";
+      const reviewSubject = `${motionName} for ${customerName}`;
+      const setupFields = [
+        guidedInputMarkup({
+          id: "weeklySetupOwner",
+          label: `Review owner for ${motionName}`,
+          subject: reviewSubject,
+          why: "The weekly evidence review needs one accountable role before execution starts.",
+          answer: "Choose the role that will review results and make the continue, revise, or stop decision.",
+          scoreEffect: "This completes the review operating rhythm; it does not directly change the readiness score.",
+          control: `<select id="weeklySetupOwner">${messagingOptions(currentOwnerOptions, owner)}</select>`
+        }),
+        guidedInputMarkup({
+          id: "weeklySetupDay",
+          label: `Review day for ${motionName}`,
+          subject: reviewSubject,
+          why: "A fixed review day keeps the experiment from drifting between decisions.",
+          answer: "Choose the weekday when the owner will review the prior cycle's evidence.",
+          scoreEffect: "This changes weekly-review readiness only; it does not directly change the score.",
+          control: `<select id="weeklySetupDay">${messagingOptions(["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], state.reviewDay)}</select>`
+        }),
+        guidedInputMarkup({
+          id: "weeklySetupCadence",
+          label: `Decision cadence for ${motionName}`,
+          subject: reviewSubject,
+          why: "The cadence defines how often the team may decide to continue, revise, or stop the controlled test.",
+          answer: "Choose Weekly, Biweekly, or Monthly. Weekly is recommended for the current learning cycle.",
+          scoreEffect: "This saves the canonical reporting cadence used by operating readiness.",
+          control: `<select id="weeklySetupCadence">${messagingOptions(["Weekly", "Biweekly", "Monthly"], canonicalCadence)}</select>`
+        }),
+        guidedInputMarkup({
+          id: "weeklySetupLocation",
+          label: `Evidence and decision location for ${motionName}`,
+          subject: reviewSubject,
+          why: "The team needs one source of truth so evidence and decisions can be found at review time.",
+          answer: "Name the system and view or document, such as: HubSpot dashboard and Weekly GTM Review.",
+          scoreEffect: "This completes the review workflow; it does not directly change the readiness score.",
+          control: `<input id="weeklySetupLocation" value="${escapeHtml(state.evidenceLocation)}" placeholder="HubSpot dashboard and Weekly GTM Review">`
+        }),
+        guidedInputMarkup({
+          id: "weeklySetupLearning",
+          label: `Learning signal for ${motionName}`,
+          subject: `${reviewSubject}; saved success condition: ${cleanText(data.quick90DaySuccessMetric || data.quickSuccessMeasure)}`,
+          why: "Counts alone cannot show why buyers advance or decline, so each review needs one qualitative signal.",
+          answer: "Name one repeatable buyer pattern to capture, such as a recurring objection or reason a qualified buyer declines.",
+          scoreEffect: "This changes review completeness, not the readiness score.",
+          wide: true,
+          control: `<input id="weeklySetupLearning" value="${escapeHtml(state.learningSignal)}" placeholder="Recurring objection or reason a qualified buyer declines">`
+        }),
+        guidedInputMarkup({
+          id: "weeklySetupContinue",
+          label: `Continue rule for ${motionName}`,
+          subject: reviewSubject,
+          why: "The team should agree in advance what evidence earns another test cycle.",
+          answer: "Write one sentence naming the minimum response, conversation, opportunity, or learning evidence required to continue.",
+          scoreEffect: "This saves the canonical experiment decision rule; it does not directly change the score.",
+          wide: true,
+          control: `<textarea id="weeklySetupContinue" rows="3">${escapeHtml(data[continueId] || "Continue when the motion creates qualified conversations, useful buyer learning, or enough pipeline to justify another cycle.")}</textarea>`
+        }),
+        guidedInputMarkup({
+          id: "weeklySetupRevise",
+          label: `Revise rule for ${motionName}`,
+          subject: reviewSubject,
+          why: "A pre-agreed rule prevents the team from changing several variables after one weak result.",
+          answer: "Write one sentence naming the evidence that permits changing exactly one ICP, offer, message, channel, or criteria variable.",
+          scoreEffect: "This saves the canonical experiment decision rule; it does not directly change the score.",
+          wide: true,
+          control: `<textarea id="weeklySetupRevise" rows="3">${escapeHtml(data[reviseId] || "Adjust one variable when responses show the ICP, offer, message, channel, or criteria need refinement.")}</textarea>`
+        }),
+        guidedInputMarkup({
+          id: "weeklySetupStop",
+          label: `Pause or stop rule for ${motionName}`,
+          subject: reviewSubject,
+          why: "A stop rule limits wasted effort when the controlled test produces neither qualified progress nor useful learning.",
+          answer: "Write one sentence naming the minimum test volume and the absent result that should pause or stop this motion.",
+          scoreEffect: "This saves the canonical experiment decision rule; it does not directly change the score.",
+          wide: true,
+          control: `<textarea id="weeklySetupStop" rows="3">${escapeHtml(data[stopId] || "Pause when the motion creates no qualified conversations or useful learning, or the effort is not justified.")}</textarea>`
+        })
+      ];
+      const setupConfirmations = [
+        guidedInputMarkup({
+          id: "weeklySetupScorecard",
+          label: `Scorecard confirmation for ${motionName}`,
+          subject: reviewSubject,
+          why: "The review needs a small, stable scorecard before results are collected.",
+          answer: "Confirm that the review will use counts for activity, responses, conversations, qualified opportunities, plus the named learning signal.",
+          scoreEffect: "This marks Weekly GTM Review Setup complete; it does not directly change readiness.",
+          control: `<label class="checkbox-option" for="weeklySetupScorecard"><input type="checkbox" id="weeklySetupScorecard"${state.scorecardConfirmed ? " checked" : ""}> Use this scorecard.</label>`
+        }),
+        guidedInputMarkup({
+          id: "weeklySetupDecisions",
+          label: `Decision choices for ${motionName}`,
+          subject: reviewSubject,
+          why: "A fixed decision set keeps the weekly review focused on action.",
+          answer: "Confirm that each review will end with Continue, Adjust / Revise, or Pause / Stop.",
+          scoreEffect: "This marks Weekly GTM Review Setup complete; it does not directly change readiness.",
+          control: `<label class="checkbox-option" for="weeklySetupDecisions"><input type="checkbox" id="weeklySetupDecisions"${state.decisionsConfirmed ? " checked" : ""}> Use these decision choices.</label>`
+        }),
+        guidedInputMarkup({
+          id: "weeklySetupRecording",
+          label: `Recording-location confirmation for ${motionName}`,
+          subject: `${reviewSubject}; evidence location: ${state.evidenceLocation || "not yet saved"}`,
+          why: "The team must know where the evidence and final decision will remain available after the meeting.",
+          answer: "Confirm that the named evidence location is the durable source for the scorecard and decision.",
+          scoreEffect: "This marks Weekly GTM Review Setup complete; it does not directly change readiness.",
+          control: `<label class="checkbox-option" for="weeklySetupRecording"><input type="checkbox" id="weeklySetupRecording"${state.recordingConfirmed ? " checked" : ""}> Record evidence and decisions there.</label>`
+        })
+      ];
       main.querySelectorAll("section").forEach((section) => section.remove());
       document.title = `${data.companyName || "Company"} Weekly GTM Review Setup`;
       document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} Weekly GTM Review Setup` : "Weekly GTM Review Setup";
@@ -18939,21 +19460,8 @@
         <h2>Weekly GTM Review Setup</h2>
         <p>Confirm the saved operating rhythm. Fields already present in the plan are prefilled; only missing information needs attention.</p>
         <div class="overview-note"><strong>Current plan context</strong><p>90-day learning objective: ${escapeHtml(data.quick90DayGoal || data.goal90 || "Add the learning objective in the plan")}. Success metric: ${escapeHtml(data.quick90DaySuccessMetric || "Add a success metric")}. Protected weekly revenue hours: ${escapeHtml(data.weeklyRevenueHours || "Not set")}. Experiment readiness: ${escapeHtml(data.experimentReadiness || "Not set")}. CRM/data quality: ${escapeHtml([data.revenueTrackingSystem, data.revenueDataQuality].filter(Boolean).join(" — ") || "Not set")}.</p></div>
-        <div class="messaging-results-grid">
-          <label>1. Review owner<select id="weeklySetupOwner">${messagingOptions(currentOwnerOptions, owner)}</select></label>
-          <label>2. Review day<select id="weeklySetupDay">${messagingOptions(["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], state.reviewDay)}</select></label>
-          <label>Review cadence<select id="weeklySetupCadence">${messagingOptions(["Weekly", "Biweekly", "Monthly"], canonicalCadence)}</select></label>
-          <label>Where evidence and decisions are recorded<input id="weeklySetupLocation" value="${escapeHtml(state.evidenceLocation)}" placeholder="Example: HubSpot dashboard and Weekly GTM Review"></label>
-          <label class="wide">One learning signal<input id="weeklySetupLearning" value="${escapeHtml(state.learningSignal)}" placeholder="Example: recurring objection or reason qualified buyers decline"></label>
-          <label class="wide">Continue rule<textarea id="weeklySetupContinue" rows="3">${escapeHtml(data[continueId] || "Continue when the motion creates qualified conversations, useful buyer learning, or enough pipeline to justify another cycle.")}</textarea></label>
-          <label class="wide">Adjust / revise rule<textarea id="weeklySetupRevise" rows="3">${escapeHtml(data[reviseId] || "Adjust one variable when responses show the ICP, offer, message, channel, or criteria need refinement.")}</textarea></label>
-          <label class="wide">Pause / stop rule<textarea id="weeklySetupStop" rows="3">${escapeHtml(data[stopId] || "Pause when the motion creates no qualified conversations or useful learning, or the effort is not justified.")}</textarea></label>
-        </div>
-        <div class="score-component-list">
-          <label class="checkbox-option"><input type="checkbox" id="weeklySetupScorecard"${state.scorecardConfirmed ? " checked" : ""}> Confirm scorecard: activity, responses, conversations, qualified opportunities, and the learning signal above.</label>
-          <label class="checkbox-option"><input type="checkbox" id="weeklySetupDecisions"${state.decisionsConfirmed ? " checked" : ""}> Confirm decisions: Continue, Adjust / Revise, and Pause / Stop.</label>
-          <label class="checkbox-option"><input type="checkbox" id="weeklySetupRecording"${state.recordingConfirmed ? " checked" : ""}> Confirm the recording location above is where the team will keep evidence and decisions.</label>
-        </div>
+        <div class="guided-input-grid">${setupFields.join("")}</div>
+        <div class="guided-input-grid">${setupConfirmations.join("")}</div>
         <div class="card-actions no-print"><button type="button" id="setWeeklyReviewReady">Set weekly review ready</button><button type="button" class="secondary" id="saveWeeklyReviewSetup">Continue later</button><a class="secondary" href="${escapeHtml(reportAssetUrl("active"))}">Return to Tool Setup</a></div>
         <p class="muted" id="weeklyReviewSetupStatus">${state.status === "ready" ? "Weekly review setup is ready." : "Setup is in progress."}</p>
       `;
@@ -19132,7 +19640,29 @@
       overview.id = "weekly-review-workspace";
       overview.dataset.toc = "Evidence Summary";
       overview.className = "workspace-section";
-      overview.innerHTML = `<h2>Evidence This Week</h2><p class="muted">Bring these totals from the CRM, spreadsheet, or outreach system. GTM Intelligence OS uses the summary to recommend the next decision; it does not duplicate the underlying contact or opportunity records.</p><div class="messaging-results-grid"><label>Targets worked<input type="number" min="0" data-weekly-metric="targets" value="${evidence.targets}"></label><label>Outreach attempts<input type="number" min="0" data-weekly-metric="attempts" value="${evidence.attempts}"></label><label>Replies<input type="number" min="0" data-weekly-metric="replies" value="${evidence.replies}"></label><label>Conversations<input type="number" min="0" data-weekly-metric="conversations" value="${evidence.conversations}"></label><label>Meaningful next steps<input type="number" min="0" data-weekly-metric="nextSteps" value="${evidence.nextSteps}"></label><label>Open opportunities<input type="number" min="0" data-weekly-metric="openOpportunities" value="${evidence.openOpportunities}"></label><label>Open pipeline value<input type="number" min="0" data-weekly-metric="pipelineValue" value="${evidence.pipelineValue}"></label><label>Proof uses<input type="number" min="0" data-weekly-metric="proofUses" value="${evidence.proofUses}"></label><label>Overdue follow-ups<input type="number" min="0" data-weekly-metric="overdue" value="${evidence.overdue}"></label><label>Active records missing a next action<input type="number" min="0" data-weekly-metric="noNextAction" value="${evidence.noNextAction}"></label></div>`;
+      const weeklySubject = `${cleanText(selectedRevenueMotion(data)?.values.playName || data.quickCurrentSalesMotion) || "the saved revenue motion"} for ${profile.customerGroup}`;
+      const weeklyMetricSpecs = [
+        ["targets", "Accounts worked", evidence.targets, "Count distinct target accounts worked during this review period."],
+        ["attempts", "Outreach attempts", evidence.attempts, "Count completed outbound attempts during this review period."],
+        ["replies", "Buyer replies", evidence.replies, "Count buyer replies, excluding automatic responses."],
+        ["conversations", "Qualified conversations", evidence.conversations, "Count conversations with a buyer who matches the saved customer and buyer criteria."],
+        ["nextSteps", "Meaningful next steps", evidence.nextSteps, "Count buyer-accepted next steps with a specific action or meeting."],
+        ["openOpportunities", "Qualified opportunities", evidence.openOpportunities, "Count open opportunities that meet the saved qualification criteria."],
+        ["pipelineValue", "Qualified pipeline value", evidence.pipelineValue, "Enter the currency amount of those qualified open opportunities."],
+        ["proofUses", "Proof uses", evidence.proofUses, "Count buyer interactions where a saved proof asset was used."],
+        ["overdue", "Overdue follow-ups", evidence.overdue, "Count active follow-ups whose saved due date has passed."],
+        ["noNextAction", "Active records without a dated next action", evidence.noNextAction, "Count active target or opportunity records with no owner-approved dated next action."]
+      ];
+      const weeklyMetricFields = weeklyMetricSpecs.map(([key, label, value, answer]) => guidedInputMarkup({
+        id: `weekly-metric-${key}`,
+        label: `${label} for ${weeklySubject}`,
+        subject: weeklySubject,
+        why: "The weekly decision uses this period's evidence to recommend Continue, Revise, or Pause / Stop.",
+        answer,
+        scoreEffect: "Execution results inform the weekly decision; they do not retroactively change the saved plan-readiness score.",
+        control: `<input id="weekly-metric-${key}" type="number" min="0" data-weekly-metric="${key}" value="${escapeHtml(value)}">`
+      }));
+      overview.innerHTML = `<h2>Evidence This Week</h2><p class="muted">Bring these totals from the CRM, spreadsheet, or outreach system. GTM Intelligence OS uses the summary to recommend the next decision; it does not duplicate the underlying contact or opportunity records.</p><div class="guided-input-grid">${weeklyMetricFields.join("")}</div>`;
       main.appendChild(overview);
 
       const insights = document.createElement("section");
@@ -19754,7 +20284,7 @@
       document.getElementById("readinessStage").textContent = stageForScore(readinessScore);
       document.getElementById("scoreConfidence").textContent = "Use the score as launch guidance, then update the plan with observed buyer evidence.";
       document.getElementById("recommendation").textContent = recommendationForScore(readinessScore);
-      renderScoreBreakdown(diagnostic);
+      document.getElementById("scoreBreakdown").innerHTML = "";
 
       const body = document.getElementById("scorecardBody");
       body.innerHTML = "";

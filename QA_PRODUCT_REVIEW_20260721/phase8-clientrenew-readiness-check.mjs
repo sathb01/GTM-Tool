@@ -48,6 +48,7 @@ try {
   check("Saved priority customer is fully counted", snapshot.subScores.customerPriority === 100, JSON.stringify(snapshot.subScores));
   check("Saved offer portfolio and proof are counted", snapshot.subScores.offer >= 50, JSON.stringify(snapshot.subScores));
   check("Saved trigger and signal evidence are counted", snapshot.subScores.signal >= 50, JSON.stringify(snapshot.subScores));
+  check("Overall score remains evidence-based", snapshot.overallScore === 74, String(snapshot.overallScore));
   check("Filled priority customer is not offered as missing", !/clarify the priority customer group/i.test(snapshot.bodyText));
   check("Filled buying triggers are not offered as missing", !/define the top 3 buying trigger events/i.test(snapshot.bodyText));
   check("Genuine measurable-value gap remains", /measurable value claim|baseline.*target improvement.*timeframe/i.test(snapshot.bodyText));
@@ -69,7 +70,7 @@ try {
       };
     });
     check("Complete blockers opens the executable input in one action", directAction.targetExists && directAction.targetVisible && directAction.enclosingDetailsOpen && directAction.hasExecutableInput, JSON.stringify(directAction));
-    check("Direct blocker action never asks to replace a filled value", directAction.firstInputValue === "", JSON.stringify(directAction));
+    check("Direct blocker action prefills relevant saved activity context", /Research 60 matched accounts/i.test(directAction.firstInputValue), JSON.stringify(directAction));
   } else {
     check("Complete blockers action exists", false);
   }
@@ -83,7 +84,7 @@ try {
     check("Improve highest-impact blockers action exists", false);
   }
 
-  const completeInputsAction = page.locator("#summary-risk-details a").filter({ hasText: "Complete readiness inputs" });
+  const completeInputsAction = page.locator("#summary-risk-details a").filter({ hasText: "Complete the first readiness task" });
   if (await completeInputsAction.count()) {
     await page.locator("#summary-risk-details").evaluate((details) => { details.open = true; });
     await completeInputsAction.click();
