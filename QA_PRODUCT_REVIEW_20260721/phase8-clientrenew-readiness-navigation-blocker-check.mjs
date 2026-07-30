@@ -78,7 +78,7 @@ check("Started setup cannot claim complete while blocked", /objective\.innerHTML
 check("Plan Summary includes saved setup blocker", /setupNavigation\.blockers\[0\][\s\S]*?setupBlocker\?\.reason/.test(resultsSource));
 check("Plan Summary blocker routes directly to exact task", /Resolve \$\{escapeHtml\(setupBlocker\.tool\.label\)\} blocker/.test(resultsSource));
 check("Redundant manual status dropdown was removed", !/data-tool-setup-status/.test(resultsSource));
-check("Reference completion is contextual inline confirmation", /data-mark-tool-ready/.test(resultsSource) && /ready to use this/.test(resultsSource));
+check("Reference completion is contextual inline confirmation", /data-mark-tool-ready/.test(resultsSource) && /Mark \$\{tool\.label\} ready and continue/.test(resultsSource));
 check("Target List readiness is inferred from its guided confirmation", /toolSetup\.statuses\.targets = initialGuidance\.ready \? "Ready" : "In progress"/.test(resultsSource));
 check("Messaging save advances its setup status", /saveMessagingWorkspace[\s\S]*?markObservedToolReady\(data, "messaging"\)/.test(resultsSource));
 check("Outreach save advances its setup status", /saveOutreachWorkspace[\s\S]*?markObservedToolReady\(data, "outreach"\)/.test(resultsSource));

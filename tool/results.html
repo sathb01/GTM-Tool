@@ -17491,19 +17491,21 @@
       const currentSetupTool = requestedTool || toolSetup.tools.find((tool) => !["Ready", "Complete", "Skip for now"].includes(toolSetup.statuses[tool.id])) || toolSetup.tools.at(-1);
       const toolCards = toolSetup.tools.filter((tool) => tool.id === currentSetupTool?.id).map((tool) => {
         const actionLabel = tool.id === "targets"
-          ? `Create the list in ${cleanText(data.revenueTrackingSystem) || "HubSpot"}`
+          ? `Set up and confirm the list in ${cleanText(data.revenueTrackingSystem) || "HubSpot"}`
           : tool.type === "reference"
-            ? `I’m ready to use this ${tool.id === "icp" ? "ICP" : "persona"}`
+            ? `Mark ${tool.label} ready and continue`
             : tool.id === "weekly-review-setup"
-              ? "Set the weekly review rhythm"
-              : `Continue ${tool.label}`;
+              ? "Complete GTM Review recommendations and continue"
+              : tool.id === "messaging"
+                ? "Complete Messaging Kit and continue"
+                : tool.id === "outreach"
+                  ? "Complete Outreach Sequence and continue"
+                  : `Complete ${tool.label} and continue`;
         const referenceContent = tool.id === "icp"
           ? `<details class="score-component-detail" open><summary>ICP Brief — read before marking ready</summary><p><strong>Who belongs:</strong> ${escapeHtml(planCustomerName({ data, priorityGroup: selectedCustomerGroup(data), primaryOffer: primaryOfferRow(data) }))}</p><p><strong>Problem:</strong> ${escapeHtml(data.bestFitPrimaryPain || data.quickBuyerProblem || "Confirm the priority problem in the ICP Brief.")}</p><p><strong>Fit and timing:</strong> ${escapeHtml(data.bestFitTrigger || data.quickUrgencyNow || "Use the saved fit and trigger criteria.")}</p></details>`
           : tool.id === "personas"
             ? `<details class="score-component-detail" open><summary>Persona Brief — read before marking ready</summary><p><strong>Primary buyer:</strong> ${escapeHtml(data.bestFitDecisionMaker || data.primaryBuyer || "Use the primary buyer saved in the plan.")}</p><p><strong>Concern to test:</strong> ${escapeHtml(data.reviewRequirements || data.dealBlocker || data.quickBuyerProblem || "Confirm the buyer’s concern in conversation.")}</p></details>`
-            : tool.id === "targets"
-              ? `<div class="overview-note"><strong>First-list handoff</strong><p>Start with 25 accounts that match ${escapeHtml(data.bestFitCustomerGroup || data.quickBestFitCustomer || "the priority ICP")}. Required fields: account name, website, ICP fit, trigger, buyer role, source, owner, status, and next action. Keep ICP and Persona briefs available as in-context references.</p></div>`
-              : "";
+            : "";
         const reasonInputId = `tool-setup-reason-${tool.id}`;
         const reasonGuidance = guidedInputMarkup({
           id: reasonInputId,
@@ -17527,7 +17529,7 @@
       }).join("");
       objective.innerHTML = toolSetup.started && toolSetup.ready
         ? `<div class="active-plan-tool-ready"><div><strong>Tool Setup is complete.</strong><br><span class="muted">Review or change a tool only when the work has changed.</span></div><button type="button" class="secondary" id="toggleToolSetup">Review Tool Setup</button></div><div class="active-plan-tool-setup" id="activePlanToolSetupDetails" hidden><h2>Tool Setup</h2><p>Before weekly work begins, make sure the reference assets and working tools are usable. Mark a tool Ready or Skip for now.</p><div class="active-plan-tool-grid">${toolCards}</div><div class="active-plan-save-row"><button type="button" id="saveToolSetupButton">Save Tool Setup</button><span class="active-plan-save-status" id="toolSetupStatus"></span></div></div>`
-        : `<div class="active-plan-tool-setup"><div><h2>Tool Setup</h2><p><strong>${completedSetupCount} of ${toolSetup.tools.length} complete.</strong> Work on one current setup task at a time. Completion is recorded by the guided task; use the blocker field only when work cannot continue.</p></div><div class="active-plan-tool-grid">${toolCards}</div><div class="active-plan-save-row"><button type="button" id="saveToolSetupButton">${toolSetup.reasons?.[currentSetupTool?.id] ? "Update blocker" : "Save blocker"}</button>${toolSetup.reasons?.[currentSetupTool?.id] ? '<button type="button" class="secondary" id="clearToolSetupBlockerButton">Clear blocker and continue</button>' : ""}${toolSetup.ready ? '<button type="button" id="startWeekOneButton">Start Week 1</button>' : ""}<span class="active-plan-save-status" id="toolSetupStatus"></span></div></div>`;
+        : `<div class="active-plan-tool-setup"><div><h2>Tool Setup</h2><p><strong>${completedSetupCount} of ${toolSetup.tools.length} complete.</strong> Work on one current setup task at a time. Completion is recorded by the guided task; use the blocker field only when work cannot continue.</p></div><div class="active-plan-tool-grid">${toolCards}</div><div class="active-plan-save-row"><button type="button" class="secondary" id="saveToolSetupButton">${toolSetup.reasons?.[currentSetupTool?.id] ? "Update blocker" : "Save blocker"}</button>${toolSetup.reasons?.[currentSetupTool?.id] ? '<button type="button" class="secondary" id="clearToolSetupBlockerButton">Clear blocker and continue</button>' : ""}${toolSetup.ready ? '<button type="button" id="startWeekOneButton">Start Week 1</button>' : ""}<span class="active-plan-save-status" id="toolSetupStatus"></span></div></div>`;
       main.appendChild(objective);
 
       const syncToolSetup = () => {
@@ -17618,7 +17620,7 @@
       const focusedTestContext = focusedTestRequested
         ? `<div class="overview-note"><strong>Focused test started</strong><p><strong>First action:</strong> ${escapeHtml(weeklyWorkspace.currentPriorities[0]?.title || "Complete the first saved Week 1 action")}. <strong>25-account test:</strong> ${escapeHtml(targetListStatus)}${targetListCount ? `; ${escapeHtml(targetListCount)} qualified accounts recorded` : ""}. <strong>Record results in:</strong> ${escapeHtml(resultsLocation)} and the result fields below.</p></div>`
         : "";
-      actions.innerHTML = `${focusedTestContext}<h2>Do This Week</h2><p class="muted">Week ${weeklyWorkspace.currentWeek}. Complete no more than three priorities, record the result in the same card, and close the week when the work is done.</p><div class="active-plan-actions"></div><div class="active-plan-save-row"><button type="button" id="saveWeeklyProgressButton">Save Weekly Progress</button><span class="active-plan-save-status" id="weeklyProgressSaveStatus"></span></div><div class="weekly-close-prompt" id="weeklyClosePrompt" hidden><p><strong>Week ${weeklyWorkspace.currentWeek} is ready to close.</strong> All priorities are complete and have a result.</p><button type="button" id="reviewCloseWeekButton">Close Week ${weeklyWorkspace.currentWeek}</button></div>`;
+      actions.innerHTML = `${focusedTestContext}<h2>Do This Week</h2><p class="muted">Week ${weeklyWorkspace.currentWeek}. Complete no more than three priorities, record the result in the same card, and close the week when the work is done.</p><div class="active-plan-actions"></div><div class="active-plan-save-row"><button type="button" id="saveWeeklyProgressButton">Save Weekly Progress</button><span class="active-plan-save-status" id="weeklyProgressSaveStatus"></span></div><div class="weekly-close-prompt" id="weeklyClosePrompt" hidden><p><strong>Week ${weeklyWorkspace.currentWeek} is ready to complete.</strong> All priorities are complete and have a result.</p><button type="button" id="reviewCloseWeekButton">Complete Week ${weeklyWorkspace.currentWeek} and Continue</button></div>`;
       const actionList = actions.querySelector(".active-plan-actions");
       weeklyWorkspace.currentPriorities.forEach((action, index) => {
         const card = document.createElement("article");
@@ -17659,11 +17661,13 @@
       actions.querySelectorAll("[data-weekly-priority-field]").forEach((control) => {
         control.addEventListener(control.tagName === "TEXTAREA" || control.tagName === "INPUT" ? "input" : "change", refreshWeeklyClosePrompt);
       });
-      actions.querySelector("#reviewCloseWeekButton").addEventListener("click", () => {
+      actions.querySelector("#reviewCloseWeekButton").addEventListener("click", (event) => {
         const reviewSection = document.getElementById("active-plan-review");
-        const details = reviewSection?.querySelector(":scope > details.section-details");
-        if (details) details.open = true;
-        reviewSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+        const closeButton = reviewSection?.querySelector("#closeActivePlanWeek");
+        if (!closeButton) return;
+        event.currentTarget.disabled = true;
+        event.currentTarget.textContent = `Completing Week ${weeklyWorkspace.currentWeek}...`;
+        closeButton.click();
       });
       actions.querySelector("#saveWeeklyProgressButton").addEventListener("click", async (event) => {
         const button = event.currentTarget;
@@ -17681,7 +17685,7 @@
         if (saved && missingEvidence) {
           status.textContent = "Progress saved. Add a result note to each completed priority before closing the week.";
         } else if (saved && weeklyWorkspace.currentPriorities.every((priority) => priority.status === "Complete")) {
-          status.textContent = `Week ${weeklyWorkspace.currentWeek} is complete. Review and close the week below.`;
+          status.textContent = `Week ${weeklyWorkspace.currentWeek} is ready. Use the single completion action below to save and continue.`;
         }
       });
       refreshWeeklyClosePrompt();
@@ -17719,7 +17723,7 @@
         const selected = priority.status === "Complete" ? "Drop" : (priority.disposition || recommended);
         return `<div class="weekly-rollover-row${priority.status === "Complete" ? " is-complete" : ""}" data-rollover-index="${index}"><div><strong>${escapeHtml(priority.title)}</strong><span data-rollover-status>${escapeHtml(priority.status)}</span></div><span class="weekly-complete-note"${priority.status === "Complete" ? "" : " hidden"}>Complete - closes with this week. Nothing carries forward.</span><label>What should happen?<select data-rollover-field="disposition">${["Carry forward", "Revise", "Drop", "Blocked"].map((option) => `<option${selected === option ? " selected" : ""}>${option}</option>`).join("")}</select></label><label>Revised task or unblock action<input data-rollover-field="revisedTask" value="${escapeHtml(priority.revisedTask || "")}" placeholder="Rewrite the priority or name the unblock step"></label></div>`;
       }).join("");
-      review.innerHTML = `<h2>Close Week ${weeklyWorkspace.currentWeek}</h2><p class="muted">Review the results, decide what happens to unfinished work, and create the next week. Completed priorities close automatically and cannot carry forward.</p><div class="active-plan-review"><div class="weekly-close-summary"><strong>What moves to next week</strong><p id="weeklyRolloverSummary">Carry forward two or fewer unfinished priorities when possible so the plan can advance. If all three unfinished priorities are necessary, the next week becomes a completion week and no new planned work is added.</p></div><label>What did we learn?<textarea id="activeWeekLearning" rows="4" placeholder="Summarize the evidence across this week's completed work. What increased or reduced confidence?">${escapeHtml(data.activePlan__weeklyReview__learning || "")}</textarea></label><div class="grid"><label>Decision<select id="activeWeekDecision">${["Continue", "Revise", "Pause", "Need more evidence"].map((option) => `<option${(data.activePlan__weeklyReview__decision || "Continue") === option ? " selected" : ""}>${option}</option>`).join("")}</select></label><label>One focused change for next week<input id="activeWeekNextChange" value="${escapeHtml(data.activePlan__weeklyReview__nextChange || "")}" placeholder="Leave blank if the current approach should stay constant"></label></div><div class="weekly-rollover-decision" id="weeklyRolloverDecision"><h3>Decide What Happens to Unfinished Priorities</h3><div class="weekly-rollover-list">${rolloverRows}</div></div><label class="weekly-capacity-confirm" id="weeklyFullRolloverConfirm" hidden><input type="checkbox" id="confirmFullRollover"><span><strong>Carry all three unfinished priorities and defer new work.</strong><br>The next week will be used entirely to finish these priorities.</span></label><div class="active-plan-save-row"><button type="button" id="closeActivePlanWeek">${weeklyWorkspace.currentWeek === 4 ? "Close Week 4 and Start Next Cycle" : `Close Week ${weeklyWorkspace.currentWeek} and Build Week ${weeklyWorkspace.currentWeek + 1}`}</button><span class="active-plan-save-status" id="activeWeekCloseStatus"></span></div></div>`;
+      review.innerHTML = `<h2>Close Week ${weeklyWorkspace.currentWeek}</h2><p class="muted">Use this decision workspace only when unfinished work needs a distinct carry-forward, revise, drop, or block decision.</p><div class="active-plan-review"><div class="weekly-close-summary"><strong>What moves to next week</strong><p id="weeklyRolloverSummary">Carry forward two or fewer unfinished priorities when possible so the plan can advance. If all three unfinished priorities are necessary, the next week becomes a completion week and no new planned work is added.</p></div><label>What did we learn?<textarea id="activeWeekLearning" rows="4" placeholder="Summarize the evidence across this week's completed work. What increased or reduced confidence?">${escapeHtml(data.activePlan__weeklyReview__learning || "")}</textarea></label><div class="grid"><label>Decision<select id="activeWeekDecision">${["Continue", "Revise", "Pause", "Need more evidence"].map((option) => `<option${(data.activePlan__weeklyReview__decision || "Continue") === option ? " selected" : ""}>${option}</option>`).join("")}</select></label><label>One focused change for next week<input id="activeWeekNextChange" value="${escapeHtml(data.activePlan__weeklyReview__nextChange || "")}" placeholder="Leave blank if the current approach should stay constant"></label></div><div class="weekly-rollover-decision" id="weeklyRolloverDecision"><h3>Decide What Happens to Unfinished Priorities</h3><div class="weekly-rollover-list">${rolloverRows}</div></div><label class="weekly-capacity-confirm" id="weeklyFullRolloverConfirm" hidden><input type="checkbox" id="confirmFullRollover"><span><strong>Carry all three unfinished priorities and defer new work.</strong><br>The next week will be used entirely to finish these priorities.</span></label><div class="active-plan-save-row"><button type="button" id="closeActivePlanWeek">Save close decisions and continue</button><span class="active-plan-save-status" id="activeWeekCloseStatus"></span></div></div>`;
       const syncWeeklyCards = () => {
         syncWeeklyPriorityCards();
       };
@@ -17749,6 +17753,7 @@
           ? "All priorities are complete. Nothing will carry forward; the next week will begin with the next planned work."
           : `${unfinishedCount} unfinished ${unfinishedCount === 1 ? "priority needs" : "priorities need"} a decision. Carry forward only work that still matters to the current 30-day goal.`;
         review.querySelector("#weeklyRolloverDecision").hidden = unfinishedCount === 0;
+        review.hidden = unfinishedCount === 0;
         review.querySelector("#weeklyFullRolloverConfirm").hidden = activeRolloverCount !== 3;
         if (activeRolloverCount !== 3) review.querySelector("#confirmFullRollover").checked = false;
       };
@@ -18985,7 +18990,7 @@
       }
     }
 
-    function renderTargetListWorkspace(data) {
+    function renderLegacyTargetListWorkspace(data) {
       const profile = isPreRevenueReport(data) ? preRevenuePersonaAssetModel(data) : postRevenuePersonaAssetModel(data);
       const crmName = cleanText(data.crmName || data.crmSystem || data.currentCrm || data.revenueTrackingSystem);
       const systemLabel = crmName || "your CRM or spreadsheet";
@@ -19174,6 +19179,100 @@
           nextTool: nextTool?.label || "the next Tool Setup task"
         }), nextTool);
       }
+      setupReportNavigation();
+      configureAssetPdfExport("targets", data, profile.model);
+    }
+
+    function renderTargetListWorkspace(data) {
+      const profile = isPreRevenueReport(data) ? preRevenuePersonaAssetModel(data) : postRevenuePersonaAssetModel(data);
+      const systemLabel = cleanText(data.crmName || data.crmSystem || data.currentCrm || data.revenueTrackingSystem) || "HubSpot";
+      const requiredFields = [
+        "Company or account name",
+        "Website or profile URL",
+        "Primary contact and role",
+        "Observable ICP fit signals",
+        "Fit tier and reason",
+        "Source or channel",
+        "Owner",
+        "Outreach status or CRM stage",
+        "Last activity date",
+        "Next action and due date",
+        "Message or sequence used",
+        "Buyer response, objection, or learning"
+      ];
+      const targetWorkspace = data.targetListWorkspace && typeof data.targetListWorkspace === "object"
+        ? data.targetListWorkspace
+        : { targets: [] };
+      targetWorkspace.targets = Array.isArray(targetWorkspace.targets) ? targetWorkspace.targets : [];
+      const main = document.querySelector("main");
+      document.body.dataset.hasIcpAsset = "true";
+      document.body.dataset.hasPersonaAsset = "true";
+      document.title = `${data.companyName || "Company"} Target List Setup Guide`;
+      document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} Target List Setup Guide` : "Target List Setup Guide";
+      document.getElementById("generatedMeta").textContent = `Create the required list fields in ${systemLabel}, confirm the external work, and continue.`;
+      const companyMeta = document.getElementById("companyMeta");
+      companyMeta.hidden = false;
+      companyMeta.textContent = systemLabel;
+      document.getElementById("metadataPills").innerHTML = "";
+      main.querySelectorAll("section").forEach((section) => section.remove());
+
+      const section = document.createElement("section");
+      section.id = "target-list-system-setup";
+      section.dataset.toc = "Set Up the List";
+      section.className = "workspace-section";
+      const countField = guidedInputMarkup({
+        id: "targetListInitialCount",
+        label: `Qualified account count in ${systemLabel}`,
+        subject: `The first Target List created in ${systemLabel}`,
+        why: "The list is created outside GTM Intelligence OS, so this compact confirmation is how Tool Setup knows the external work is complete.",
+        answer: "Enter the whole-number count of qualified accounts currently in the list. Enter 0 when the required-field structure exists but accounts will be added during execution.",
+        scoreEffect: "This completes Target List Setup and advances the guided workflow; it does not change the numeric readiness score.",
+        control: `<input id="targetListInitialCount" type="number" min="0" step="1" value="${escapeHtml(targetWorkspace.initialCount ?? "")}" placeholder="0">`
+      });
+      section.innerHTML = `
+        <h2>Set Up the List in ${escapeHtml(systemLabel)}</h2>
+        <h3>Required Fields</h3>
+        ${personaAssetListMarkup(requiredFields)}
+        <div class="guided-input-grid">${countField}</div>
+        <div class="card-actions no-print">
+          <button type="button" id="confirmTargetListCreated">Mark list created / record count / continue</button>
+          <button type="button" class="secondary" id="copyTargetListFields">Copy Fields list</button>
+        </div>
+        <p class="messaging-save-status" id="targetListSetupStatus"></p>
+      `;
+      main.appendChild(section);
+      section.querySelector("#copyTargetListFields").addEventListener("click", async () => {
+        const status = section.querySelector("#targetListSetupStatus");
+        const text = ["REQUIRED FIELDS", ...requiredFields.map((item) => `- ${item}`)].join("\n");
+        try {
+          await copyTextToClipboard(text);
+          status.textContent = "Required Fields list copied.";
+        } catch (error) {
+          status.textContent = "Copy failed. Select and copy the Required Fields list above.";
+        }
+      });
+      section.querySelector("#confirmTargetListCreated").addEventListener("click", async (event) => {
+        const button = event.currentTarget;
+        const count = Math.max(0, Number(section.querySelector("#targetListInitialCount").value) || 0);
+        targetWorkspace.initialCount = count;
+        targetWorkspace.setupStatus = count > 0 ? "First qualified accounts added" : "List created with required fields";
+        const plan = activePlanDefinition(data);
+        const weeklyWorkspace = activePlanWeeklyWorkspace(data, plan);
+        const toolSetup = activePlanToolSetup(data, plan, weeklyWorkspace);
+        toolSetup.statuses.targets = "Ready";
+        delete toolSetup.reasons.targets;
+        toolSetup.ready = toolSetup.tools.every((tool) => ["Ready", "Complete", "Skip for now"].includes(toolSetup.statuses[tool.id]));
+        const nextTool = toolSetup.tools.find((tool) => !["Ready", "Complete", "Skip for now"].includes(toolSetup.statuses[tool.id]));
+        const status = section.querySelector("#targetListSetupStatus");
+        button.disabled = true;
+        const saved = await saveTargetListWorkspace(data, targetWorkspace, profile, status);
+        button.disabled = false;
+        if (!saved) return;
+        status.textContent = `List creation confirmed with ${count} qualified account${count === 1 ? "" : "s"}. ${nextTool ? `${nextTool.label} is next.` : "Tool Setup is ready."}`;
+        window.location.href = nextTool
+          ? reportAssetUrlWithState("active", { setupTask: nextTool.id })
+          : reportAssetUrl("active");
+      });
       setupReportNavigation();
       configureAssetPdfExport("targets", data, profile.model);
     }

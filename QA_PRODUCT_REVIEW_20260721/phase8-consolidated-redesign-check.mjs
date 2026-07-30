@@ -21,7 +21,7 @@ const checks = [
   ["Pipeline inputs are explicitly a starting baseline", () => /Starting Pipeline Baseline \(pre-launch\)/.test(app)],
   ["CRM routing and stalled-deal tables are not rendered in core planning", () => /\.filter\(\(table\) => table\.id\.endsWith\("__conversionStages"\)\)/.test(app)],
   ["Tool Setup advances one current task", () => /currentSetupTool/.test(results) && /Work on one current setup task at a time/.test(results)],
-  ["Brief review completion stays in context", () => /I’m ready to use this/.test(results) && /data-mark-tool-ready/.test(results)],
+  ["Brief review completion stays in context", () => /Mark \$\{tool\.label\} ready and continue/.test(results) && /data-mark-tool-ready/.test(results)],
   ["Weekly review setup is separate and durable", () => /weeklyGtmReviewSetupWorkspace/.test(results) && /Set weekly review ready/.test(results) && /requestedAsset === "weekly-review-setup"/.test(results)],
   ["Weekly evidence forms a controlled next experiment", () => /Form the Next Experiment from Evidence/.test(results) && /weeklyNextHypothesis/.test(results)],
   ["Target setup has one primary CRM-list action", () => /Create the list in \$\{escapeHtml\(systemLabel\)\}/.test(results) && /Messaging, outreach, and weekly review remain separate resumable setup tasks/.test(results)]
