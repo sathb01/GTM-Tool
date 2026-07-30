@@ -39,6 +39,20 @@ const blocked = helper.readinessNavigationGuidance({
 });
 const ready = helper.readinessNavigationGuidance({ ready: true, started: false });
 const complete = helper.readinessNavigationGuidance({ ready: true, started: true });
+const setBlocker = helper.resolveToolBlockerState({
+  currentStatus: "In progress",
+  reason: "Waiting for the revenue owner to confirm Thursday."
+});
+const clearIncompleteBlocker = helper.resolveToolBlockerState({
+  currentStatus: setBlocker.status,
+  reason: "",
+  observedReady: false
+});
+const clearCompletedBlocker = helper.resolveToolBlockerState({
+  currentStatus: setBlocker.status,
+  reason: "",
+  observedReady: true
+});
 
 const checks = [];
 const check = (name, passed, detail = "") => checks.push({ name, passed: Boolean(passed), ...(detail ? { detail } : {}) });
@@ -48,13 +62,19 @@ check("Pre-ready sidebar is labeled Readiness", needsReview.label === "Readiness
 check("Needs-setup state continues to the exact tool", /Target List Setup/.test(needsSetup.actionLabel) && /not ready/i.test(needsSetup.copy), JSON.stringify(needsSetup));
 check("In-progress state resumes the exact tool", /Messaging Kit/.test(inProgress.actionLabel) && /in progress/i.test(inProgress.copy), JSON.stringify(inProgress));
 check("Blocked state includes the saved blocker", /Waiting for the revenue owner/.test(blocked.copy) && /Weekly GTM Review Setup/.test(blocked.actionLabel), JSON.stringify(blocked));
+check("Setting a blocker forces canonical blocked state", setBlocker.status === "Waiting / Blocked" && /revenue owner/.test(setBlocker.reason), JSON.stringify(setBlocker));
+check("Clearing an incomplete blocker resumes the exact task", clearIncompleteBlocker.status === "In progress" && clearIncompleteBlocker.reason === "", JSON.stringify(clearIncompleteBlocker));
+check("Clearing a completed blocker honors observed readiness", clearCompletedBlocker.status === "Ready" && clearCompletedBlocker.reason === "", JSON.stringify(clearCompletedBlocker));
 check("Ready state restores This Week", ready.label === "This Week" && ready.actionLabel === "Start This Week", JSON.stringify(ready));
 check("Complete execution state preserves This Week", complete.label === "This Week" && complete.actionLabel === "Resume This Week", JSON.stringify(complete));
 check("Sidebar uses state-aware label and exact destination", /addNavItem\("Plan", setupNavigation\.guidance\.label, setupNavigation\.href/.test(resultsSource));
 check("Exact setup task is encoded in direct routes", /reportAssetUrlWithState\("active", \{ setupTask: (current|tool)\.id \}\)/.test(resultsSource));
 check("Requested setup task opens directly", /requestedSetupTask[\s\S]*?requestedTool[\s\S]*?currentSetupTool = requestedTool/.test(resultsSource));
-check("Blocker is canonical workflow state", /if \(toolSetup\.reasons\[toolId\]\) toolSetup\.statuses\[toolId\] = "Waiting \/ Blocked"/.test(resultsSource));
-check("Clearing a blocker resumes in progress", /previousReason[\s\S]*?toolSetup\.statuses\[toolId\] = "In progress"/.test(resultsSource));
+check("Blocker is canonical workflow state", /resolveToolBlockerState\(\{[\s\S]*?toolSetup\.statuses\[toolId\] = next\.status/.test(resultsSource));
+check("Clearing removes the canonical reason key", /else delete toolSetup\.reasons\[toolId\]/.test(resultsSource));
+check("Clear blocker has a dedicated direct action", /id="clearToolSetupBlockerButton">Clear blocker and continue/.test(resultsSource));
+check("Clear blocker persists then recomputes immediately", /#clearToolSetupBlockerButton[\s\S]*?persistActivePlanData\(data, status\)[\s\S]*?renderActivePlanWorkspace\(data\)/.test(resultsSource));
+check("Started setup cannot claim complete while blocked", /objective\.innerHTML = toolSetup\.started && toolSetup\.ready/.test(resultsSource));
 check("Plan Summary includes saved setup blocker", /setupNavigation\.blockers\[0\][\s\S]*?setupBlocker\?\.reason/.test(resultsSource));
 check("Plan Summary blocker routes directly to exact task", /Resolve \$\{escapeHtml\(setupBlocker\.tool\.label\)\} blocker/.test(resultsSource));
 check("Redundant manual status dropdown was removed", !/data-tool-setup-status/.test(resultsSource));

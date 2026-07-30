@@ -8,6 +8,7 @@ This file records the major actions and changes made during the GTM Tool refinem
 
 - Renamed the pre-launch sidebar entry from `This Week` to `Readiness`; it now names and opens the exact current setup task. The label returns to `This Week` only after Tool Setup is ready.
 - Made saved setup blockers canonical workflow state. A blocker forces `Waiting / Blocked`, appears on Plan Summary and Readiness Blockers with its saved explanation, and routes directly to the affected setup task without changing the numeric readiness score.
+- Fixed the full blocker lifecycle: clearing now deletes the canonical reason, reconciles the tool with observed guided-work completion, persists the unblocked state, and immediately renders the correct current task even when weekly execution had previously started.
 - Removed the redundant Tool Setup status dropdown. Observable guided work now advances status automatically: brief confirmations, Target List creation confirmation, Messaging and Outreach saves, and Weekly Review readiness.
 - Kept only task-local controls that the app cannot infer: a contextual blocker/unblock condition and a continue-later action. Clearing a blocker resumes the same guided task.
 - Added focused ClientRenew regression coverage for pre-ready and ready navigation, every retained workflow state route, blocker visibility, direct destinations, observed completion, and absence of a separate status screen.

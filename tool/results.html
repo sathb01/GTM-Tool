@@ -16644,10 +16644,28 @@
           || (tool.id === "weekly-review-setup" && (data.weeklyGtmReviewSetupWorkspace?.status === "ready" || data.weeklyReviewWorkspace?.updatedAt));
         saved.statuses[tool.id] = autoReady ? "Ready" : (tool.type === "reference" ? "Needs review" : "Not ready");
       });
+      tools.forEach((tool) => {
+        if (!/Waiting\s*\/\s*Blocked/i.test(saved.statuses[tool.id] || "") || cleanText(saved.reasons[tool.id])) return;
+        saved.statuses[tool.id] = observedToolSetupReady(data, tool.id) ? "Ready" : "In progress";
+        delete saved.reasons[tool.id];
+      });
       saved.tools = tools;
       saved.ready = tools.every((tool) => ["Ready", "Complete", "Skip for now"].includes(saved.statuses[tool.id]));
       data.activePlanToolSetupWorkspace = saved;
       return saved;
+    }
+
+    function observedToolSetupReady(data, toolId) {
+      if (toolId === "messaging") return Boolean(data.messagingKitWorkspace?.updatedAt);
+      if (toolId === "outreach") return Boolean(data.outreachSequenceWorkspace?.updatedAt);
+      if (toolId === "weekly-review-setup") return data.weeklyGtmReviewSetupWorkspace?.status === "ready";
+      if (toolId === "targets") {
+        const status = cleanText(data.targetListWorkspace?.setupStatus);
+        const count = Number(data.targetListWorkspace?.initialCount) || 0;
+        return /^List created with required fields$/i.test(status)
+          || (/^First qualified accounts added$/i.test(status) && count > 0);
+      }
+      return false;
     }
 
     function toolSetupNavigationState(data) {
@@ -17502,19 +17520,23 @@
           <div class="active-plan-link-row"><button type="button" class="secondary" data-continue-tool-later="${escapeHtml(tool.id)}">Continue later and go to the next setup task</button></div>
         </article>`;
       }).join("");
-      objective.innerHTML = toolSetup.started
+      objective.innerHTML = toolSetup.started && toolSetup.ready
         ? `<div class="active-plan-tool-ready"><div><strong>Tool Setup is complete.</strong><br><span class="muted">Review or change a tool only when the work has changed.</span></div><button type="button" class="secondary" id="toggleToolSetup">Review Tool Setup</button></div><div class="active-plan-tool-setup" id="activePlanToolSetupDetails" hidden><h2>Tool Setup</h2><p>Before weekly work begins, make sure the reference assets and working tools are usable. Mark a tool Ready or Skip for now.</p><div class="active-plan-tool-grid">${toolCards}</div><div class="active-plan-save-row"><button type="button" id="saveToolSetupButton">Save Tool Setup</button><span class="active-plan-save-status" id="toolSetupStatus"></span></div></div>`
-        : `<div class="active-plan-tool-setup"><div><h2>Tool Setup</h2><p><strong>${completedSetupCount} of ${toolSetup.tools.length} complete.</strong> Work on one current setup task at a time. Completion is recorded by the guided task; use the blocker field only when work cannot continue.</p></div><div class="active-plan-tool-grid">${toolCards}</div><div class="active-plan-save-row"><button type="button" id="saveToolSetupButton">Save or clear blocker</button>${toolSetup.ready ? '<button type="button" id="startWeekOneButton">Start Week 1</button>' : ""}<span class="active-plan-save-status" id="toolSetupStatus"></span></div></div>`;
+        : `<div class="active-plan-tool-setup"><div><h2>Tool Setup</h2><p><strong>${completedSetupCount} of ${toolSetup.tools.length} complete.</strong> Work on one current setup task at a time. Completion is recorded by the guided task; use the blocker field only when work cannot continue.</p></div><div class="active-plan-tool-grid">${toolCards}</div><div class="active-plan-save-row"><button type="button" id="saveToolSetupButton">${toolSetup.reasons?.[currentSetupTool?.id] ? "Update blocker" : "Save blocker"}</button>${toolSetup.reasons?.[currentSetupTool?.id] ? '<button type="button" class="secondary" id="clearToolSetupBlockerButton">Clear blocker and continue</button>' : ""}${toolSetup.ready ? '<button type="button" id="startWeekOneButton">Start Week 1</button>' : ""}<span class="active-plan-save-status" id="toolSetupStatus"></span></div></div>`;
       main.appendChild(objective);
 
       const syncToolSetup = () => {
         toolSetup.reasons = toolSetup.reasons && typeof toolSetup.reasons === "object" ? toolSetup.reasons : {};
         objective.querySelectorAll("[data-tool-setup-reason]").forEach((control) => {
           const toolId = control.dataset.toolSetupReason;
-          const previousReason = cleanText(toolSetup.reasons[toolId]);
-          toolSetup.reasons[toolId] = control.value.trim();
-          if (toolSetup.reasons[toolId]) toolSetup.statuses[toolId] = "Waiting / Blocked";
-          else if (previousReason && /Waiting\s*\/\s*Blocked/i.test(toolSetup.statuses[toolId] || "")) toolSetup.statuses[toolId] = "In progress";
+          const next = window.GTM_GUIDED_TASK_CONTEXT.resolveToolBlockerState({
+            reason: control.value,
+            currentStatus: toolSetup.statuses[toolId],
+            observedReady: observedToolSetupReady(data, toolId)
+          });
+          toolSetup.statuses[toolId] = next.status;
+          if (next.reason) toolSetup.reasons[toolId] = next.reason;
+          else delete toolSetup.reasons[toolId];
         });
         toolSetup.ready = toolSetup.tools.every((tool) => ["Ready", "Complete", "Skip for now"].includes(toolSetup.statuses[tool.id]));
       };
@@ -17545,9 +17567,20 @@
         syncToolSetup();
         const status = objective.querySelector("#toolSetupStatus");
         button.disabled = true;
-        await persistActivePlanData(data, status);
+        const saved = await persistActivePlanData(data, status);
         button.disabled = false;
-        if (!toolSetup.started) renderActivePlanWorkspace(data);
+        if (saved) renderActivePlanWorkspace(data);
+      });
+      objective.querySelector("#clearToolSetupBlockerButton")?.addEventListener("click", async (event) => {
+        const button = event.currentTarget;
+        const control = objective.querySelector(`[data-tool-setup-reason="${currentSetupTool.id}"]`);
+        if (control) control.value = "";
+        syncToolSetup();
+        const status = objective.querySelector("#toolSetupStatus");
+        button.disabled = true;
+        const saved = await persistActivePlanData(data, status);
+        button.disabled = false;
+        if (saved) renderActivePlanWorkspace(data);
       });
       objective.querySelector("#startWeekOneButton")?.addEventListener("click", async (event) => {
         const button = event.currentTarget;

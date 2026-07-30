@@ -144,12 +144,32 @@
     };
   }
 
+  function resolveToolBlockerState(context = {}) {
+    const reason = clean(context.reason);
+    if (reason) {
+      return {
+        status: "Waiting / Blocked",
+        reason
+      };
+    }
+    const currentStatus = clean(context.currentStatus);
+    return {
+      status: context.observedReady
+        ? "Ready"
+        : /Waiting\s*\/\s*Blocked/i.test(currentStatus) || !currentStatus
+          ? "In progress"
+          : currentStatus,
+      reason: ""
+    };
+  }
+
   root.GTM_GUIDED_TASK_CONTEXT = Object.freeze({
     isMeaningfulNextStep,
     smallestEvidenceProducingNextStep,
     targetListProgressGuidance,
     targetListCreationPlan,
     focusedTestRouteGuidance,
-    readinessNavigationGuidance
+    readinessNavigationGuidance,
+    resolveToolBlockerState
   });
 })(typeof window !== "undefined" ? window : globalThis);
