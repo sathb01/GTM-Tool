@@ -102,6 +102,7 @@ try {
   await offerTask.locator('[data-score-field$="timeToImpact"]').fill("Within 90 days");
   await Promise.all([
     page.waitForRequest((request) => request.method() === "PUT" && request.url().endsWith(`/api/records/${recordId}`)),
+    page.waitForNavigation({ waitUntil: "load" }),
     offerTask.locator("[data-save-score-component]").click()
   ]);
   const savedData = savedOfferPayload?.data || {};
