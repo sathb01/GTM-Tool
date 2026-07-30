@@ -7354,7 +7354,7 @@
       const scorePercent = Math.max(0, Math.min(100, Number(model.readinessScore) || 0));
       const resume = summaryResumeState(model);
       const focusedLaunch = focusedTestLaunchState(model);
-      const scoreBlockers = model.readinessDiagnostic?.improvements || [];
+      const scoreBlockers = status.label === "Not Ready" ? model.readinessDiagnostic?.improvements || [] : [];
       const blockers = [
         ...(setupBlocker ? [{
           kind: "setup",
@@ -7365,9 +7365,14 @@
         }] : []),
         ...scoreBlockers.map((item) => ({ ...item, kind: "score" }))
       ].slice(0, 2);
-      const blockerReady = !setupBlocker && (status.label === "Go" || blockers.length === 0);
+      const blockerReady = blockers.length === 0;
       const blockerTarget = blockerReady ? "summary-risk-details" : setupBlocker ? "" : "readiness-improvement-0";
       const blockerHref = setupBlocker?.href || "";
+      const nextState = setupNavigation.current
+        ? { value: "Setup in progress", copy: `No active blocker remains. ${focusedLaunch.explanation}`, badge: { label: "Readiness", className: "medium" }, href: focusedLaunch.href, label: focusedLaunch.label }
+        : setupNavigation.setup.started
+          ? { value: "Continue This Week", copy: resume.copy, badge: { label: "This Week", className: "strong" }, href: resume.href, label: resume.actionLabel }
+          : { value: "Ready to launch", copy: focusedLaunch.explanation, badge: { label: "Ready", className: "strong" }, href: focusedLaunch.href, label: focusedLaunch.label };
       const claims = buildSummaryClaims(model, {
         status,
         dynamicSummary,
@@ -7385,7 +7390,7 @@
         section.insertBefore(guide, cards);
       }
       if (guide) {
-        guide.innerHTML = `<h3>Start here</h3><p>Use the launch decision to choose between a focused test and the highest-impact blockers. Priority Opportunity explains what matters; This Week sequences the commitments that advance it.</p>`;
+        guide.innerHTML = `<h3>Start here</h3><p>${blockerReady ? "No active blocker remains. Continue with the exact setup, launch, or This Week action shown below." : "Use the launch decision to address the active blocker or accept the remaining uncertainty in a focused test."} Priority Opportunity explains what matters; This Week sequences the commitments that advance it.</p>`;
       }
 
       cards.innerHTML = "";
@@ -7422,13 +7427,13 @@
       });
       renderMetricCard(cards, {
         label: "Readiness Blockers / What Needs Attention",
-        value: blockerReady ? "Ready to launch" : `${blockers.length} launch blocker${blockers.length === 1 ? "" : "s"}`,
-        copy: blockerReady ? "No high-impact blocker remains. Start the focused test and use the weekly review to learn." : "Complete these items to launch and learn with confidence.",
-        badge: { label: blockerReady ? "Ready" : "Needs attention", className: blockerReady ? "strong" : "warning" },
+        value: blockerReady ? nextState.value : `${blockers.length} launch blocker${blockers.length === 1 ? "" : "s"}`,
+        copy: blockerReady ? nextState.copy : "Complete these items to launch and learn with confidence.",
+        badge: blockerReady ? nextState.badge : { label: "Needs attention", className: "warning" },
         tone: "risk",
         target: blockerTarget || undefined,
-        href: blockerReady ? focusedLaunch.href : blockerHref || undefined,
-        actionLabel: blockerReady ? "Start the focused test" : setupBlocker ? `Resolve ${setupBlocker.tool.label} blocker` : "Complete blockers",
+        href: blockerReady ? nextState.href : blockerHref || undefined,
+        actionLabel: blockerReady ? nextState.label : setupBlocker ? `Resolve ${setupBlocker.tool.label} blocker` : "Complete blockers",
         claim: claims.risk
       });
 
@@ -7438,7 +7443,7 @@
         tone: "readiness",
         title: "GTM Readiness: Score and Launch Decision",
         subtitle: "Review valid saved evidence, standard weights, and the two launch paths.",
-        content: `<p><strong>${escapeHtml(status.label)}:</strong> ${escapeHtml(status.reason)} The score is ${escapeHtml(model.readinessScore)}/100.</p><p class="summary-primary-action">${escapeHtml(focusedLaunch.explanation)}</p><div class="card-actions no-print"><a href="${escapeHtml(focusedLaunch.href)}">${escapeHtml(focusedLaunch.label)}</a>${setupBlocker ? `<a class="secondary" href="${escapeHtml(setupBlocker.href)}">Resolve ${escapeHtml(setupBlocker.tool.label)} blocker</a>` : `<a class="secondary" data-readiness-target="${escapeHtml(blockerTarget)}" href="#${escapeHtml(blockerTarget)}">Improve the highest-impact blockers</a>`}</div><div class="score-breakdown-host"></div>`
+        content: `<p><strong>${escapeHtml(status.label)}:</strong> ${escapeHtml(status.reason)} The score is ${escapeHtml(model.readinessScore)}/100.</p><p class="summary-primary-action">${escapeHtml(focusedLaunch.explanation)}</p><div class="card-actions no-print"><a href="${escapeHtml(focusedLaunch.href)}">${escapeHtml(focusedLaunch.label)}</a>${setupBlocker ? `<a class="secondary" href="${escapeHtml(setupBlocker.href)}">Resolve ${escapeHtml(setupBlocker.tool.label)} blocker</a>` : !blockerReady ? `<a class="secondary" data-readiness-target="${escapeHtml(blockerTarget)}" href="#${escapeHtml(blockerTarget)}">Improve the highest-impact blockers</a>` : ""}</div><div class="score-breakdown-host"></div>`
       });
       renderScoreBreakdown(model.readinessDiagnostic, readinessPanel.querySelector(".score-breakdown-host"), model);
       recommendation.appendChild(readinessPanel);
@@ -7465,9 +7470,9 @@
         id: "summary-risk-details",
         tone: "risk",
         title: "Readiness Blockers / What Needs Attention",
-        subtitle: blockerReady ? "The plan is ready for a controlled launch." : "Complete only the highest-impact items.",
+        subtitle: blockerReady ? "No active blocker remains. Continue with the next saved workflow state." : "Complete only the highest-impact items.",
         content: blockerReady
-          ? `<p class="summary-primary-action">Ready to launch. ${escapeHtml(focusedLaunch.explanation)}</p><div class="card-actions no-print"><a href="${escapeHtml(focusedLaunch.href)}">${escapeHtml(focusedLaunch.label)}</a></div>`
+          ? `<p class="summary-primary-action">${escapeHtml(nextState.copy)}</p><div class="card-actions no-print"><a href="${escapeHtml(nextState.href)}">${escapeHtml(nextState.label)}</a></div>`
           : `<p>Complete these items to launch and learn with confidence.</p><ol>${blockers.map((item, index) => {
             if (item.kind === "setup") return `<li><strong>${escapeHtml(item.title)}:</strong> ${escapeHtml(item.summary)} <a href="${escapeHtml(item.href)}">Resolve this setup blocker</a></li>`;
             const task = readinessTaskForImprovement(item, model, index - (setupBlocker ? 1 : 0));
@@ -19651,7 +19656,7 @@
       };
     }
 
-    function renderWeeklyReviewSetup(data) {
+    function renderLegacyWeeklyReviewSetup(data) {
       const main = document.querySelector("main");
       const state = weeklyReviewSetupState(data);
       const motion = selectedRevenueMotion(data);
@@ -19831,6 +19836,123 @@
       configureAssetPdfExport("weekly-review-setup", data);
     }
 
+    function renderWeeklyReviewSetup(data) {
+      const main = document.querySelector("main");
+      const state = weeklyReviewSetupState(data);
+      const motion = selectedRevenueMotion(data);
+      const motionId = motion?.rowId || "";
+      const owner = cleanText(data.pipelineReviewOwner || data.primaryRevenueOwner);
+      const cadenceId = motionId ? revenueScopedField(motionId, "nextExperiment", "reviewCadence") : "";
+      const cadence = cleanText(data.revenueReportingCadence || (cadenceId ? data[cadenceId] : "")) || "Weekly";
+      const crm = cleanText(data.revenueTrackingSystem || data.crmName || data.crmSystem);
+      const continueId = motionId ? revenueScopedField(motionId, "nextExperiment", "continueRule") : "preContinueRule";
+      const stopId = motionId ? revenueScopedField(motionId, "nextExperiment", "stopRule") : "preStopRule";
+      const goRule = cleanText(data[continueId]);
+      const noGoRule = cleanText(data[stopId]);
+      const reviewDay = cleanText(state.reviewDay);
+      const motionName = cleanText(motion?.values.playName || data.quickCurrentSalesMotion) || "the saved revenue motion";
+      const customerName = cleanText(selectedCustomerGroup(data)?.values.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer) || "the saved priority customer";
+      const subject = `${motionName} for ${customerName}`;
+      const ownerInput = owner ? "" : guidedInputMarkup({
+        id: "weeklySetupOwner",
+        label: `Management owner for ${subject}`,
+        subject,
+        why: "One management role must own the recurring review before the focused test begins.",
+        answer: "Choose the role accountable for convening the review and making the final Go / No-Go call.",
+        scoreEffect: "This completes Weekly GTM Review readiness; it does not change the numeric readiness score.",
+        control: `<select id="weeklySetupOwner">${messagingOptions(guidedOwnerRoleOptions(owner), owner)}</select>`
+      });
+      const crmInput = crm ? "" : guidedInputMarkup({
+        id: "weeklySetupCrm",
+        label: `CRM source of truth for ${subject}`,
+        subject,
+        why: "The review should use one CRM record rather than a separate decision-recording location.",
+        answer: "Enter the CRM name, such as HubSpot or Salesforce.",
+        scoreEffect: "This completes Weekly GTM Review readiness; it does not change the numeric readiness score.",
+        control: '<input id="weeklySetupCrm" placeholder="HubSpot">'
+      });
+      const dayInput = reviewDay ? "" : guidedInputMarkup({
+        id: "weeklySetupDay",
+        label: `Recurring review day for ${subject}`,
+        subject,
+        why: `The saved cadence is ${cadence}; choosing a day turns it into a recurring management meeting.`,
+        answer: "Choose the weekday when the owner will review CRM evidence.",
+        scoreEffect: "This completes Weekly GTM Review readiness; it does not change the numeric readiness score.",
+        control: `<select id="weeklySetupDay">${messagingOptions(["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], reviewDay)}</select>`
+      });
+      const criteriaValue = [goRule ? `Go: ${goRule}` : "", noGoRule ? `No-Go: ${noGoRule}` : ""].filter(Boolean).join("\n");
+      const criteriaInput = goRule && noGoRule ? "" : guidedInputMarkup({
+        id: "weeklySetupGoNoGo",
+        label: `Go / No-Go criteria for ${subject}`,
+        subject,
+        why: "The management review needs one advance rule and one pause rule before results arrive.",
+        answer: "Use two short lines: Go: the evidence that earns another cycle. No-Go: the evidence that pauses or stops the test.",
+        scoreEffect: "This saves the canonical Continue and Pause / Stop rules; it does not change the numeric readiness score.",
+        wide: true,
+        control: `<textarea id="weeklySetupGoNoGo" rows="4">${escapeHtml(criteriaValue)}</textarea>`
+      });
+      const steps = [
+        ["Establish management owner", owner || "Management owner still needs confirmation.", ownerInput],
+        ["Determine review cadence", cadence, ""],
+        ["Confirm the CRM as the single source of truth", crm || "CRM still needs confirmation.", crmInput],
+        ["Set up a recurring meeting", reviewDay ? `${cadence} on ${reviewDay}` : `${cadence}; select the meeting day below.`, dayInput],
+        ["Define Go / No-Go criteria", goRule && noGoRule ? `Go: ${goRule} No-Go: ${noGoRule}` : "Add only the missing Go and No-Go rules below.", criteriaInput]
+      ];
+      main.querySelectorAll("section").forEach((section) => section.remove());
+      document.title = `${data.companyName || "Company"} Weekly GTM Review Setup`;
+      document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} Weekly GTM Review Setup` : "Weekly GTM Review Setup";
+      document.getElementById("generatedMeta").textContent = "Use these recommendations once. Scorecard evidence and Continue / Revise / Pause / Stop decisions belong in the actual weekly review.";
+      const section = document.createElement("section");
+      section.id = "weekly-review-setup-workspace";
+      section.dataset.toc = "Review Setup";
+      section.className = "workspace-section";
+      section.innerHTML = `
+        <h2>Recommended Steps for GTM Review</h2>
+        <p>These are concise setup recommendations, not a separate review form. Reuse the saved plan and keep the CRM as the single source of truth.</p>
+        <ol class="weekly-review-setup-steps">${steps.map(([title, value, input]) => `<li><strong>${escapeHtml(title)}</strong><p>${escapeHtml(value)}</p>${input}</li>`).join("")}</ol>
+        <div class="overview-note"><strong>At review time</strong><p>Open Evidence This Week to use the activity, responses, conversations, qualified opportunities, and learning-signal scorecard, then choose Continue, Revise, Pause, or Stop.</p></div>
+        <div class="card-actions no-print"><button type="button" id="setWeeklyReviewReady">Set weekly review ready</button><button type="button" class="secondary" id="saveWeeklyReviewSetup">Continue later</button><a class="secondary" href="${escapeHtml(reportAssetUrl("active"))}">${state.status === "ready" ? "Continue to current work" : "Return to Tool Setup"}</a></div>
+        <p class="muted" id="weeklyReviewSetupStatus">${state.status === "ready" ? "Weekly review setup is ready. Continue to the current Tool Setup or This Week task." : "Address only the missing recommendation, then confirm readiness."}</p>
+      `;
+      main.appendChild(section);
+      const save = async (complete) => {
+        const selectedOwner = section.querySelector("#weeklySetupOwner")?.value || owner;
+        const selectedCrm = section.querySelector("#weeklySetupCrm")?.value.trim() || crm;
+        const selectedDay = section.querySelector("#weeklySetupDay")?.value || reviewDay;
+        const criteria = section.querySelector("#weeklySetupGoNoGo")?.value.trim() || criteriaValue;
+        const goMatch = criteria.match(/(?:^|\n)\s*Go:\s*(.+)/i);
+        const noGoMatch = criteria.match(/(?:^|\n)\s*No-Go:\s*(.+)/i);
+        const selectedGo = goRule || cleanText(goMatch?.[1]);
+        const selectedNoGo = noGoRule || cleanText(noGoMatch?.[1]);
+        if (complete && [selectedOwner, cadence, selectedCrm, selectedDay, selectedGo, selectedNoGo].some((value) => !cleanText(value))) {
+          section.querySelector("#weeklyReviewSetupStatus").textContent = "Complete the one missing owner, CRM, meeting-day, or Go / No-Go recommendation before marking ready.";
+          return;
+        }
+        if (selectedOwner) {
+          data.pipelineReviewOwner = selectedOwner;
+          if (!data.primaryRevenueOwner) data.primaryRevenueOwner = selectedOwner;
+        }
+        data.revenueReportingCadence = cadence;
+        if (selectedCrm) data.revenueTrackingSystem = selectedCrm;
+        if (selectedGo) data[continueId] = selectedGo;
+        if (selectedNoGo) data[stopId] = selectedNoGo;
+        state.reviewDay = selectedDay;
+        state.status = complete ? "ready" : "in-progress";
+        state.updatedAt = new Date().toISOString();
+        if (complete) state.completedAt = state.updatedAt;
+        data.weeklyGtmReviewSetupWorkspace = state;
+        const setup = data.activePlanToolSetupWorkspace;
+        if (setup?.statuses) setup.statuses["weekly-review-setup"] = complete ? "Ready" : "In progress";
+        if (setup?.reasons) delete setup.reasons["weekly-review-setup"];
+        const saved = await persistActivePlanData(data, section.querySelector("#weeklyReviewSetupStatus"));
+        if (saved) renderWeeklyReviewSetup(data);
+      };
+      section.querySelector("#saveWeeklyReviewSetup").addEventListener("click", () => save(false));
+      section.querySelector("#setWeeklyReviewReady").addEventListener("click", () => save(true));
+      setupReportNavigation();
+      configureAssetPdfExport("weekly-review-setup", data);
+    }
+
     function weeklyReviewEvidence(data, profile) {
       const messageWorkspace = messagingWorkspaceState(data, profile);
       const proofEvidence = proofBuilderEvidence(data, profile);
@@ -19988,7 +20110,18 @@
         scoreEffect: "Execution results inform the weekly decision; they do not retroactively change the saved plan-readiness score.",
         control: `<input id="weekly-metric-${key}" type="number" min="0" data-weekly-metric="${key}" value="${escapeHtml(value)}">`
       }));
-      overview.innerHTML = `<h2>Evidence This Week</h2><p class="muted">Bring these totals from the CRM, spreadsheet, or outreach system. GTM Intelligence OS uses the summary to recommend the next decision; it does not duplicate the underlying contact or opportunity records.</p><div class="guided-input-grid">${weeklyMetricFields.join("")}</div>`;
+      const latestLearningSignal = cleanText(workspace.reviews.at(-1)?.learningSignal || evidence.learnings[0]);
+      const learningSignalField = guidedInputMarkup({
+        id: "weekly-review-learning-signal",
+        label: `Learning signal for ${weeklySubject}`,
+        subject: weeklySubject,
+        why: "The scorecard needs one buyer pattern alongside activity and opportunity counts before the team chooses Continue, Revise, Pause, or Stop.",
+        answer: "Record one repeated objection, reason buyers advance, or reason qualified buyers decline during this review period.",
+        scoreEffect: "This informs the weekly execution decision; it does not change the saved plan-readiness score.",
+        wide: true,
+        control: `<textarea id="weeklyReviewLearningSignal" rows="3">${escapeHtml(latestLearningSignal)}</textarea>`
+      });
+      overview.innerHTML = `<h2>Evidence This Week</h2><p class="muted"><strong>Weekly scorecard:</strong> activity, responses, conversations, qualified opportunities, and one learning signal. Bring these results from the CRM. GTM Intelligence OS uses the summary to recommend the next decision; it does not create a separate source of truth.</p><div class="guided-input-grid">${weeklyMetricFields.join("")}${learningSignalField}</div>`;
       main.appendChild(overview);
 
       const insights = document.createElement("section");
@@ -20034,7 +20167,7 @@
           change: decision.querySelector("#weeklyLearningChangeText").value,
           constants: learning.variables.filter((item) => item !== "No strategic change" && item !== selectedVariable).slice(0, 5)
         };
-        workspace.reviews.push({ id: `weekly-review-${Date.now()}`, date: new Date().toISOString().slice(0, 10), decision: decision.querySelector("#weeklyReviewDecision").value, rationale: decision.querySelector("#weeklyReviewRationale").value, learningChange, actions, metrics });
+        workspace.reviews.push({ id: `weekly-review-${Date.now()}`, date: new Date().toISOString().slice(0, 10), decision: decision.querySelector("#weeklyReviewDecision").value, rationale: decision.querySelector("#weeklyReviewRationale").value, learningSignal: overview.querySelector("#weeklyReviewLearningSignal").value.trim(), learningChange, actions, metrics });
         await saveWeeklyReviewWorkspace(data, workspace, decision.querySelector("#weeklyReviewSaveStatus"));
         renderWeeklyReviewWorkspace(data);
       });
