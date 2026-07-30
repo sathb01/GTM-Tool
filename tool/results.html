@@ -3707,6 +3707,7 @@
   </script>
   <script src="gtm-taxonomy.js?v=20260617-revenue-motions"></script>
   <script src="intake-schema.js?v=20260723-revenue-motion-buyer-roles-1"></script>
+  <script src="guided-task-context.js?v=20260729-contextual-next-step-1"></script>
   <script>
     const schema = window.GTM_INTAKE_SCHEMA;
     const STORAGE_KEY = schema.storageKey;
@@ -5802,6 +5803,7 @@
       const differentiator = cleanText(offerScopedValue(data, activeRowId, "offerDifferentiator", data.offerDifferentiator));
       const firstUseCase = cleanText(offerScopedValue(data, activeRowId, "firstUseCaseForOffer", data.firstUseCaseForOffer || data.bestFitFirstUseCase));
       const easiestNextStep = cleanText(offerScopedValue(data, activeRowId, "easiestNextStep", data.easiestNextStep));
+      const hasMeaningfulNextStep = window.GTM_GUIDED_TASK_CONTEXT.isMeaningfulNextStep(easiestNextStep);
       const firstValueClaim = firstRepeatableWhere(data, activeRowId ? scopedOfferTable(activeRowId, "valueClaims") : "valueClaims", (row) => (
         (row.values.outcome || row.values.outcomeType || row.values.buyerFacingClaim || row.values.buyerLanguage)
         && (row.values.metric || row.values.successMetric || row.values.improvement || row.values.targetImprovement || row.values.targetImprovementValue || row.values.baseline || row.values.baselineValue || row.values.timeframe || row.values.timeToImpact)
@@ -5843,7 +5845,7 @@
       );
       const buyingPathScore = Math.max(
         scoreFromChoice(offerScopedValue(data, activeRowId, "buyingPathClarityRating", data.buyingPathClarityRating), [[/conversion path/, 5], [/requirements/, 4], [/buyer requirements are unclear/, 3], [/vague/, 2], [/no clear/, 1]]),
-        firstUseCase && easiestNextStep ? 3 : firstUseCase ? 2 : 0
+        firstUseCase && hasMeaningfulNextStep ? 4 : firstUseCase ? 2 : 0
       );
       const portfolioRiskEvidence = cleanText([
         offer?.values.buyingCommitteeLikelyObjection,
@@ -5857,7 +5859,7 @@
         { name: "Problem urgency", score: urgencyScore, nextMove: costOfInaction ? "Add stronger urgency evidence for the saved problem and trigger." : "Add the cost of inaction for the saved buyer problem and timing trigger.", fieldIds: [activeRowId ? scopedOfferField(activeRowId, "offerCostOfInaction") : "offerCostOfInaction"] },
         { name: "Measurable value", score: firstValueClaim ? (firstValueClaim.values.proofStrength || firstValueClaim.values.evidenceAvailable ? 4 : 3) : partialValueEvidence ? 2 : 0, nextMove: partialValueEvidence ? `Make "${firstSavedMetric(data)}" measurable by adding its current value, target value, and timeframe.` : "Define one measurable value claim with metric, current value, target improvement, and timeframe.", fieldIds: [`${valueClaimPrefix}baselineValue`, `${valueClaimPrefix}targetImprovementValue`, `${valueClaimPrefix}timeToImpact`] },
         { name: "Promise and positioning", score: promiseScore, nextMove: savedPromise ? "Add the differentiator that makes the saved buyer-facing promise credible and distinct." : "Write the offer promise and differentiator in buyer-facing language.", fieldIds: [activeRowId ? scopedOfferField(activeRowId, "offerDifferentiator") : "offerDifferentiator"] },
-        { name: "Buying path", score: buyingPathScore, nextMove: firstUseCase ? "Add the easiest next step for the saved first use case." : "Define the first use case and easiest next step for the buyer.", fieldIds: [activeRowId ? scopedOfferField(activeRowId, firstUseCase ? "easiestNextStep" : "firstUseCaseForOffer") : (firstUseCase ? "easiestNextStep" : "firstUseCaseForOffer")] },
+        { name: "Buying path", score: buyingPathScore, nextMove: firstUseCase ? `Confirm the smallest evidence-producing buyer commitment after the saved first use case: ${firstUseCase}.` : "Define the first use case and the smallest evidence-producing buyer commitment.", fieldIds: [activeRowId ? scopedOfferField(activeRowId, firstUseCase ? "easiestNextStep" : "firstUseCaseForOffer") : (firstUseCase ? "easiestNextStep" : "firstUseCaseForOffer")] },
         { name: "Packaging and pricing", score: Math.max(scoreFromChoice(offerScopedValue(data, activeRowId, "packagingClarityRating", data.packagingClarityRating), [[/validated|repeatable/, 5], [/entry, core, and expansion/, 4], [/defined/, 3], [/custom/, 2], [/not packaged/, 1]]), offerPricingConfidence(data, activeRowId) === "High" ? 4 : offerPricingConfidence(data, activeRowId) === "Medium" ? 3 : 0), nextMove: "Clarify entry, core, and expansion packages plus price range and approval level." },
         { name: "Proof readiness", score: proofScore, nextMove: "Attach proof to the claims buyers must believe before they buy." },
         { name: "Risk reduction", score: (offerScopedValue(data, activeRowId, "buyerAlternativesToday", data.alternatives) && firstRepeatableWhere(data, activeRowId ? scopedOfferTable(activeRowId, "objectionHandling") : "objectionHandling", (row) => row.values.bestResponse || row.values.proofAssetNeeded)) ? 4 : portfolioRiskEvidence ? 3 : offerScopedValue(data, activeRowId, "offerObjections", data.objections) ? 2 : 0, nextMove: "Map the saved objections and concerns to responses and proof assets." }
@@ -7298,6 +7300,36 @@
       };
     }
 
+    function reportAssetUrlWithState(asset, params = {}) {
+      const destination = new URL(reportAssetUrl(asset), window.location.href);
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") destination.searchParams.set(key, value);
+      });
+      return `${destination.pathname.split("/").pop() || "results.html"}${destination.search}${destination.hash}`;
+    }
+
+    function focusedTestLaunchState(model) {
+      const plan = activePlanDefinition(model.data);
+      const weekly = activePlanWeeklyWorkspace(model.data, plan);
+      const setup = activePlanToolSetup(model.data, plan, weekly);
+      const current = setup.tools.find((tool) => !["Ready", "Complete", "Skip for now"].includes(setup.statuses[tool.id]));
+      const guidance = window.GTM_GUIDED_TASK_CONTEXT.focusedTestRouteGuidance({
+        setupComplete: !current,
+        currentTool: current?.label,
+        currentStatus: current ? setup.statuses[current.id] : "",
+        currentDone: current?.done,
+        weekAction: weekly.currentPriorities[0]?.title,
+        listStatus: model.data.targetListWorkspace?.setupStatus,
+        resultsLocation: model.data.weeklyGtmReviewSetupWorkspace?.evidenceLocation || model.data.revenueTrackingSystem || "Weekly GTM Review"
+      });
+      const href = current
+        ? current.type === "reference"
+          ? reportAssetUrlWithState("active", { setupTask: current.id })
+          : activePlanToolUrl(current.asset, "setup")
+        : reportAssetUrlWithState("active", { focusedTest: "1" });
+      return { ...guidance, href, currentTool: current };
+    }
+
     function renderWorkspaceDashboard(model) {
       const cards = document.getElementById("workspaceSummaryCards");
       const recommendation = document.getElementById("workspaceRecommendation");
@@ -7310,6 +7342,7 @@
       const topPriority = canonical.rankedPriorities[0];
       const scorePercent = Math.max(0, Math.min(100, Number(model.readinessScore) || 0));
       const resume = summaryResumeState(model);
+      const focusedLaunch = focusedTestLaunchState(model);
       const blockers = (model.readinessDiagnostic?.improvements || []).slice(0, 2);
       const blockerReady = status.label === "Go" || blockers.length === 0;
       const blockerTarget = blockerReady ? "summary-risk-details" : "readiness-improvement-0";
@@ -7382,7 +7415,7 @@
         tone: "readiness",
         title: "GTM Readiness: Score and Launch Decision",
         subtitle: "Review valid saved evidence, standard weights, and the two launch paths.",
-        content: `<p><strong>${escapeHtml(status.label)}:</strong> ${escapeHtml(status.reason)} The score is ${escapeHtml(model.readinessScore)}/100.</p><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Start the focused test — accept remaining uncertainty</a><a class="secondary" data-readiness-target="${escapeHtml(blockerTarget)}" href="#${escapeHtml(blockerTarget)}">Improve the highest-impact blockers</a></div><div class="score-breakdown-host"></div>`
+        content: `<p><strong>${escapeHtml(status.label)}:</strong> ${escapeHtml(status.reason)} The score is ${escapeHtml(model.readinessScore)}/100.</p><p class="summary-primary-action">${escapeHtml(focusedLaunch.explanation)}</p><div class="card-actions no-print"><a href="${escapeHtml(focusedLaunch.href)}">${escapeHtml(focusedLaunch.label)}</a><a class="secondary" data-readiness-target="${escapeHtml(blockerTarget)}" href="#${escapeHtml(blockerTarget)}">Improve the highest-impact blockers</a></div><div class="score-breakdown-host"></div>`
       });
       renderScoreBreakdown(model.readinessDiagnostic, readinessPanel.querySelector(".score-breakdown-host"), model);
       recommendation.appendChild(readinessPanel);
@@ -7411,7 +7444,7 @@
         title: "Readiness Blockers / What Needs Attention",
         subtitle: blockerReady ? "The plan is ready for a controlled launch." : "Complete only the highest-impact items.",
         content: blockerReady
-          ? `<p class="summary-primary-action">Ready to launch. Start the focused test, capture buyer evidence, and review results weekly.</p><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("active"))}">Start the focused test</a></div>`
+          ? `<p class="summary-primary-action">Ready to launch. ${escapeHtml(focusedLaunch.explanation)}</p><div class="card-actions no-print"><a href="${escapeHtml(focusedLaunch.href)}">${escapeHtml(focusedLaunch.label)}</a></div>`
           : `<p>Complete these items to launch and learn with confidence.</p><ol>${blockers.map((item, index) => {
             const task = readinessTaskForImprovement(item, model, index);
             return `<li><strong>${escapeHtml(task.title || item.area)}:</strong> ${escapeHtml(task.summary || item.action || topRisk)}</li>`;
@@ -13782,7 +13815,9 @@
 
     function scoreFieldHasValue(data, fieldId) {
       if (!fieldId) return false;
-      if (cleanText(data[fieldId])) return true;
+      const directValue = cleanText(data[fieldId]);
+      if (/easiestNextStep$/.test(fieldId) && !window.GTM_GUIDED_TASK_CONTEXT.isMeaningfulNextStep(directValue)) return false;
+      if (directValue) return true;
       const prefix = `${fieldId}__`;
       return Object.entries(data).some(([key, value]) => key.startsWith(prefix) && cleanText(value));
     }
@@ -13897,6 +13932,7 @@
       const owner = cleanText(data.signalRoutingOwner || data.signalOperatingOwner || data.primaryRevenueOwner);
       const metric = firstSavedMetric(data);
       const offerRowId = model.primaryOffer?.rowId || primaryOfferRow(data)?.rowId || "offer-1";
+      const firstUseCase = cleanText(offerScopedValue(data, offerRowId, "firstUseCaseForOffer", data.firstUseCaseForOffer || data.bestFitFirstUseCase));
       const valuePrefix = `${scopedOfferTable(offerRowId, "valueClaims")}__value-claim-1__`;
       const routingPrefix = `${signalScopedTable(signalPlay?.rowId || "play-1", "signalRoutingRules")}__signal-rule-1__`;
       const taskId = `readiness-improvement-${index}`;
@@ -13998,6 +14034,53 @@
                 answer: "Confirm the saved 90-day window or replace it with the number of days the buyer should reasonably expect.",
                 scoreEffect: "Adds the timeframe used by the Measurable value dimension.",
                 control: `<input id="guided-${index}-value-timeframe" data-score-field="${escapeHtml(timeframeField)}" value="${escapeHtml(data[timeframeField] || "Within 60-90 days")}">`
+              })
+            ],
+            actions,
+            status
+          })
+        };
+      }
+
+      const nextStepField = scopedOfferField(offerRowId, "easiestNextStep");
+      if (item.area === "Offer and Proof" && missingItemFields.some((fieldId) => fieldId === nextStepField || /easiestNextStep$/.test(fieldId))) {
+        const offerName = cleanText(model.primaryOffer?.values.offerName || data.primaryOfferName || data.primaryGtmOffer) || "the saved offer";
+        const nextStepContext = window.GTM_GUIDED_TASK_CONTEXT.smallestEvidenceProducingNextStep({
+          customer,
+          buyer,
+          offer: offerName,
+          motion: motionName,
+          pilot: motion?.values.newOffer || firstUseCase,
+          channel: channels
+        });
+        const savedNextStep = cleanText(data[nextStepField]);
+        const recommendedValue = window.GTM_GUIDED_TASK_CONTEXT.isMeaningfulNextStep(savedNextStep)
+          ? savedNextStep
+          : nextStepContext.recommendation;
+        const control = nextStepContext.mode === "choice"
+          ? `<select id="guided-${index}-next-step" data-score-field="${escapeHtml(nextStepField)}">${messagingOptions(["", ...(nextStepContext.choices || [])], savedNextStep)}</select>`
+          : `<textarea id="guided-${index}-next-step" rows="5" data-score-field="${escapeHtml(nextStepField)}">${escapeHtml(recommendedValue)}</textarea>`;
+        return {
+          title: `Confirm the smallest evidence-producing next step for ${offerName}`,
+          summary: `Give ${buyer} at one qualified ${customer} account one bounded next action that can prove or challenge ${offerName}.`,
+          derivedWrites: {},
+          html: guidedTaskMarkup({
+            id: taskId,
+            title: `Confirm the smallest evidence-producing next step for ${offerName}`,
+            subject: `${offerName} for ${buyer} at ${customer}`,
+            why: nextStepContext.why,
+            savedContext: `First use case: ${firstUseCase || "not yet saved"}. Revenue motion: ${motionName} through ${channels}.`,
+            fields: [
+              guidedInputMarkup({
+                id: `guided-${index}-next-step`,
+                label: `Recommended buyer commitment for ${offerName}`,
+                subject: `${offerName} for ${buyer} at ${customer}`,
+                why: nextStepContext.why,
+                answer: nextStepContext.mode === "choice"
+                  ? "Choose one bounded action. Each option must produce an acceptance, objection, or refusal that can be recorded."
+                  : "Edit the recommendation if needed, but keep one named buyer, one limited action, a time or scope boundary, and the evidence to record.",
+                scoreEffect: nextStepContext.readinessEffect,
+                control
               })
             ],
             actions,
@@ -17304,6 +17387,12 @@
       document.getElementById("metadataPills").innerHTML = "";
 
       const toolSetup = activePlanToolSetup(data, plan, weeklyWorkspace);
+      const focusedTestRequested = new URLSearchParams(window.location.search).get("focusedTest") === "1";
+      if (focusedTestRequested && toolSetup.ready && !toolSetup.started) {
+        toolSetup.started = true;
+        toolSetup.startedAt = new Date().toISOString();
+        persistActivePlanData(data, null);
+      }
       document.getElementById("companyName").textContent = data.companyName
         ? `${data.companyName} ${toolSetup.started ? "This Week" : "Plan Setup"}`
         : toolSetup.started ? "This Week" : "Plan Setup";
@@ -17424,7 +17513,13 @@
       actions.id = "active-plan-this-week";
       actions.className = "workspace-section active-plan-current-work";
       actions.dataset.toc = "This Week";
-      actions.innerHTML = `<h2>Do This Week</h2><p class="muted">Week ${weeklyWorkspace.currentWeek}. Complete no more than three priorities, record the result in the same card, and close the week when the work is done.</p><div class="active-plan-actions"></div><div class="active-plan-save-row"><button type="button" id="saveWeeklyProgressButton">Save Weekly Progress</button><span class="active-plan-save-status" id="weeklyProgressSaveStatus"></span></div><div class="weekly-close-prompt" id="weeklyClosePrompt" hidden><p><strong>Week ${weeklyWorkspace.currentWeek} is ready to close.</strong> All priorities are complete and have a result.</p><button type="button" id="reviewCloseWeekButton">Close Week ${weeklyWorkspace.currentWeek}</button></div>`;
+      const targetListStatus = cleanText(data.targetListWorkspace?.setupStatus) || "List structure ready; account count not yet recorded";
+      const targetListCount = Number(data.targetListWorkspace?.initialCount) || 0;
+      const resultsLocation = cleanText(data.weeklyGtmReviewSetupWorkspace?.evidenceLocation || data.revenueTrackingSystem) || "Weekly GTM Review";
+      const focusedTestContext = focusedTestRequested
+        ? `<div class="overview-note"><strong>Focused test started</strong><p><strong>First action:</strong> ${escapeHtml(weeklyWorkspace.currentPriorities[0]?.title || "Complete the first saved Week 1 action")}. <strong>25-account test:</strong> ${escapeHtml(targetListStatus)}${targetListCount ? `; ${escapeHtml(targetListCount)} qualified accounts recorded` : ""}. <strong>Record results in:</strong> ${escapeHtml(resultsLocation)} and the result fields below.</p></div>`
+        : "";
+      actions.innerHTML = `${focusedTestContext}<h2>Do This Week</h2><p class="muted">Week ${weeklyWorkspace.currentWeek}. Complete no more than three priorities, record the result in the same card, and close the week when the work is done.</p><div class="active-plan-actions"></div><div class="active-plan-save-row"><button type="button" id="saveWeeklyProgressButton">Save Weekly Progress</button><span class="active-plan-save-status" id="weeklyProgressSaveStatus"></span></div><div class="weekly-close-prompt" id="weeklyClosePrompt" hidden><p><strong>Week ${weeklyWorkspace.currentWeek} is ready to close.</strong> All priorities are complete and have a result.</p><button type="button" id="reviewCloseWeekButton">Close Week ${weeklyWorkspace.currentWeek}</button></div>`;
       const actionList = actions.querySelector(".active-plan-actions");
       weeklyWorkspace.currentPriorities.forEach((action, index) => {
         const card = document.createElement("article");
@@ -18809,6 +18904,23 @@
         "Message or sequence used",
         "Buyer response, objection, or learning"
       ];
+      const exclusionItems = personaAssetItems(
+        repeatableListItems(data, "icpDisqualificationRules"),
+        repeatableListItems(data, "avoidSegments"),
+        data.quickWhoToAvoid
+      );
+      const creationPlan = window.GTM_GUIDED_TASK_CONTEXT.targetListCreationPlan({
+        company: data.companyName,
+        customer: profile.customerGroup,
+        criteria: criteriaItems,
+        exclusions: exclusionItems,
+        requiredFields
+      });
+      const targetWorkspace = data.targetListWorkspace && typeof data.targetListWorkspace === "object"
+        ? data.targetListWorkspace
+        : { targets: [] };
+      targetWorkspace.targets = Array.isArray(targetWorkspace.targets) ? targetWorkspace.targets : [];
+      const savedSetupStatus = cleanText(targetWorkspace.setupStatus) || "Not started";
       const main = document.querySelector("main");
       document.body.dataset.hasIcpAsset = "true";
       document.body.dataset.hasPersonaAsset = "true";
@@ -18832,18 +18944,136 @@
       setup.id = "target-list-system-setup";
       setup.dataset.toc = "Set Up the List";
       setup.className = "workspace-section";
-      setup.innerHTML = `<h2>Set Up the List in ${escapeHtml(systemLabel)}</h2><div class="persona-guide-grid"><div class="persona-guide-block"><h3>Recommended starting size</h3>${personaAssetListMarkup([profile.isPreRevenue ? "Build a pool of 25 qualified people or accounts, then recruit until the planned interviews or tests are complete." : "Begin with 25 high-quality accounts. Add volume only after the list produces useful conversations or qualified opportunities.", "Keep one row or CRM record per account or person.", "Do not copy the same working list into GTM Intelligence OS."])}</div><div class="persona-guide-block"><h3>Required fields</h3>${personaAssetListMarkup(requiredFields)}</div></div><div class="messaging-editor-actions no-print"><button type="button" id="copyTargetListSetup">Create the list in ${escapeHtml(systemLabel)}</button><span class="messaging-save-status" id="targetListSetupStatus"></span></div><details class="score-component-detail"><summary>Secondary setup resource</summary><p>Copy the criteria and required fields if your CRM or spreadsheet needs a manual setup reference. Messaging, outreach, and weekly review remain separate resumable setup tasks.</p></details>`;
+      setup.innerHTML = `<h2>Set Up the List in ${escapeHtml(systemLabel)}</h2><div class="persona-guide-grid"><div class="persona-guide-block"><h3>Recommended starting size</h3>${personaAssetListMarkup([profile.isPreRevenue ? "Build a pool of 25 qualified people or accounts, then recruit until the planned interviews or tests are complete." : "Begin with 25 high-quality accounts. Add volume only after the list produces useful conversations or qualified opportunities.", "Keep one row or CRM record per account or person.", "Do not copy the same working list into GTM Intelligence OS."])}</div><div class="persona-guide-block"><h3>Required fields</h3>${personaAssetListMarkup(requiredFields)}</div></div><div class="messaging-editor-actions no-print"><button type="button" id="openTargetListSetup">Create the list in ${escapeHtml(systemLabel)}</button><span class="messaging-save-status" id="targetListSetupStatus"></span></div><div class="guided-task" id="targetListCreationChecklist" hidden><div><h3>Manual ${escapeHtml(systemLabel)} list-creation checklist</h3><p>No HubSpot integration is assumed. Complete these steps manually in ${escapeHtml(systemLabel)}.</p></div><div class="guided-task-context"><p><strong>Recommended list name:</strong> ${escapeHtml(creationPlan.listName)}</p><p><strong>Initial quantity:</strong> ${escapeHtml(creationPlan.initialQuantity)} qualified accounts</p><p><strong>Saved customer group:</strong> ${escapeHtml(profile.customerGroup)}</p></div><div class="persona-guide-grid"><div class="persona-guide-block"><h4>1. Account criteria and filters</h4>${personaAssetListMarkup(creationPlan.criteria)}</div><div class="persona-guide-block"><h4>2. Exclusions</h4>${personaAssetListMarkup(creationPlan.exclusions)}</div><div class="persona-guide-block"><h4>3. Required HubSpot fields or properties</h4>${personaAssetListMarkup(creationPlan.requiredFields)}</div><div class="persona-guide-block"><h4>4. Complete and continue</h4>${personaAssetListMarkup([`Create the list manually in ${systemLabel}.`, `Use the recommended name: ${creationPlan.listName}.`, creationPlan.completionAction])}</div></div><div class="card-actions no-print"><a href="#target-list-progress">Mark list created / record count / continue</a><button type="button" class="secondary" id="copyTargetListSetup">Copy this checklist</button></div></div><details class="score-component-detail"><summary>Secondary setup resource</summary><p>Copy the checklist if your CRM or spreadsheet needs a manual setup reference. Messaging, outreach, and weekly review remain separate resumable setup tasks.</p></details>`;
       main.appendChild(setup);
+      setup.querySelector("#openTargetListSetup").addEventListener("click", () => {
+        const checklist = setup.querySelector("#targetListCreationChecklist");
+        checklist.hidden = false;
+        setup.querySelector("#targetListSetupStatus").textContent = `Follow the manual ${systemLabel} checklist below, then mark the list created and save progress.`;
+        checklist.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
       setup.querySelector("#copyTargetListSetup").addEventListener("click", async () => {
-        const text = [`TARGET LIST SETUP - ${data.companyName || "Company"}`, "", "WHO BELONGS", ...criteriaItems.map((item) => `- ${item}`), "", "REQUIRED FIELDS", ...requiredFields.map((item) => `- ${item}`)].join("\n");
+        const text = [
+          `TARGET LIST SETUP - ${data.companyName || "Company"}`,
+          `Recommended list name: ${creationPlan.listName}`,
+          `Initial quantity: ${creationPlan.initialQuantity} qualified accounts`,
+          "",
+          "ACCOUNT CRITERIA",
+          ...creationPlan.criteria.map((item) => `- ${item}`),
+          "",
+          "EXCLUSIONS",
+          ...creationPlan.exclusions.map((item) => `- ${item}`),
+          "",
+          "REQUIRED HUBSPOT FIELDS OR PROPERTIES",
+          ...creationPlan.requiredFields.map((item) => `- ${item}`),
+          "",
+          "COMPLETION",
+          creationPlan.completionAction
+        ].join("\n");
         const status = setup.querySelector("#targetListSetupStatus");
         try {
           await copyTextToClipboard(text);
-          status.textContent = `Criteria copied. Create the first 25-account list in ${systemLabel}, then return to Tool Setup and mark this step Ready.`;
+          status.textContent = `Checklist copied. Create the list manually in ${systemLabel}, then mark the list created and save progress below.`;
         } catch (error) {
           status.textContent = "Copy failed. Select and copy the guidance above.";
         }
       });
+
+      const progress = document.createElement("section");
+      progress.id = "target-list-progress";
+      progress.dataset.toc = "Save and Continue";
+      progress.className = "workspace-section";
+      const statusField = guidedInputMarkup({
+        id: "targetListSetupProgress",
+        label: `List setup status for ${profile.customerGroup} in ${systemLabel}`,
+        subject: `The first ${profile.customerGroup} Target List in ${systemLabel}`,
+        why: "Tool Setup uses this status to preserve progress and decide whether Target List Setup should remain current or advance.",
+        answer: "Choose the closest state. Select List created with required fields only when the saved required-field structure exists; adding accounts may happen during Week 1.",
+        scoreEffect: "This changes Tool Setup progress only; it does not directly change the readiness score.",
+        control: `<select id="targetListSetupProgress">${messagingOptions(["Not started", "List created; required fields still missing", "List created with required fields", "First qualified accounts added"], savedSetupStatus)}</select>`
+      });
+      const countField = guidedInputMarkup({
+        id: "targetListInitialCount",
+        label: `Qualified ${profile.customerGroup} account count in ${systemLabel}`,
+        subject: `${creationPlan.listName} in ${systemLabel}`,
+        why: "The saved count lets Tool Setup distinguish a completed list structure from a list that already contains the first qualified accounts.",
+        answer: "Enter a whole-number count only after qualified accounts have been added. Leave it blank while creating the list structure.",
+        scoreEffect: "This records Tool Setup progress only; it does not directly change readiness.",
+        control: `<input id="targetListInitialCount" type="number" min="0" step="1" value="${escapeHtml(targetWorkspace.initialCount || "")}" placeholder="0">`
+      });
+      progress.innerHTML = `<h2>Save Target List Setup Progress</h2><p>Save this setup state once the list structure changes. The next guided action will appear immediately below.</p><div class="guided-input-grid">${statusField}${countField}</div><div class="card-actions no-print"><button type="button" id="saveTargetListProgress">Save progress</button><a class="secondary" href="${escapeHtml(reportAssetUrl("active"))}">Continue later in Tool Setup</a></div><p class="muted" id="targetListProgressStatus"></p><div class="overview-note" id="targetListNextAction" hidden></div>`;
+      main.appendChild(progress);
+      const renderNextTargetListAction = (guidance, nextTool) => {
+        const action = progress.querySelector("#targetListNextAction");
+        action.hidden = false;
+        action.innerHTML = `<strong>${escapeHtml(guidance.title)}</strong><p>${escapeHtml(guidance.body)}</p><div class="card-actions no-print"><a href="${escapeHtml(guidance.ready ? reportAssetUrl("active") : guidance.actionTarget || "#target-list-system-setup")}">${escapeHtml(guidance.actionLabel)}</a></div>`;
+        if (guidance.ready && nextTool) {
+          action.dataset.nextTool = nextTool.id;
+        } else {
+          delete action.dataset.nextTool;
+        }
+        const nextLink = action.querySelector("a");
+        if (!guidance.ready && (guidance.actionTarget || "#target-list-system-setup") === "#target-list-system-setup") {
+          nextLink.addEventListener("click", (event) => {
+            event.preventDefault();
+            const checklist = setup.querySelector("#targetListCreationChecklist");
+            checklist.hidden = false;
+            checklist.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        }
+      };
+      progress.querySelector("#saveTargetListProgress").addEventListener("click", async () => {
+        targetWorkspace.setupStatus = progress.querySelector("#targetListSetupProgress").value;
+        targetWorkspace.initialCount = progress.querySelector("#targetListInitialCount").value;
+        const plan = activePlanDefinition(data);
+        const weeklyWorkspace = activePlanWeeklyWorkspace(data, plan);
+        const toolSetup = activePlanToolSetup(data, plan, weeklyWorkspace);
+        const initialGuidance = window.GTM_GUIDED_TASK_CONTEXT.targetListProgressGuidance({
+          status: targetWorkspace.setupStatus,
+          initialCount: targetWorkspace.initialCount,
+          system: systemLabel,
+          customer: profile.customerGroup,
+          nextTool: "the next Tool Setup task"
+        });
+        toolSetup.statuses.targets = initialGuidance.ready ? "Ready" : "In progress";
+        toolSetup.ready = toolSetup.tools.every((tool) => ["Ready", "Skip for now"].includes(toolSetup.statuses[tool.id]));
+        const nextTool = toolSetup.tools.find((tool) => !["Ready", "Complete", "Skip for now"].includes(toolSetup.statuses[tool.id]));
+        const guidance = window.GTM_GUIDED_TASK_CONTEXT.targetListProgressGuidance({
+          status: targetWorkspace.setupStatus,
+          initialCount: targetWorkspace.initialCount,
+          system: systemLabel,
+          customer: profile.customerGroup,
+          nextTool: nextTool?.label || "Week 1"
+        });
+        const saved = await saveTargetListWorkspace(data, targetWorkspace, profile, progress.querySelector("#targetListProgressStatus"));
+        renderNextTargetListAction(guidance, nextTool);
+        if (saved) {
+          progress.querySelector("#targetListProgressStatus").textContent = guidance.ready
+            ? `Progress saved. ${nextTool ? `${nextTool.label} is now the current guided task.` : "Tool Setup is ready for Week 1."}`
+            : "Progress saved. Complete the named list requirement below, then save again.";
+        }
+      });
+      if (savedSetupStatus !== "Not started") {
+        const plan = activePlanDefinition(data);
+        const weeklyWorkspace = activePlanWeeklyWorkspace(data, plan);
+        const toolSetup = activePlanToolSetup(data, plan, weeklyWorkspace);
+        const savedReady = window.GTM_GUIDED_TASK_CONTEXT.targetListProgressGuidance({
+          status: savedSetupStatus,
+          initialCount: targetWorkspace.initialCount,
+          system: systemLabel,
+          customer: profile.customerGroup
+        }).ready;
+        const nextTool = savedReady
+          ? toolSetup.tools.find((tool) => tool.id !== "targets" && !["Ready", "Complete", "Skip for now"].includes(toolSetup.statuses[tool.id]))
+          : null;
+        renderNextTargetListAction(window.GTM_GUIDED_TASK_CONTEXT.targetListProgressGuidance({
+          status: savedSetupStatus,
+          initialCount: targetWorkspace.initialCount,
+          system: systemLabel,
+          customer: profile.customerGroup,
+          nextTool: nextTool?.label || "the next Tool Setup task"
+        }), nextTool);
+      }
       setupReportNavigation();
       configureAssetPdfExport("targets", data, profile.model);
     }

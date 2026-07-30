@@ -4,6 +4,16 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-29 Contextual Smallest Next Step
+
+- Stopped treating vague one-word actions such as `demo`, `call`, or `pilot` as completed buying-path readiness evidence.
+- Added a shared recommendation builder that uses the saved customer, buyer, offer, limited pilot, revenue motion, and channels to prefill one concrete evidence-producing buyer commitment.
+- Added a bounded three-choice fallback when the saved plan does not contain enough context for a reliable recommendation.
+- Added a non-browser ClientRenew regression that fails when the canonical next-step task has an empty recommendation.
+- Changed Target List Setup's primary action from a clipboard-only operation to an in-page manual HubSpot checklist with saved ICP criteria, exclusions, fields, list name, initial quantity, and a completion route.
+- Added durable Target List Setup status and qualified-account count. Save progress now either names the exact remaining requirement or advances Tool Setup with a concrete Continue action.
+- Made Start the focused test state-aware: incomplete setup routes to the exact current prerequisite, while completed setup enters Week 1 with the first action, list status, and result-recording location.
+
 ## 2026-07-29 Contextual Guided Work
 
 - Added a shared guided-input pattern that names the saved plan item, explains why the question is being asked now, defines the answer and unit or format, states the readiness effect, and offers a continue-later path when optional.
