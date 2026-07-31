@@ -4,6 +4,17 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-30 API-Backed Target Discovery
+
+- Added authenticated `GET/POST /api/target-discovery`; the endpoint runs only when the server has `OPENAI_API_KEY`.
+- Moved proxy-search formulation, OpenAI web research, candidate ranking, source validation, and candidate-schema normalization to the server.
+- Limited target discovery to five runs per network per day and kept the API key server-only.
+- Removed pasted JSON and raw research plumbing from the user workflow.
+- Candidate cards now show source links, observed evidence, unconfirmed inference, unknowns, and a concise review rationale.
+- Replaced technical approval controls with `Good fit`, `Not a fit`, and `Not sure`; later searches use bounded example-based tuning.
+- Good-fit companies enter an internal review list only; no contacts, outreach, or CRM writes are created.
+- Kept manual public searches and a copyable research request as an optional fallback only when automated research is unavailable.
+
 ## 2026-07-30 Concise Find Target Companies
 
 - Replaced the generated-variable form wall with a concise plan-derived brief for company type, size, geography, observable signals, and exclusions.

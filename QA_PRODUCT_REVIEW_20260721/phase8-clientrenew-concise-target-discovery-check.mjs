@@ -17,20 +17,22 @@ const check = (name, passed, detail = "") => checks.push({ name, passed: Boolean
 
 check("Correct ClientRenew record loaded", /ClientRenew/i.test(record.name || record.data?.companyName), record.name || record.data?.companyName);
 check("Default screen leads with a generated search brief", /target-search-brief/.test(targetSource) && ["Industry / type", "Company size", "Geography", "Observable signals", "Exclusions"].every((label) => targetSource.includes(label)));
-check("Primary action is Find target companies", /id="buildTargetSearchPack">Find target companies<\/button>/.test(targetSource));
+check("Primary action is Find target companies and becomes Find more companies", /id="buildTargetSearchPack">\$\{discovery\.candidates\.length \? "Find more companies" : "Find target companies"\}/.test(targetSource));
 check("Edit search criteria is secondary and collapsed by default", /class="secondary" id="editTargetSearchCriteria">Edit search criteria/.test(targetSource) && /<details id="targetSearchCriteriaEditor">/.test(targetSource) && !/<details id="targetSearchCriteriaEditor" open/.test(targetSource));
 check("Criteria use plain labels and line-separated editing", /One criterion per line/.test(targetSource) && !/semicolon-separated|technical-entry/.test(targetSource));
 check("Referral and exclusions are optional plain criteria", /Optional referral or access path/.test(targetSource) && /Exclude companies when this is publicly verified/.test(targetSource));
 check("Internal contextual scaffolding is absent", ["Applies to:", "Why now:", "What to enter:", "Readiness effect:", "guidedInputMarkup"].every((label) => !targetSource.includes(label)));
 check("No pre-search signal configuration panel is rendered", !/targetObservableSignal|Observable buying signal|Where it can be found:|What it implies:|Source to verify/.test(targetSource));
 check("Observable signal catalog is not in the normal flow", !/Customer-success, account-management|Public HubSpot use, integration/.test(targetSource));
-check("Find action reveals the controlled search handoff", /approachesSection\.hidden = false/.test(targetSource) && /candidateInput\.hidden = false/.test(targetSource));
-check("Paid research limitation remains honest", /does not run paid research automatically/.test(targetSource) && !/fetch\([^)]*api\/research/.test(targetSource));
-check("Results show source, rationale, observed evidence, and inference", /Why it is worth review:/.test(targetSource) && /Observed evidence/.test(targetSource) && /Inference — verify before use/.test(targetSource) && /candidate\.url/.test(targetSource));
-check("Candidate decisions stay simple", /\["Pending review", "Accepted", "Rejected"\]/.test(targetSource) && /Save decision/.test(targetSource));
+check("Find action calls the configured server research endpoint", /fetch\(`\$\{API_BASE\}\/api\/target-discovery`/.test(targetSource) && /method: "POST"/.test(targetSource));
+check("Unavailable state keeps manual search optional", /AI research is not configured/.test(targetSource) && /Optional manual search/.test(targetSource));
+check("Results show source, rationale, observed evidence, and inference", /Why review:/.test(targetSource) && /Observed evidence/.test(targetSource) && /Inference — not confirmed/.test(targetSource) && /candidateSources\(candidate\)/.test(targetSource));
+check("Candidate decisions stay simple", /Good fit/.test(targetSource) && /Not a fit/.test(targetSource) && /Not sure/.test(targetSource) && /Save decision/.test(targetSource));
 check("Search method is disclosed only with results", /discovery\.candidates\.length[\s\S]*?<details><summary>How we searched/.test(targetSource));
-check("Post-result refinement can prefer a signal or exclude a pattern", /refinement\.hidden = !discovery\.candidates\.length/.test(targetSource) && /data-discovery-feedback="preferredSignal"/.test(targetSource) && /Exclude this verified pattern/.test(targetSource));
-check("No outreach or CRM write is added", !/send outreach|create contact|api\/research/.test(targetSource) && /No CRM connector is used/.test(targetSource));
+check("Post-result tuning is bounded by prior decisions", /Find more companies like/.test(targetSource) && /Avoid companies like/.test(targetSource) && /data-discovery-feedback="preferredSignal"/.test(targetSource));
+check("No pasted JSON or implementation plumbing is exposed", !/targetCandidateResults|Paste the structured|Review a sourced candidate batch|rebuild search pack/.test(targetSource));
+check("Good-fit decisions add only to a review list", /Choose Good fit to add a company to the review list/.test(targetSource) && /Save review list and continue/.test(targetSource));
+check("No outreach or CRM write is added", !/send outreach|create contact|Confirm HubSpot additions|copyTargetListFields/.test(targetSource));
 
 const failed = checks.filter((item) => !item.passed);
 console.log(JSON.stringify({ checks: checks.length, passed: checks.length - failed.length, failed: failed.length, failures: failed }, null, 2));

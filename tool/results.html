@@ -19391,6 +19391,7 @@
           ? storedDiscovery.candidates.map((item, index) => window.GTM_TARGET_DISCOVERY.normalizeCandidate(item, index))
           : [],
         feedback: storedDiscovery.feedback && typeof storedDiscovery.feedback === "object" ? storedDiscovery.feedback : {},
+        searchSummary: cleanText(storedDiscovery.searchSummary),
         signalPriority: storedDiscovery.signalPriority && typeof storedDiscovery.signalPriority === "object"
           ? { ...storedDiscovery.signalPriority }
           : { selectedSignalId: "", evidenceSource: "", pointChange: "" },
@@ -19401,29 +19402,15 @@
         discovery.signalPriority.pointChange = "";
       }
       targetWorkspace.discovery = discovery;
-      const requiredFields = [
-        "Company or account name",
-        "Website or profile URL",
-        "Primary contact and role",
-        "Observable ICP fit signals",
-        "Fit tier and reason",
-        "Source or channel",
-        "Owner",
-        "Outreach status or CRM stage",
-        "Last activity date",
-        "Next action and due date",
-        "Message or sequence used",
-        "Buyer response, objection, or learning"
-      ];
       const main = document.querySelector("main");
       document.body.dataset.hasIcpAsset = "true";
       document.body.dataset.hasPersonaAsset = "true";
       document.title = `${data.companyName || "Company"} Target Company Discovery`;
       document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} Target Company Discovery` : "Target Company Discovery";
-      document.getElementById("generatedMeta").textContent = "Find a small, evidence-backed batch. The user approves every company before manual HubSpot entry.";
+      document.getElementById("generatedMeta").textContent = "Find a small, sourced batch and decide which companies belong on the review list.";
       const companyMeta = document.getElementById("companyMeta");
       companyMeta.hidden = false;
-      companyMeta.textContent = [systemLabel, `${discovery.candidates.length} candidates`, `${discovery.candidates.filter((item) => item.status === "Accepted").length} accepted`].join(" | ");
+      companyMeta.textContent = [`${discovery.candidates.length} candidates`, `${discovery.candidates.filter((item) => item.status === "Accepted").length} good fits`].join(" | ");
       document.getElementById("metadataPills").innerHTML = "";
       main.querySelectorAll("section").forEach((section) => section.remove());
 
@@ -19451,7 +19438,7 @@
           ${criteriaRow("Exclusions", discovery.variables.exclusions)}
         </div>
         <div class="card-actions no-print">
-          <button type="button" id="buildTargetSearchPack">Find target companies</button>
+          <button type="button" id="buildTargetSearchPack">${discovery.candidates.length ? "Find more companies" : "Find target companies"}</button>
           <button type="button" class="secondary" id="editTargetSearchCriteria">Edit search criteria</button>
         </div>
         <details id="targetSearchCriteriaEditor">
@@ -19477,14 +19464,14 @@
 
       const approachesSection = document.createElement("section");
       approachesSection.id = "target-search-approaches";
-      approachesSection.dataset.toc = "Search Approaches";
+      approachesSection.dataset.toc = "Manual Search Fallback";
       approachesSection.className = "workspace-section";
       approachesSection.hidden = true;
       main.appendChild(approachesSection);
       const renderApproaches = () => {
         approachesSection.innerHTML = `
-          <h2>Search is ready</h2>
-          <p>The complete research request was prepared from the plan. This workspace does not run paid research automatically.</p>
+          <h2>Optional manual search</h2>
+          <p>Automated research is unavailable. These public searches and the copied request are optional fallbacks.</p>
           <div class="active-plan-link-row">${discovery.approaches.map((item) => `<a href="https://www.google.com/search?q=${encodeURIComponent(item.query)}" target="_blank" rel="noopener">${escapeHtml(item.label)}</a>`).join("")}</div>
           <div class="card-actions no-print"><button type="button" class="secondary" id="copyTargetDiscoveryPrompt">Copy complete research request</button></div>
           <p class="messaging-save-status" id="targetDiscoveryPromptStatus"></p>
@@ -19499,7 +19486,7 @@
           const status = approachesSection.querySelector("#targetDiscoveryPromptStatus");
           try {
             await copyTextToClipboard(prompt);
-            status.textContent = "Research request copied. Run it in an approved research session, then paste the sourced results below.";
+            status.textContent = "Research request copied for use in an approved research session.";
           } catch (error) {
             status.textContent = "Copy failed. Use one of the public search links above.";
           }
@@ -19507,26 +19494,25 @@
       };
       renderApproaches();
 
-      const candidateInput = document.createElement("section");
-      candidateInput.id = "target-candidate-input";
-      candidateInput.dataset.toc = "Candidate Results";
-      candidateInput.className = "workspace-section";
-      candidateInput.hidden = true;
-      candidateInput.innerHTML = `<h2>Add sourced results</h2><p>Paste the structured result batch from the copied research request. Each company must include a public source and separate observed evidence from inference.</p><label>Candidate results<textarea id="targetCandidateResults" rows="10" placeholder="{ &quot;candidates&quot;: [...] }"></textarea></label><div class="card-actions no-print"><button type="button" id="reviewTargetCandidates">Show candidate companies</button></div><p class="messaging-save-status" id="targetCandidateInputStatus"></p>`;
-      main.appendChild(candidateInput);
-
       const candidateReview = document.createElement("section");
       candidateReview.id = "target-candidate-review";
-      candidateReview.dataset.toc = "Approve Companies";
+      candidateReview.dataset.toc = "Review Companies";
       candidateReview.className = "workspace-section";
       candidateReview.hidden = !discovery.candidates.length;
       main.appendChild(candidateReview);
       const candidateList = (items, fallback) => items.length ? personaAssetListMarkup(items) : `<p class="muted">${escapeHtml(fallback)}</p>`;
+      const candidateSources = (candidate) => {
+        const sources = Array.isArray(candidate.sources) && candidate.sources.length
+          ? candidate.sources
+          : [{ label: candidate.sourceLabel || "Public source", url: candidate.url }];
+        return `<div class="active-plan-link-row">${sources.filter((source) => source.url).map((source) => `<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener">${escapeHtml(source.label || "Public source")}</a>`).join("")}</div>`;
+      };
       const renderCandidates = () => {
         candidateReview.innerHTML = `
-          <h2>Approve, reject, or refine</h2>
-          <p>The user remains the approver. Accepted means “qualified enough for manual HubSpot verification,” not “proven fit.”</p>
-          ${discovery.candidates.length ? `<div class="active-plan-actions">${discovery.candidates.map((candidate) => `<article class="active-plan-action" data-target-candidate="${escapeHtml(candidate.id)}"><div class="active-plan-action-copy"><h3>${escapeHtml(candidate.company)}</h3><p><a href="${escapeHtml(candidate.url)}" target="_blank" rel="noopener">${escapeHtml(candidate.sourceLabel || candidate.url)}</a></p><p><strong>Why it is worth review:</strong> ${escapeHtml(candidate.observedEvidence[0] || "A public source was supplied, but the fit evidence still needs review.")}</p><h4>Observed evidence</h4>${candidateList(candidate.observedEvidence, "No observed evidence was supplied.")}<h4>Inference — verify before use</h4>${candidateList(candidate.inferredFit, "No inference was supplied.")}<h4>Still unknown</h4>${candidateList(candidate.missingInformation, "No missing-information note was supplied.")}<h4>Exclusion or risk notes</h4>${candidateList(candidate.risks, "No risk note was supplied.")}<label>Decision<select data-candidate-status>${messagingOptions(["Pending review", "Accepted", "Rejected"], candidate.status)}</select></label><label>Reason or next-search refinement<textarea data-candidate-reason rows="2" placeholder="What should change in the next batch?">${escapeHtml(candidate.decisionReason)}</textarea></label><div class="card-actions no-print"><button type="button" data-save-candidate-decision>Save decision</button></div></div></article>`).join("")}</div><details><summary>How we searched</summary>${discovery.approaches.map((item) => `<p><strong>${escapeHtml(item.label)}:</strong> ${escapeHtml(item.why)} <span class="muted">${escapeHtml(item.evidenceBoundary)}</span></p>`).join("")}</details>` : ""}
+          <h2>Review target companies</h2>
+          ${discovery.searchSummary ? `<p>${escapeHtml(discovery.searchSummary)}</p>` : ""}
+          <p>Choose Good fit to add a company to the review list. No outreach or CRM update happens here.</p>
+          ${discovery.candidates.length ? `<div class="active-plan-actions">${discovery.candidates.map((candidate) => `<article class="active-plan-action" data-target-candidate="${escapeHtml(candidate.id)}"><div class="active-plan-action-copy"><h3>${escapeHtml(candidate.rank)}. ${escapeHtml(candidate.company)}</h3>${candidateSources(candidate)}<p><strong>Why review:</strong> ${escapeHtml(candidate.whyReview || candidate.observedEvidence[0] || "The public evidence is worth checking against the current criteria.")}</p><h4>Observed evidence</h4>${candidateList(candidate.observedEvidence, "No observed evidence was supplied.")}<h4>Inference — not confirmed</h4>${candidateList(candidate.inferredFit, "No inference was supplied.")}<h4>Still unknown</h4>${candidateList(candidate.missingInformation, "Nothing else was listed as unknown.")}${candidate.risks.length ? `<h4>Possible mismatch</h4>${candidateList(candidate.risks, "")}` : ""}<label>Your decision<select data-candidate-status><option value="Pending review"${candidate.status === "Pending review" ? " selected" : ""}>Not sure</option><option value="Accepted"${candidate.status === "Accepted" ? " selected" : ""}>Good fit</option><option value="Rejected"${candidate.status === "Rejected" ? " selected" : ""}>Not a fit</option></select></label><label>Reason <span class="muted">(optional)</span><select data-candidate-reason><option value="">No reason selected</option>${["Matches the service model", "Relevant public signal", "Strong size and geography fit", "Needs more evidence", "Wrong company type", "Wrong size or geography", "Conflicting public evidence"].map((reason) => `<option value="${escapeHtml(reason)}"${candidate.decisionReason === reason ? " selected" : ""}>${escapeHtml(reason)}</option>`).join("")}</select></label><div class="card-actions no-print"><button type="button" data-save-candidate-decision>Save decision</button></div></div></article>`).join("")}</div><details><summary>How we searched</summary>${discovery.approaches.map((item) => `<p><strong>${escapeHtml(item.label)}:</strong> ${escapeHtml(item.why)} <span class="muted">${escapeHtml(item.evidenceBoundary)}</span></p>`).join("")}</details>` : ""}
           <p class="messaging-save-status" id="targetCandidateDecisionStatus"></p>
         `;
         candidateReview.hidden = !discovery.candidates.length;
@@ -19535,52 +19521,55 @@
             const card = button.closest("[data-target-candidate]");
             const candidate = discovery.candidates.find((item) => item.id === card.dataset.targetCandidate);
             candidate.status = card.querySelector("[data-candidate-status]").value;
-            candidate.decisionReason = card.querySelector("[data-candidate-reason]").value.trim();
+            candidate.rating = candidate.status === "Accepted" ? "Good fit" : candidate.status === "Rejected" ? "Not a fit" : "Not sure";
+            candidate.decisionReason = card.querySelector("[data-candidate-reason]").value;
             discovery.updatedAt = new Date().toISOString();
             await saveTargetListWorkspace(data, targetWorkspace, profile, candidateReview.querySelector("#targetCandidateDecisionStatus"));
             renderCandidates();
-            renderHandoff();
+            renderTuneSearch();
+            renderReviewList();
           });
         });
       };
 
       const refinement = document.createElement("section");
       refinement.id = "target-discovery-refinement";
-      refinement.dataset.toc = "Refine Next Batch";
+      refinement.dataset.toc = "Tune the Search";
       refinement.className = "workspace-section";
       refinement.hidden = !discovery.candidates.length;
-      refinement.innerHTML = `<h2>Refine the next batch</h2><p>Use patterns from accepted and rejected companies to steer the next search.</p><div class="grid"><label>Prefer this signal<select data-discovery-feedback="preferredSignal"><option value="">No added preference</option>${observableSignals.map((signal) => `<option value="${escapeHtml(signal.label)}"${signal.label === discovery.feedback.preferredSignal ? " selected" : ""}>${escapeHtml(signal.label)}</option>`).join("")}</select></label><label>Industry preference<input data-discovery-feedback="industry" value="${escapeHtml(discovery.feedback.industry || "")}"></label><label>Geography preference<input data-discovery-feedback="geography" value="${escapeHtml(discovery.feedback.geography || "")}"></label><label>Company-size preference<input data-discovery-feedback="size" value="${escapeHtml(discovery.feedback.size || "")}"></label><label>Public technology pattern<input data-discovery-feedback="technology" value="${escapeHtml(discovery.feedback.technology || "")}"></label><label>Referral or access preference<input data-discovery-feedback="referral" value="${escapeHtml(discovery.feedback.referral || "")}"></label><label>Exclude this verified pattern<input data-discovery-feedback="exclusion" value="${escapeHtml(discovery.feedback.exclusion || "")}"></label></div><div class="card-actions no-print"><button type="button" id="saveTargetDiscoveryFeedback">Use these refinements for the next search</button></div><p class="messaging-save-status" id="targetDiscoveryFeedbackStatus"></p>`;
       main.appendChild(refinement);
+      const renderTuneSearch = () => {
+        const goodFits = discovery.candidates.filter((candidate) => candidate.status === "Accepted");
+        const poorFits = discovery.candidates.filter((candidate) => candidate.status === "Rejected");
+        const candidateOptions = (items, selected) => `<option value="">No example selected</option>${items.map((candidate) => `<option value="${escapeHtml(candidate.company)}"${candidate.company === selected ? " selected" : ""}>${escapeHtml(candidate.company)}</option>`).join("")}`;
+        refinement.innerHTML = `<h2>Tune the search</h2><p>Use decisions from this batch to guide the next one.</p><div class="grid"><label>Find more companies like<select data-discovery-feedback="moreLikeCompany">${candidateOptions(goodFits, discovery.feedback.moreLikeCompany)}</select></label><label>Avoid companies like<select data-discovery-feedback="avoidLikeCompany">${candidateOptions(poorFits, discovery.feedback.avoidLikeCompany)}</select></label><label>Favor this public pattern<select data-discovery-feedback="preferredSignal"><option value="">No added preference</option>${observableSignals.map((signal) => `<option value="${escapeHtml(signal.label)}"${signal.label === discovery.feedback.preferredSignal ? " selected" : ""}>${escapeHtml(signal.label)}</option>`).join("")}</select></label></div><div class="card-actions no-print"><button type="button" id="saveTargetDiscoveryFeedback">Save search tuning</button></div><p class="messaging-save-status" id="targetDiscoveryFeedbackStatus"></p>`;
+        refinement.hidden = !discovery.candidates.length;
+        refinement.querySelector("#saveTargetDiscoveryFeedback")?.addEventListener("click", async () => {
+          refinement.querySelectorAll("[data-discovery-feedback]").forEach((control) => {
+            discovery.feedback[control.dataset.discoveryFeedback] = control.value;
+          });
+          discovery.updatedAt = new Date().toISOString();
+          await saveTargetListWorkspace(data, targetWorkspace, profile, refinement.querySelector("#targetDiscoveryFeedbackStatus"));
+        });
+      };
 
       const handoff = document.createElement("section");
-      handoff.id = "target-hubspot-handoff";
-      handoff.dataset.toc = "Add to HubSpot";
+      handoff.id = "target-review-list";
+      handoff.dataset.toc = "Review List";
       handoff.className = "workspace-section";
       main.appendChild(handoff);
-      const renderHandoff = () => {
-        const accepted = discovery.candidates.filter((item) => item.status === "Accepted");
+      const renderReviewList = () => {
+        const accepted = discovery.candidates.filter((candidate) => candidate.status === "Accepted");
         handoff.hidden = !accepted.length;
         handoff.innerHTML = `
-          <h2>Add accepted companies to ${escapeHtml(systemLabel)}</h2>
-          <p>${accepted.length} candidate${accepted.length === 1 ? "" : "s"} accepted for manual verification: ${escapeHtml(accepted.map((item) => item.company).join(", "))}. No CRM connector is used.</p>
-          <h3>Required Fields</h3>${personaAssetListMarkup(requiredFields)}
-          <label>Companies actually added or verified in ${escapeHtml(systemLabel)}<input id="targetListInitialCount" type="number" min="0" step="1" value="${escapeHtml(targetWorkspace.initialCount ?? accepted.length)}"></label>
-          <div class="card-actions no-print"><button type="button" id="confirmAcceptedTargetsAdded"${accepted.length ? "" : " disabled"}>Confirm HubSpot additions and continue</button><button type="button" class="secondary" id="copyTargetListFields">Copy Fields list</button></div>
-          <p class="messaging-save-status" id="targetHubSpotStatus"></p>
+          <h2>Review list</h2>
+          <p>${accepted.length} good-fit candidate${accepted.length === 1 ? "" : "s"}: ${escapeHtml(accepted.map((item) => item.company).join(", "))}.</p>
+          <div class="card-actions no-print"><button type="button" id="confirmTargetReviewList">Save review list and continue</button></div>
+          <p class="messaging-save-status" id="targetReviewListStatus"></p>
         `;
-        handoff.querySelector("#copyTargetListFields").addEventListener("click", async () => {
-          const status = handoff.querySelector("#targetHubSpotStatus");
-          try {
-            await copyTextToClipboard(["REQUIRED FIELDS", ...requiredFields.map((item) => `- ${item}`)].join("\n"));
-            status.textContent = "Required Fields list copied.";
-          } catch (error) {
-            status.textContent = "Copy failed. Select and copy the Required Fields list above.";
-          }
-        });
-        handoff.querySelector("#confirmAcceptedTargetsAdded").addEventListener("click", async (event) => {
-          const count = Math.max(0, Number(handoff.querySelector("#targetListInitialCount").value) || 0);
-          targetWorkspace.initialCount = count;
-          targetWorkspace.setupStatus = count > 0 ? "First qualified accounts added" : "List created with required fields";
+        handoff.querySelector("#confirmTargetReviewList")?.addEventListener("click", async (event) => {
+          targetWorkspace.initialCount = accepted.length;
+          targetWorkspace.setupStatus = "Review list ready";
           const plan = activePlanDefinition(data);
           const weeklyWorkspace = activePlanWeeklyWorkspace(data, plan);
           const toolSetup = activePlanToolSetup(data, plan, weeklyWorkspace);
@@ -19588,7 +19577,7 @@
           delete toolSetup.reasons.targets;
           toolSetup.ready = toolSetup.tools.every((tool) => ["Ready", "Complete", "Skip for now"].includes(toolSetup.statuses[tool.id]));
           const nextTool = toolSetup.tools.find((tool) => !["Ready", "Complete", "Skip for now"].includes(toolSetup.statuses[tool.id]));
-          const status = handoff.querySelector("#targetHubSpotStatus");
+          const status = handoff.querySelector("#targetReviewListStatus");
           event.currentTarget.disabled = true;
           const saved = await saveTargetListWorkspace(data, targetWorkspace, profile, status);
           event.currentTarget.disabled = false;
@@ -19617,62 +19606,94 @@
         editor.open = !editor.open;
         if (editor.open) editor.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
-      setup.querySelector("#buildTargetSearchPack").addEventListener("click", async () => {
+      let targetResearchConfigured = false;
+      const findTargetsButton = setup.querySelector("#buildTargetSearchPack");
+      findTargetsButton.addEventListener("click", async () => {
         collectVariables();
         discovery.approaches = window.GTM_TARGET_DISCOVERY.buildSearchApproaches(discovery.variables);
         discovery.updatedAt = new Date().toISOString();
-        await saveTargetListWorkspace(data, targetWorkspace, profile, setup.querySelector("#targetDiscoverySetupStatus"));
-        renderApproaches();
-        approachesSection.hidden = false;
-        candidateInput.hidden = false;
-        const prompt = window.GTM_TARGET_DISCOVERY.buildDiscoveryPrompt({
-          company: data.companyName,
-          variables: discovery.variables,
-          approaches: discovery.approaches,
-          feedback: discovery.feedback
-        });
-        try {
-          await copyTextToClipboard(prompt);
-          setup.querySelector("#targetDiscoverySetupStatus").textContent = "Research request copied. Run it in an approved research session or use a public search link below.";
-        } catch (error) {
-          setup.querySelector("#targetDiscoverySetupStatus").textContent = "Use a public search link below. Automatic paid research is not enabled.";
+        const status = setup.querySelector("#targetDiscoverySetupStatus");
+        if (!targetResearchConfigured) {
+          status.textContent = "AI research is not configured. Add OPENAI_API_KEY to the server and redeploy. Manual search is available below as an optional fallback.";
+          renderApproaches();
+          approachesSection.hidden = false;
+          approachesSection.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
         }
-        approachesSection.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-      candidateInput.querySelector("#reviewTargetCandidates").addEventListener("click", async () => {
-        const status = candidateInput.querySelector("#targetCandidateInputStatus");
+        findTargetsButton.disabled = true;
+        status.textContent = "Finding and checking target companies…";
         try {
-          const parsed = window.GTM_TARGET_DISCOVERY.parseCandidateResults(candidateInput.querySelector("#targetCandidateResults").value)
-            .slice(0, discovery.variables.batchSize);
-          const existingByUrl = new Map(discovery.candidates.map((item) => [item.url.toLowerCase(), item]));
-          parsed.forEach((item) => {
-            const existing = existingByUrl.get(item.url.toLowerCase());
-            if (existing) Object.assign(existing, { ...item, id: existing.id, status: existing.status, decisionReason: existing.decisionReason });
-            else discovery.candidates.push(item);
+          const response = await fetch(`${API_BASE}/api/target-discovery`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              context: {
+                company: data.companyName,
+                icp: discoveryContext.icp,
+                buyer: targetBuyer,
+                offer: cleanText(profile.offerName || data.primaryOfferName)
+              },
+              criteria: discovery.variables,
+              feedback: discovery.feedback,
+              decisions: discovery.candidates.map((candidate) => ({
+                company: candidate.company,
+                status: candidate.status,
+                rating: candidate.rating,
+                reason: candidate.decisionReason
+              }))
+            })
           });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || "Target-company research could not be completed.");
+          const incoming = (Array.isArray(result.candidates) ? result.candidates : [])
+            .map((candidate, index) => window.GTM_TARGET_DISCOVERY.normalizeCandidate(candidate, index));
+          const existingByUrl = new Map(discovery.candidates.map((candidate) => [candidate.url.toLowerCase(), candidate]));
+          incoming.forEach((candidate) => {
+            const existing = existingByUrl.get(candidate.url.toLowerCase());
+            if (existing) {
+              Object.assign(existing, {
+                ...candidate,
+                id: existing.id,
+                status: existing.status,
+                rating: existing.rating,
+                decisionReason: existing.decisionReason
+              });
+            } else {
+              discovery.candidates.push(candidate);
+            }
+          });
+          discovery.searchSummary = cleanText(result.searchSummary);
           discovery.updatedAt = new Date().toISOString();
           await saveTargetListWorkspace(data, targetWorkspace, profile, status);
-          status.textContent = `${parsed.length} sourced candidate${parsed.length === 1 ? "" : "s"} added for user review.`;
-          candidateInput.querySelector("#targetCandidateResults").value = "";
+          status.textContent = incoming.length
+            ? `${incoming.length} sourced compan${incoming.length === 1 ? "y is" : "ies are"} ready for review.`
+            : "The research run did not return a source-backed candidate. Tune the criteria and try again.";
+          findTargetsButton.textContent = "Find more companies";
           renderCandidates();
-          refinement.hidden = !discovery.candidates.length;
-          renderHandoff();
+          renderTuneSearch();
+          renderReviewList();
+          if (incoming.length) candidateReview.scrollIntoView({ behavior: "smooth", block: "start" });
         } catch (error) {
-          status.textContent = `Candidate results were not added: ${error.message}`;
+          status.textContent = error.message;
+        } finally {
+          findTargetsButton.disabled = false;
         }
       });
-      refinement.querySelector("#saveTargetDiscoveryFeedback").addEventListener("click", async () => {
-        refinement.querySelectorAll("[data-discovery-feedback]").forEach((control) => {
-          discovery.feedback[control.dataset.discoveryFeedback] = control.value.trim();
+      fetch(`${API_BASE}/api/target-discovery`, { cache: "no-store" })
+        .then((response) => response.ok ? response.json() : Promise.reject(new Error("Research status unavailable.")))
+        .then((status) => {
+          targetResearchConfigured = Boolean(status.configured);
+          if (!targetResearchConfigured) {
+            setup.querySelector("#targetDiscoverySetupStatus").textContent = "AI research is unavailable until OPENAI_API_KEY is added to the server.";
+          }
+        })
+        .catch(() => {
+          targetResearchConfigured = false;
+          setup.querySelector("#targetDiscoverySetupStatus").textContent = "AI research status could not be checked. Try again after the server is available.";
         });
-        collectVariables();
-        discovery.approaches = window.GTM_TARGET_DISCOVERY.buildSearchApproaches(discovery.variables);
-        discovery.updatedAt = new Date().toISOString();
-        await saveTargetListWorkspace(data, targetWorkspace, profile, refinement.querySelector("#targetDiscoveryFeedbackStatus"));
-        renderApproaches();
-      });
       renderCandidates();
-      renderHandoff();
+      renderTuneSearch();
+      renderReviewList();
       setupReportNavigation();
       configureAssetPdfExport("targets", data, profile.model);
     }

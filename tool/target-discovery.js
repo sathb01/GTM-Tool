@@ -183,16 +183,29 @@
       ? candidate.status
       : "Pending review";
     const candidateUrl = clean(candidate.url || candidate.sourceUrl);
+    const sources = (Array.isArray(candidate.sources) ? candidate.sources : [])
+      .map((source) => ({
+        label: clean(source?.label || "Public source"),
+        url: /^https?:\/\//i.test(clean(source?.url)) ? clean(source.url) : ""
+      }))
+      .filter((source) => source.url);
+    if (/^https?:\/\//i.test(candidateUrl) && !sources.some((source) => source.url === candidateUrl)) {
+      sources.unshift({ label: clean(candidate.sourceLabel || candidate.source || "Primary public source"), url: candidateUrl });
+    }
     return {
       id: clean(candidate.id) || `candidate-${Date.now()}-${index + 1}`,
+      rank: Math.max(1, Number(candidate.rank) || index + 1),
       company: clean(candidate.company),
       url: /^https?:\/\//i.test(candidateUrl) ? candidateUrl : "",
       sourceLabel: clean(candidate.sourceLabel || candidate.source),
+      sources,
+      whyReview: clean(candidate.whyReview),
       observedEvidence: unique(list(candidate.observedEvidence)),
       inferredFit: unique(list(candidate.inferredFit)),
       missingInformation: unique(list(candidate.missingInformation || candidate.missingInfo)),
       risks: unique(list(candidate.risks || candidate.exclusionRisks)),
       status,
+      rating: clean(candidate.rating),
       decisionReason: clean(candidate.decisionReason)
     };
   }

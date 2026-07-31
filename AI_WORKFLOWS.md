@@ -77,17 +77,26 @@ This avoids OpenAI API usage fees from the app.
 
 ## Target-Company Discovery
 
-Target List Setup uses a controlled prompt-and-review workflow rather than sending the full ICP to a search engine.
+Target List Setup uses:
 
-1. The browser derives editable observable variables from the saved ICP: public category language, geography, approximate employee range, technology mentions, recurring-service language, team/job signals, referral paths, and exclusions.
-2. The browser builds several small search approaches. Each approach states why it is useful and which claims remain unverified.
-3. The user may open an individual focused web search or copy an AI discovery prompt into an approved research session.
-4. The frontend does not call `/api/research` for target discovery and does not pretend a search ran.
-5. The copied prompt requires sourced JSON that separates observed evidence, inferred fit, missing information, and exclusion risks.
-6. The user pastes the sourced JSON into Target List Setup and explicitly accepts or rejects every candidate.
-7. Accepted candidates still require manual HubSpot verification; no CRM write or outreach is automated.
+```text
+GET /api/target-discovery
+POST /api/target-discovery
+```
 
-This preserves the current cost/control boundary while giving a future authorized search service a stable variables, evidence, and candidate-review contract.
+Behavior:
+
+1. The browser derives a concise editable criteria summary from the saved ICP.
+2. When `OPENAI_API_KEY` is configured on the server, `Find target companies` sends the saved context and criteria to the backend.
+3. The backend formulates several focused proxy searches and calls the OpenAI Responses API with `web_search_preview`.
+4. The backend returns a small ranked batch with public source links, observed evidence, clearly separated inference, unknowns, and risks.
+5. The user chooses `Good fit`, `Not a fit`, or `Not sure`. Decisions and bounded reasons guide later batches.
+6. Good-fit companies enter an internal review list only. No contact discovery, outreach, or CRM write occurs.
+7. The endpoint is limited to five runs per network per day.
+
+If `OPENAI_API_KEY` is absent, the status endpoint reports `configured: false` and the POST returns 501. The UI explains the server configuration step and reveals public-search links / a copied research request only as an optional fallback. Raw queries, pasted JSON, and the internal candidate schema are not part of the normal workflow.
+
+`OPENAI_MODEL` is optional; target discovery uses the shared server model default when it is not set. The API key never enters the browser.
 
 ## Frontend Prompt Workflow
 

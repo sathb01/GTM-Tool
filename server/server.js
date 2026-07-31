@@ -18,6 +18,7 @@ const authSecret = process.env.AUTH_SECRET || toolPassword || "local-dev-secret"
 const sessionMaxAgeSeconds = 60 * 60 * 12;
 const assistantRateLimit = new Map();
 const researchRateLimit = new Map();
+const targetDiscoveryRateLimit = new Map();
 
 const contentTypes = {
   ".html": "text/html; charset=utf-8",
@@ -358,6 +359,180 @@ async function handleResearch(request, response, url) {
   } catch (error) {
     console.error(`OpenAI research failed: ${error.message}`);
     sendJson(response, 502, { error: error.userMessage || "Company research could not be completed right now. Try again in a moment." });
+  }
+  return true;
+}
+
+function targetDiscoveryList(value, limit = 12) {
+  const values = Array.isArray(value) ? value : String(value || "").split(/\s*(?:;|\n)\s*/);
+  return values.map((item) => String(item || "").trim().slice(0, 240)).filter(Boolean).slice(0, limit);
+}
+
+function targetDiscoveryContext(body = {}) {
+  const criteria = body.criteria && typeof body.criteria === "object" ? body.criteria : {};
+  const context = body.context && typeof body.context === "object" ? body.context : {};
+  const feedback = body.feedback && typeof body.feedback === "object" ? body.feedback : {};
+  const decisions = Array.isArray(body.decisions) ? body.decisions : [];
+  return {
+    company: String(context.company || "").trim().slice(0, 160),
+    icp: String(context.icp || "").trim().slice(0, 1200),
+    buyer: String(context.buyer || "").trim().slice(0, 300),
+    offer: String(context.offer || "").trim().slice(0, 500),
+    categories: targetDiscoveryList(criteria.categories, 6),
+    geography: String(criteria.geography || "").trim().slice(0, 200),
+    employeeMin: Math.max(0, Number(criteria.employeeMin) || 0) || "",
+    employeeMax: Math.max(0, Number(criteria.employeeMax) || 0) || "",
+    technologySignals: targetDiscoveryList(criteria.technologySignals),
+    serviceSignals: targetDiscoveryList(criteria.serviceSignals),
+    teamSignals: targetDiscoveryList(criteria.teamSignals),
+    referralPaths: targetDiscoveryList(criteria.referralPaths, 6),
+    exclusions: targetDiscoveryList(criteria.exclusions),
+    batchSize: Math.max(1, Math.min(8, Number(criteria.batchSize) || 5)),
+    feedback: Object.fromEntries(Object.entries(feedback)
+      .filter(([, value]) => String(value || "").trim())
+      .slice(0, 8)
+      .map(([key, value]) => [String(key).slice(0, 60), String(value).trim().slice(0, 300)])),
+    decisions: decisions.slice(0, 30).map((item) => ({
+      company: String(item?.company || "").trim().slice(0, 160),
+      status: ["Accepted", "Rejected", "Pending review"].includes(item?.status) ? item.status : "Pending review",
+      rating: String(item?.rating || "").trim().slice(0, 60),
+      reason: String(item?.reason || "").trim().slice(0, 300)
+    })).filter((item) => item.company)
+  };
+}
+
+function buildTargetDiscoveryPrompt(input) {
+  return [
+    `Find and rank up to ${input.batchSize} target-company hypotheses for ${input.company || "this GTM plan"}.`,
+    "Use several focused public-web searches based on observable proxy criteria. Never paste the full ICP sentence into one literal search.",
+    "Research companies only, not individual contacts. Do not draft or send outreach and do not write to a CRM.",
+    "Separate observed public evidence from inference. Never claim technology use, employee count, contract volume, team absence, renewal risk, or market fit without a supporting public source.",
+    "Every candidate must have at least one direct public source URL and at least one observed-evidence statement. Put uncertain claims under inferredFit or missingInformation.",
+    "Rank the most review-worthy candidates first. whyReview must explain the sourced reason for review without presenting the candidate as proven fit.",
+    "Use prior Accept/Reject/rating decisions to refine patterns, but do not turn reviewer preferences into facts.",
+    "Return valid JSON only in this shape:",
+    "{\"searchSummary\":\"\",\"candidates\":[{\"rank\":1,\"company\":\"\",\"url\":\"https://company.example\",\"sourceLabel\":\"Company site\",\"sources\":[{\"label\":\"Company services page\",\"url\":\"https://...\"}],\"whyReview\":\"\",\"observedEvidence\":[\"\"],\"inferredFit\":[\"\"],\"missingInformation\":[\"\"],\"risks\":[\"\"]}]}",
+    "",
+    `Saved ICP: ${input.icp || "not specified"}`,
+    `Saved buyer: ${input.buyer || "not specified"}`,
+    `Saved offer: ${input.offer || "not specified"}`,
+    `Industry / company type: ${input.categories.join("; ") || "not restricted"}`,
+    `Geography: ${input.geography || "not restricted"}`,
+    `Approximate employee range: ${input.employeeMin || "unknown"} to ${input.employeeMax || "unknown"}`,
+    `Public technology evidence to investigate: ${input.technologySignals.join("; ") || "none specified"}`,
+    `Recurring-service evidence to investigate: ${input.serviceSignals.join("; ") || "none specified"}`,
+    `Team or hiring evidence to investigate: ${input.teamSignals.join("; ") || "none specified"}`,
+    `Optional referral/access paths: ${input.referralPaths.join("; ") || "none specified"}`,
+    `Exclusions that require verification: ${input.exclusions.join("; ") || "none specified"}`,
+    `Next-batch preferences: ${JSON.stringify(input.feedback)}`,
+    `Prior candidate decisions: ${JSON.stringify(input.decisions)}`
+  ].join("\n");
+}
+
+function validPublicUrl(value) {
+  try {
+    const parsed = new URL(String(value || ""));
+    return ["http:", "https:"].includes(parsed.protocol) ? parsed.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function normalizeTargetDiscoveryCandidate(item, index) {
+  const sources = (Array.isArray(item?.sources) ? item.sources : [])
+    .map((source) => ({ label: String(source?.label || "Public source").slice(0, 160), url: validPublicUrl(source?.url) }))
+    .filter((source) => source.url)
+    .slice(0, 6);
+  const primaryUrl = validPublicUrl(item?.url) || sources[0]?.url || "";
+  if (primaryUrl && !sources.some((source) => source.url === primaryUrl)) {
+    sources.unshift({ label: String(item?.sourceLabel || "Primary public source").slice(0, 160), url: primaryUrl });
+  }
+  const observedEvidence = targetDiscoveryList(item?.observedEvidence, 8);
+  if (!String(item?.company || "").trim() || !primaryUrl || !observedEvidence.length) return null;
+  return {
+    id: `candidate-${Date.now()}-${index + 1}`,
+    rank: Math.max(1, Number(item?.rank) || index + 1),
+    company: String(item.company).trim().slice(0, 200),
+    url: primaryUrl,
+    sourceLabel: String(item?.sourceLabel || sources[0]?.label || "Public source").slice(0, 160),
+    sources,
+    whyReview: String(item?.whyReview || observedEvidence[0]).trim().slice(0, 700),
+    observedEvidence,
+    inferredFit: targetDiscoveryList(item?.inferredFit, 8),
+    missingInformation: targetDiscoveryList(item?.missingInformation, 8),
+    risks: targetDiscoveryList(item?.risks, 8),
+    status: "Pending review",
+    rating: "",
+    decisionReason: ""
+  };
+}
+
+async function callOpenAiTargetDiscovery(prompt, batchSize) {
+  const payload = {
+    model: openAiModel,
+    input: [
+      { role: "system", content: "You are a careful B2B target-company research assistant. Search public sources and return compact JSON only." },
+      { role: "user", content: prompt }
+    ],
+    tools: [{ type: "web_search_preview" }],
+    max_output_tokens: 5000,
+    store: false
+  };
+  const apiResponse = await fetchAssistantResponse(payload);
+  const raw = await apiResponse.text();
+  if (!apiResponse.ok) {
+    const error = new Error(`status ${apiResponse.status}`);
+    error.userMessage = apiResponse.status === 429
+      ? "Target-company research reached the OpenAI project limit. Check API billing or try later."
+      : apiResponse.status === 401
+        ? "The OpenAI API key was rejected. Replace OPENAI_API_KEY in Render."
+        : "Target-company research could not be completed right now.";
+    throw error;
+  }
+  const parsed = parseJsonFromText(extractResponseText(JSON.parse(raw)));
+  const candidates = (Array.isArray(parsed.candidates) ? parsed.candidates : [])
+    .map(normalizeTargetDiscoveryCandidate)
+    .filter(Boolean)
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, batchSize);
+  return {
+    searchSummary: String(parsed.searchSummary || "Public-source target research completed.").slice(0, 1200),
+    candidates
+  };
+}
+
+async function handleTargetDiscovery(request, response, url) {
+  if (url.pathname !== "/api/target-discovery") return false;
+  if (request.method === "GET") {
+    sendJson(response, 200, { configured: Boolean(process.env.OPENAI_API_KEY), model: openAiModel, dailyLimit: 5 });
+    return true;
+  }
+  if (request.method !== "POST") {
+    sendJson(response, 405, { error: "Method not allowed" });
+    return true;
+  }
+  if (!process.env.OPENAI_API_KEY) {
+    sendJson(response, 501, {
+      error: "Target-company research is not configured.",
+      nextStep: "Add OPENAI_API_KEY in the server environment and redeploy. OPENAI_MODEL is optional."
+    });
+    return true;
+  }
+  if (!requestAllowed(targetDiscoveryRateLimit, request, 5, 24 * 60 * 60 * 1000)) {
+    sendJson(response, 429, { error: "Target-company research is limited to five runs per day from this network. Review or refine the saved batch before running again." });
+    return true;
+  }
+  const input = targetDiscoveryContext(await readJsonBody(request));
+  if (!input.icp && !input.categories.length) {
+    sendJson(response, 400, { error: "The saved plan needs an ICP or company-type criterion before target research can run." });
+    return true;
+  }
+  try {
+    const result = await callOpenAiTargetDiscovery(buildTargetDiscoveryPrompt(input), input.batchSize);
+    sendJson(response, 200, { ...result, criteria: input, model: openAiModel });
+  } catch (error) {
+    console.error(`Target discovery failed: ${error.message}`);
+    sendJson(response, 502, { error: error.userMessage || "Target-company research could not be completed right now." });
   }
   return true;
 }
@@ -735,6 +910,10 @@ const server = createServer(async (request, response) => {
     }
 
     if (await handleAssistant(request, response, url)) {
+      return;
+    }
+
+    if (await handleTargetDiscovery(request, response, url)) {
       return;
     }
 
