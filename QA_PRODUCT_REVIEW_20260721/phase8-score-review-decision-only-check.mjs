@@ -29,6 +29,16 @@ check(
   "Shared guided tasks do not disclose saved-field implementation context",
   !/<strong>Saved plan item:<\/strong>[\s\S]{0,700}<strong>Using saved context:<\/strong>/.test(source)
 );
+check(
+  "Task workspaces reserve clearance for stacked sticky navigation",
+  source.includes("html { scroll-padding-top: 250px; }")
+    && source.includes(".workspace-section { scroll-margin-top: 250px; }")
+);
+check(
+  "Task workspace hash links realign after the return bar renders",
+  source.includes("The browser resolves a hash before this sticky return bar exists.")
+    && source.includes("window.scrollTo({ top: Math.max(0, top), behavior: \"auto\" });")
+);
 
 const failed = checks.filter((item) => !item.passed);
 console.log(JSON.stringify({ checks: checks.length, passed: checks.length - failed.length, failed: failed.length, checks }, null, 2));

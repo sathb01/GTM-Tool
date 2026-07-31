@@ -1695,8 +1695,8 @@
       margin-bottom: 0;
     }
     .workspace-return-bar { position: sticky; top: 70px; z-index: 18; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 16px; border: 1px solid #f6b39f; border-left: 4px solid #ff7a59; background: #ffffff; box-shadow: 0 8px 20px rgba(22, 32, 51, 0.08); }
-    html { scroll-padding-top: 200px; }
-    main > section, .score-component-detail, #icp-brief, #persona-overview, .workspace-section { scroll-margin-top: 200px; }
+    html { scroll-padding-top: 250px; }
+    main > section, .score-component-detail, #icp-brief, #persona-overview, .workspace-section { scroll-margin-top: 250px; }
     .workspace-return-bar-copy { min-width: 0; }
     .workspace-return-bar-copy span, .workspace-return-bar-copy strong { display: block; overflow-wrap: anywhere; }
     .workspace-return-bar-label { color: #9d3d28; font-size: 12px; font-weight: 800; text-transform: uppercase; }
@@ -10370,6 +10370,18 @@
       const returnLabel = taskOrigin === "this-week" ? "This Week" : "Plan Summary";
       bar.innerHTML = `<div class="workspace-return-bar-copy"><span class="workspace-return-bar-label">${escapeHtml(task?.label || returnLabel)}</span><strong>${task ? `Complete the actual ${escapeHtml(task.label)} work here.` : "Complete the current work here."}</strong><span class="workspace-return-bar-origin">Opened from ${escapeHtml(returnLabel)}. Completion and return keep that context.</span></div><a class="secondary" href="${escapeHtml(guidedToolReturnUrl(taskOrigin))}">Return to ${escapeHtml(returnLabel)}</a>`;
       main.prepend(bar);
+      // The browser resolves a hash before this sticky return bar exists. Re-align
+      // the requested workspace afterward so its heading and first control are not
+      // hidden beneath the navigation layers.
+      const hashId = decodeURIComponent(window.location.hash || "").replace(/^#/, "");
+      const hashTarget = hashId ? document.getElementById(hashId) : null;
+      if (hashTarget) {
+        window.requestAnimationFrame(() => {
+          const clearance = 250;
+          const top = hashTarget.getBoundingClientRect().top + window.scrollY - clearance;
+          window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
+        });
+      }
     }
 
     function updateIntakeReturnLinks() {

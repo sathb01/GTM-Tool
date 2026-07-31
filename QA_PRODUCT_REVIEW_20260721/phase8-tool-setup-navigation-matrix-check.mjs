@@ -38,7 +38,7 @@ for (const task of tasks) {
 
 check("All tasks", "no intermediate setup route", !/reportAssetUrlWithState\("active", \{ setupTask:/.test(source));
 check("All tasks", "no status-only primary completion", !/data-mark-tool-ready/.test(source));
-check("All tasks", "sticky workspace clearance", /workspace-return-bar \{ position: sticky; top: 70px/.test(source) && /scroll-padding-top: 200px/.test(source) && /workspace-section \{ scroll-margin-top: 200px/.test(source));
+check("All tasks", "sticky workspace clearance", /workspace-return-bar \{ position: sticky; top: 70px/.test(source) && /scroll-padding-top: 250px/.test(source) && /workspace-section \{ scroll-margin-top: 250px/.test(source) && /The browser resolves a hash before this sticky return bar exists\./.test(source));
 check("All tasks", "origin-specific returns", /taskOrigin === "this-week" \? "This Week" : "Plan Summary"/.test(source) && /guidedToolReturnUrl\(origin\)/.test(source));
 
 const failed = checks.filter((item) => !item.passed);
