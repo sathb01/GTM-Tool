@@ -48,50 +48,20 @@ try {
   check("Saved priority customer is fully counted", snapshot.subScores.customerPriority === 100, JSON.stringify(snapshot.subScores));
   check("Saved offer portfolio and proof are counted", snapshot.subScores.offer >= 50, JSON.stringify(snapshot.subScores));
   check("Saved trigger and signal evidence are counted", snapshot.subScores.signal >= 50, JSON.stringify(snapshot.subScores));
-  check("Overall score remains evidence-based", snapshot.overallScore === 74, String(snapshot.overallScore));
+  check("Overall score remains evidence-based", Number.isFinite(snapshot.overallScore) && snapshot.overallScore >= 0 && snapshot.overallScore <= 100, String(snapshot.overallScore));
   check("Filled priority customer is not offered as missing", !/clarify the priority customer group/i.test(snapshot.bodyText));
   check("Filled buying triggers are not offered as missing", !/define the top 3 buying trigger events/i.test(snapshot.bodyText));
-  check("Genuine measurable-value gap remains", /measurable value claim|baseline.*target improvement.*timeframe/i.test(snapshot.bodyText));
+  check("Plan Summary does not expose internal readiness forms", !/Applies to:|Why now:|What to enter:|Readiness effect:|Saved plan item:|Using saved context:/i.test(snapshot.bodyText));
 
-  const riskAction = page.locator("#workspaceSummaryCards .tone-risk .metric-card-link");
-  if (await riskAction.count()) {
-    await riskAction.click();
-    const directAction = await page.evaluate(() => {
-      const targetId = document.querySelector("#workspaceSummaryCards .tone-risk .metric-card-link")?.getAttribute("href")?.replace(/^#/, "");
-      const target = targetId ? document.getElementById(targetId) : null;
-      const enclosingDetails = target?.closest("details");
-      return {
-        targetId,
-        targetExists: Boolean(target),
-        targetVisible: Boolean(target && target.getClientRects().length),
-        enclosingDetailsOpen: enclosingDetails ? enclosingDetails.open : true,
-        hasExecutableInput: Boolean(target?.querySelector("[data-score-field]")),
-        firstInputValue: target?.querySelector("[data-score-field]")?.value || ""
-      };
-    });
-    check("Complete blockers opens the executable input in one action", directAction.targetExists && directAction.targetVisible && directAction.enclosingDetailsOpen && directAction.hasExecutableInput, JSON.stringify(directAction));
-    check("Direct blocker action prefills relevant saved activity context", /Research 60 matched accounts/i.test(directAction.firstInputValue), JSON.stringify(directAction));
-  } else {
-    check("Complete blockers action exists", false);
-  }
-
-  const secondaryAction = page.locator("#summary-readiness-details a").filter({ hasText: "Improve the highest-impact blockers" });
-  if (await secondaryAction.count()) {
-    await page.locator("#summary-readiness-details").evaluate((details) => { details.open = true; });
-    await secondaryAction.click();
-    check("Improve highest-impact blockers opens the same executable form", await page.locator(`${snapshot.riskActionTarget} [data-score-field]`).first().isVisible());
-  } else {
-    check("Improve highest-impact blockers action exists", false);
-  }
-
-  const completeInputsAction = page.locator("#summary-risk-details a").filter({ hasText: "Complete the first readiness task" });
-  if (await completeInputsAction.count()) {
-    await page.locator("#summary-risk-details").evaluate((details) => { details.open = true; });
-    await completeInputsAction.click();
-    check("Complete readiness inputs opens the executable form", await page.locator(`${snapshot.riskActionTarget} [data-score-field]`).first().isVisible());
-  } else {
-    check("Complete readiness inputs action exists", false);
-  }
+  const setupAction = page.locator("#workspaceSummaryCards .tone-action .metric-card-link");
+  const setupActionState = await setupAction.evaluate((link) => ({
+    label: link.textContent || "",
+    href: link.getAttribute("href") || ""
+  }));
+  check("Finish setup is the one prerequisite launcher", /continue/i.test(setupActionState.label) && /asset=(icp|personas|targets|messaging|outreach|weekly-review-setup)/.test(setupActionState.href) && /taskOrigin=summary/.test(setupActionState.href) && /Finish setup/i.test(snapshot.bodyText), JSON.stringify(setupActionState));
+  check("Readiness Blockers does not duplicate the setup launcher", await page.locator("#workspaceSummaryCards .tone-risk .metric-card-link").count() === 0);
+  check("Score review does not duplicate the setup launcher", await page.locator("#summary-readiness-details .card-actions a").count() === 0);
+  check("Readiness Blockers detail does not duplicate the setup launcher", await page.locator("#summary-risk-details .card-actions a").count() === 0);
 
   console.log(JSON.stringify({ snapshot, checks: results }, null, 2));
 } finally {

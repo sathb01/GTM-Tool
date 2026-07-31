@@ -39,6 +39,13 @@ check(
   source.includes("The browser resolves a hash before this sticky return bar exists.")
     && source.includes("window.scrollTo({ top: Math.max(0, top), behavior: \"auto\" });")
 );
+check(
+  "Setup prerequisites have one Finish setup launcher",
+  source.includes('const currentWorkLabel = setupNavigation.current ? "Finish setup" : "This Week";')
+    && source.includes('label: currentWorkLabel')
+    && source.includes('Use ${escapeHtml(currentWorkLabel)} above to open the one current task.')
+    && !/summary-readiness-details[\s\S]{0,1000}data-readiness-target/.test(source)
+);
 
 const failed = checks.filter((item) => !item.passed);
 console.log(JSON.stringify({ checks: checks.length, passed: checks.length - failed.length, failed: failed.length, checks }, null, 2));

@@ -7475,6 +7475,7 @@
         : setupNavigation.setup.started
           ? { value: "Continue This Week", copy: resume.copy, badge: { label: "This Week", className: "strong" }, href: resume.href, label: resume.actionLabel }
           : { value: "Ready to launch", copy: focusedLaunch.explanation, badge: { label: "Ready", className: "strong" }, href: focusedLaunch.href, label: focusedLaunch.label };
+      const currentWorkLabel = setupNavigation.current ? "Finish setup" : "This Week";
       const claims = buildSummaryClaims(model, {
         status,
         dynamicSummary,
@@ -7518,7 +7519,7 @@
         claim: claims.opportunity
       });
       renderMetricCard(cards, {
-        label: "This Week",
+        label: currentWorkLabel,
         value: resume.value,
         copy: resume.copy,
         badge: resume.badge,
@@ -7533,9 +7534,9 @@
         copy: blockerReady ? nextState.copy : "Complete these items to launch and learn with confidence.",
         badge: blockerReady ? nextState.badge : { label: "Needs attention", className: "warning" },
         tone: "risk",
-        target: blockerTarget || undefined,
-        href: blockerReady ? nextState.href : blockerHref || undefined,
-        actionLabel: blockerReady ? nextState.label : setupBlocker ? (guidedToolTask(setupBlocker.tool.id)?.completeLabel || `Complete ${setupBlocker.tool.label}`) : "Complete blockers",
+        // This Week is the single launcher for the current setup task. The risk
+        // card explains the state; it must not create a second route to the same
+        // prerequisite or intercept the direct workspace URL.
         claim: claims.risk
       });
 
@@ -7545,7 +7546,7 @@
         tone: "readiness",
         title: "GTM Readiness: Score and Launch Decision",
         subtitle: "Review valid saved evidence, standard weights, and the two launch paths.",
-        content: `<p><strong>${escapeHtml(status.label)}:</strong> ${escapeHtml(status.reason)} The score is ${escapeHtml(model.readinessScore)}/100.</p><p class="summary-primary-action">${escapeHtml(focusedLaunch.explanation)}</p><div class="card-actions no-print"><a href="${escapeHtml(focusedLaunch.href)}">${escapeHtml(focusedLaunch.label)}</a>${setupBlocker ? `<a class="secondary" href="${escapeHtml(setupBlocker.href)}">${escapeHtml(guidedToolTask(setupBlocker.tool.id)?.completeLabel || `Complete ${setupBlocker.tool.label}`)}</a>` : !blockerReady ? `<a class="secondary" data-readiness-target="${escapeHtml(blockerTarget)}" href="#${escapeHtml(blockerTarget)}">Improve the highest-impact blockers</a>` : ""}</div><div class="score-breakdown-host"></div>`
+        content: `<p><strong>${escapeHtml(status.label)}:</strong> ${escapeHtml(status.reason)} The score is ${escapeHtml(model.readinessScore)}/100.</p><p class="summary-primary-action">${escapeHtml(focusedLaunch.explanation)}</p><p class="muted">Use ${escapeHtml(currentWorkLabel)} above to open the one current task.</p><div class="score-breakdown-host"></div>`
       });
       // The summary card is a launch decision, not an inline remediation form.
       // Keep score-changing work in its own direct workspace so this view does not
@@ -7565,9 +7566,9 @@
       const actionDetails = summarySupportPanel({
         id: "summary-action-details",
         tone: "action",
-        title: "This Week",
-        subtitle: "One to three sequenced commitments, with durable progress.",
-        content: `<p class="summary-primary-action">${escapeHtml(resume.copy)}</p><p class="muted">Statuses are saved as In progress, Waiting / Blocked, Complete, or Continue later. Continue-later items stay available without becoming repeated alerts.</p><div class="card-actions no-print"><a href="${escapeHtml(resume.href)}">${escapeHtml(resume.actionLabel)}</a></div>`
+        title: currentWorkLabel,
+        subtitle: setupNavigation.current ? "Complete one prerequisite before beginning weekly execution." : "One to three sequenced commitments, with durable progress.",
+        content: `<p class="summary-primary-action">${escapeHtml(resume.copy)}</p><p class="muted">Use the ${setupNavigation.current ? "Finish setup" : "This Week"} card above to open this work. Statuses are saved as In progress, Waiting / Blocked, Complete, or Continue later.</p>`
       });
       recommendation.appendChild(actionDetails);
 
@@ -7577,12 +7578,12 @@
         title: "Readiness Blockers / What Needs Attention",
         subtitle: blockerReady ? "No active blocker remains. Continue with the next saved workflow state." : "Complete only the highest-impact items.",
         content: blockerReady
-          ? `<p class="summary-primary-action">${escapeHtml(nextState.copy)}</p><div class="card-actions no-print"><a href="${escapeHtml(nextState.href)}">${escapeHtml(nextState.label)}</a></div>`
+          ? `<p class="summary-primary-action">${escapeHtml(nextState.copy)}</p><p class="muted">No active blocker remains. Use ${escapeHtml(currentWorkLabel)} above to continue the current task.</p>`
           : `<p>Complete these items to launch and learn with confidence.</p><ol>${blockers.map((item, index) => {
-            if (item.kind === "setup") return `<li><strong>${escapeHtml(item.title)}:</strong> ${escapeHtml(item.summary)} <a href="${escapeHtml(item.href)}">${escapeHtml(guidedToolTask(item.area)?.completeLabel || `Complete ${item.area}`)}</a></li>`;
+            if (item.kind === "setup") return `<li><strong>${escapeHtml(item.title)}:</strong> ${escapeHtml(item.summary)}</li>`;
             const task = readinessTaskForImprovement(item, model, index - (setupBlocker ? 1 : 0));
             return `<li><strong>${escapeHtml(task.title || item.area)}:</strong> ${escapeHtml(task.summary || item.action || topRisk)}</li>`;
-          }).join("")}</ol><div class="card-actions no-print">${setupBlocker ? `<a href="${escapeHtml(setupBlocker.href)}">${escapeHtml(guidedToolTask(setupBlocker.tool.id)?.completeLabel || `Complete ${setupBlocker.tool.label}`)}</a>` : `<a data-readiness-target="${escapeHtml(blockerTarget)}" href="#${escapeHtml(blockerTarget)}">Complete the first readiness task</a>`}</div>`
+          }).join("")}</ol><p class="muted">Use ${escapeHtml(currentWorkLabel)} above to open the current task.</p>`
       });
       recommendation.appendChild(riskPanel);
       recommendation.querySelectorAll("[data-readiness-target]").forEach((link) => {
