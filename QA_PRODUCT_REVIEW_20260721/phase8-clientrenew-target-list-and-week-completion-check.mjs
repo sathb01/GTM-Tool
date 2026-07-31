@@ -50,7 +50,7 @@ check("Correct ClientRenew record loaded", /ClientRenew/i.test(record.name || da
 check("Target page starts with practical discovery heading", /<h2>Find target companies<\/h2>/.test(targetSource));
 forbiddenTargetCopy.forEach((copy) => check(`Target page omits redundant narrative: ${copy}`, !targetSource.includes(copy)));
 requiredFields.forEach((field) => check(`Required field retained: ${field}`, targetSource.includes(`"${field}"`)));
-check("Target page has one compact record-count input", /Accepted companies added or verified in \$\{systemLabel\}/.test(targetSource) && /id="targetListInitialCount" type="number"/.test(targetSource));
+check("Target page has one compact record-count input", /Companies actually added or verified in \$\{escapeHtml\(systemLabel\)\}/.test(targetSource) && /id="targetListInitialCount" type="number"/.test(targetSource));
 check("Target page exposes the exact confirm-and-continue action", /id="confirmAcceptedTargetsAdded"/.test(targetSource) && /Confirm HubSpot additions and continue/.test(targetSource));
 check("Target page exposes the exact fields-copy action", /id="copyTargetListFields">Copy Fields list/.test(targetSource));
 check("Target page removes old setup and progress actions", !/openTargetListSetup|saveTargetListProgress|targetListSetupProgress|Continue later in Tool Setup/.test(targetSource));

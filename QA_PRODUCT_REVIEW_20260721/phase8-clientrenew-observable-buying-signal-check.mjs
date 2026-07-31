@@ -53,11 +53,10 @@ check("Every supported signal states source and implication", signals.every((sig
 check("Signal guidance does not fabricate company facts", signals.every((signal) => /can |may |does not prove|remains reported context/i.test(signal.implication)), signals.map((signal) => signal.implication).join(" | "));
 check("Priority rule is unavailable without a selected observable signal", helper.priorityRuleForSignal("", signals) === null);
 check("Priority rule is contextual after selection", /ranks accounts for outreach review only/i.test(helper.priorityRuleForSignal(signals[0].id, signals)?.explanation || ""));
-check("Target UI defaults to no selected observable signal", /signalPriority[\s\S]*?selectedSignalId: ""/.test(targetSource) && /<option value="">Select an observable signal/.test(targetSource));
-check("Target UI hides point rule until signal selection", /data-target-priority-rule\$\{selectedObservableSignal \? "" : " hidden"\}/.test(targetSource) && /priorityRule\.hidden = !selected/.test(targetSource));
-check("Target UI states where each signal is found and what it implies", /Where it can be found:/.test(targetSource) && /What it implies:/.test(targetSource));
-check("Target UI explains ranking boundary", /ranks accounts for outreach review only/.test(targetSource) && /does not prove fit, change market truth, or change the GTM readiness score/.test(targetSource));
-check("Legacy value is retained as history, not silently discarded", /Legacy \/ unverified signal retained/.test(targetSource) && /remains in the saved plan for history/.test(targetSource));
+check("Target UI does not ask for a signal before the first search", !/targetObservableSignal|Select an observable signal|Observable buying signal/.test(targetSource));
+check("Target UI keeps signal-source guidance out of the normal flow", !/Where it can be found:|What it implies:|Source to verify/.test(targetSource));
+check("Target UI offers only a simple post-result signal preference", /data-discovery-feedback="preferredSignal"/.test(targetSource) && /refinement\.hidden = !discovery\.candidates\.length/.test(targetSource));
+check("Legacy value remains handled in the canonical readiness migration", /legacyUnverifiedBuyingSignals/.test(resultsSource) && /excludedFromPriority: true/.test(resultsSource));
 check("Readiness scoring excludes legacy generic routing rules", /filter\(\(row\) => !legacyUnverifiedBuyingSignal\(row\.values\.signal\)\)/.test(readinessSource));
 check("Readiness task requires sourceable signal before point rule", /Choose a sourceable buying signal/.test(taskSource) && /data-observable-priority-fields/.test(taskSource) && /data-observable-signal-select/.test(taskSource));
 check("Readiness migration archives old rule before replacement", /legacyUnverifiedBuyingSignals/.test(resultsSource) && /excludedFromPriority: true/.test(resultsSource));

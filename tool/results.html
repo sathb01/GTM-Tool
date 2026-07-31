@@ -19374,13 +19374,6 @@
         buyer: targetBuyer,
         crm: systemLabel
       });
-      const signalPlayRowId = selectedSignalPlay(data)?.rowId || primarySignalPlayRowId(data) || "play-1";
-      const savedRoutingSignal = cleanText(data[`${signalScopedTable(signalPlayRowId, "signalRoutingRules")}__signal-rule-1__signal`]);
-      const legacySignals = Array.from(new Set([
-        ...repeatableListItems(data, "bestFitTrigger"),
-        ...repeatableListItems(data, "buyingTriggersSummary"),
-        savedRoutingSignal
-      ].filter((value) => window.GTM_TARGET_DISCOVERY.isLegacyUnverifiedSignal(value))));
       const derived = window.GTM_TARGET_DISCOVERY.deriveSearchVariables(discoveryContext);
       const storedDiscovery = targetWorkspace.discovery && typeof targetWorkspace.discovery === "object"
         ? targetWorkspace.discovery
@@ -19438,112 +19431,46 @@
       setup.id = "target-company-discovery";
       setup.dataset.toc = "Find Companies";
       setup.className = "workspace-section";
-      const subject = `target-company discovery for ${data.companyName || "the saved GTM plan"}`;
-      const variableFields = [
-        guidedInputMarkup({
-          id: "targetDiscoveryCategories",
-          label: `Observable company categories for ${subject}`,
-          subject,
-          why: "Public category language is searchable; the full saved ICP sentence is not.",
-          answer: "Enter 1-3 semicolon-separated public category phrases, such as managed IT services or IT consulting.",
-          scoreEffect: "This changes the discovery search pack, not the readiness score.",
-          optional: true,
-          control: `<textarea id="targetDiscoveryCategories" rows="2">${escapeHtml(discovery.variables.categories.join("; "))}</textarea>`
-        }),
-        guidedInputMarkup({
-          id: "targetDiscoveryGeographySize",
-          label: `Public geography and approximate size for ${subject}`,
-          subject,
-          why: "A bounded market and approximate employee range keep each discovery batch reviewable.",
-          answer: "Enter a public geography label and whole-number minimum/maximum employee estimates. These remain hypotheses until a source confirms them.",
-          scoreEffect: "This changes the discovery search pack, not the readiness score.",
-          optional: true,
-          control: `<div class="grid"><label>Search geography<input id="targetDiscoveryGeography" value="${escapeHtml(discovery.variables.geography)}"></label><label>Minimum employees<input id="targetDiscoveryEmployeeMin" type="number" min="0" value="${escapeHtml(discovery.variables.employeeMin)}"></label><label>Maximum employees<input id="targetDiscoveryEmployeeMax" type="number" min="0" value="${escapeHtml(discovery.variables.employeeMax)}"></label></div>`
-        }),
-        guidedInputMarkup({
-          id: "targetDiscoveryTechnology",
-          label: `Public technology signals for ${subject}`,
-          subject,
-          why: "A website, partner-directory, integration, or job mention can support investigation without proving current technology use.",
-          answer: "Enter semicolon-separated public signals to investigate. Keep each item phrased as observable evidence.",
-          scoreEffect: "This changes the discovery search pack, not the readiness score.",
-          optional: true,
-          control: `<textarea id="targetDiscoveryTechnology" rows="3">${escapeHtml(discovery.variables.technologySignals.join("; "))}</textarea>`
-        }),
-        guidedInputMarkup({
-          id: "targetDiscoveryServiceTeam",
-          label: `Recurring-service and team-structure signals for ${subject}`,
-          subject,
-          why: "Service language is observable. Team structure may support a hypothesis, but absence of a customer-success function is never a verified fact by itself.",
-          answer: "Enter semicolon-separated public service signals and team/job signals to investigate.",
-          scoreEffect: "This changes the discovery search pack, not the readiness score.",
-          optional: true,
-          wide: true,
-          control: `<label>Recurring-service signals<textarea id="targetDiscoveryService" rows="3">${escapeHtml(discovery.variables.serviceSignals.join("; "))}</textarea></label><label>Team-structure signals<textarea id="targetDiscoveryTeam" rows="3">${escapeHtml(discovery.variables.teamSignals.join("; "))}</textarea></label>`
-        }),
-        guidedInputMarkup({
-          id: "targetDiscoveryPathsExclusions",
-          label: `Referral paths and exclusions for ${subject}`,
-          subject,
-          why: "Access paths can prioritize research, while explicit exclusions prevent obvious poor-fit candidates from entering the review batch.",
-          answer: "Enter semicolon-separated referral paths and exclusion rules. Do not convert an unverified inference into an exclusion fact.",
-          scoreEffect: "This changes the discovery search pack, not the readiness score.",
-          optional: true,
-          wide: true,
-          control: `<label>Referral or access paths<textarea id="targetDiscoveryReferralPaths" rows="2">${escapeHtml(discovery.variables.referralPaths.join("; "))}</textarea></label><label>Exclusions<textarea id="targetDiscoveryExclusions" rows="3">${escapeHtml(discovery.variables.exclusions.join("; "))}</textarea></label>`
-        }),
-        guidedInputMarkup({
-          id: "targetDiscoveryBatch",
-          label: `Discovery batch and initial-list target for ${subject}`,
-          subject,
-          why: "A small batch supports evidence review before the team commits to a 25-company working list.",
-          answer: "Choose 1-10 companies per discovery batch and the initial qualified-list target. Revisit the target after meaningful buyer responses or repeated disqualification patterns.",
-          scoreEffect: "This changes workflow scope, not the readiness score.",
-          optional: false,
-          control: `<div class="grid"><label>Companies per review batch<input id="targetDiscoveryBatchSize" type="number" min="1" max="10" value="${escapeHtml(discovery.variables.batchSize)}"></label><label>Initial qualified-list target<input id="targetDiscoveryInitialTarget" type="number" min="1" value="${escapeHtml(discovery.variables.initialTarget)}"></label></div>`
-        })
+      const sizeSummary = discovery.variables.employeeMin || discovery.variables.employeeMax
+        ? `${discovery.variables.employeeMin || "Any"}–${discovery.variables.employeeMax || "Any"} employees`
+        : "Any public company size";
+      const observableSummary = [
+        ...discovery.variables.technologySignals,
+        ...discovery.variables.serviceSignals,
+        ...discovery.variables.teamSignals
       ];
-      const selectedObservableSignal = observableSignals.find((signal) => signal.id === discovery.signalPriority.selectedSignalId);
-      const observableSignalCards = observableSignals.map((signal) => `
-        <article class="overview-note">
-          <strong>${escapeHtml(signal.label)}</strong>
-          <p><strong>Where it can be found:</strong> ${escapeHtml(signal.whereFound)}</p>
-          <p><strong>What it implies:</strong> ${escapeHtml(signal.implication)}</p>
-        </article>
-      `).join("");
-      const observableSignalField = guidedInputMarkup({
-        id: "targetObservableSignal",
-        label: `Observable buying signal for ${discoveryContext.icp || "the saved ICP"}`,
-        subject: `${discoveryContext.icp || "The saved ICP"} and ${targetBuyer}`,
-        why: "A signal can influence account review order only when the team can identify where to look for it.",
-        answer: "Select one sourceable signal, then record the public page, referral, or CRM context where an account-level observation would be verified.",
-        scoreEffect: "This configures target-list prioritization only. It does not prove fit, alter market truth, or change the GTM readiness score.",
-        optional: true,
-        wide: true,
-        control: `<select id="targetObservableSignal"><option value="">Select an observable signal</option>${observableSignals.map((signal) => `<option value="${escapeHtml(signal.id)}"${signal.id === discovery.signalPriority.selectedSignalId ? " selected" : ""}>${escapeHtml(signal.label)}</option>`).join("")}</select>
-          <textarea id="targetObservableSignalSource" rows="2" placeholder="Public URL, referral context, or CRM note to verify">${escapeHtml(discovery.signalPriority.evidenceSource || "")}</textarea>
-          ${observableSignalCards}`
-      });
-      const priorityRuleField = guidedInputMarkup({
-        id: "targetObservableSignalPoints",
-        label: `Outreach-priority rule for ${selectedObservableSignal?.label || "the selected observable signal"}`,
-        subject: `${discoveryContext.icp || "The saved ICP"} accounts where the selected signal is actually observed`,
-        why: "The point change helps order a review queue after the source has been checked.",
-        answer: "Choose +3 strong priority, +2 medium priority, +1 slight priority, or 0 for review only.",
-        scoreEffect: "This ranks accounts for outreach review only. It does not prove fit, change market truth, or change the GTM readiness score.",
-        optional: true,
-        wide: true,
-        control: `<select id="targetObservableSignalPoints">${messagingOptions(["", "+3", "+2", "+1", "0"], discovery.signalPriority.pointChange || "")}</select>`
-      });
+      const criteriaRow = (label, values) => `<div class="messaging-result-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml((Array.isArray(values) ? values : [values]).filter(Boolean).join(", ") || "Not restricted")}</strong></div>`;
       setup.innerHTML = `
         <h2>Find target companies</h2>
-        <p>Start from the current ICP, then translate it into observable public signals. Do not paste the full ICP into a search engine, and do not treat an inferred fit as a fact.</p>
-        <div class="overview-note"><strong>Observable facts versus inferences</strong><p>Category, geography, public company size, website language, directories, technology mentions, team pages, and job posts can be observed and sourced. Recurring-contract volume, current HubSpot use, and the absence of a dedicated customer-success function remain unknown until evidence confirms them.</p></div>
-        <div class="guided-input-grid">${variableFields.join("")}</div>
-        <h3>Choose an observable buying signal</h3>
-        ${legacySignals.length ? `<div class="overview-note"><strong>Legacy / unverified signal retained</strong><p>${escapeHtml(legacySignals.join("; "))} remains in the saved plan for history, but it is excluded from automatic target prioritization until replaced with a sourceable signal.</p></div>` : ""}
-        <div class="guided-input-grid">${observableSignalField}<div data-target-priority-rule${selectedObservableSignal ? "" : " hidden"}>${priorityRuleField}</div></div>
-        <div class="card-actions no-print"><button type="button" id="buildTargetSearchPack">Build focused search pack</button><button type="button" class="secondary" id="copyTargetDiscoveryPrompt">Copy AI discovery prompt</button></div>
+        <p>The tool translated the saved plan into public, observable search criteria. Results remain candidates until their sources are reviewed.</p>
+        <div class="messaging-result-summary target-search-brief">
+          ${criteriaRow("Industry / type", discovery.variables.categories)}
+          ${criteriaRow("Company size", sizeSummary)}
+          ${criteriaRow("Geography", discovery.variables.geography)}
+          ${criteriaRow("Observable signals", observableSummary)}
+          ${criteriaRow("Exclusions", discovery.variables.exclusions)}
+        </div>
+        <div class="card-actions no-print">
+          <button type="button" id="buildTargetSearchPack">Find target companies</button>
+          <button type="button" class="secondary" id="editTargetSearchCriteria">Edit search criteria</button>
+        </div>
+        <details id="targetSearchCriteriaEditor">
+          <summary>Search criteria</summary>
+          <div class="grid">
+            <label>Industry or company type<textarea id="targetDiscoveryCategories" rows="3">${escapeHtml(discovery.variables.categories.join("\n"))}</textarea></label>
+            <label>Geography<input id="targetDiscoveryGeography" value="${escapeHtml(discovery.variables.geography)}"></label>
+            <label>Minimum employees<input id="targetDiscoveryEmployeeMin" type="number" min="0" value="${escapeHtml(discovery.variables.employeeMin)}"></label>
+            <label>Maximum employees<input id="targetDiscoveryEmployeeMax" type="number" min="0" value="${escapeHtml(discovery.variables.employeeMax)}"></label>
+            <label>Public technology evidence<textarea id="targetDiscoveryTechnology" rows="3">${escapeHtml(discovery.variables.technologySignals.join("\n"))}</textarea></label>
+            <label>Recurring-service evidence<textarea id="targetDiscoveryService" rows="3">${escapeHtml(discovery.variables.serviceSignals.join("\n"))}</textarea></label>
+            <label>Team or hiring evidence<textarea id="targetDiscoveryTeam" rows="3">${escapeHtml(discovery.variables.teamSignals.join("\n"))}</textarea></label>
+            <label>Optional referral or access path<textarea id="targetDiscoveryReferralPaths" rows="2">${escapeHtml(discovery.variables.referralPaths.join("\n"))}</textarea></label>
+            <label>Exclude companies when this is publicly verified<textarea id="targetDiscoveryExclusions" rows="3">${escapeHtml(discovery.variables.exclusions.join("\n"))}</textarea></label>
+            <label>Companies per result batch<input id="targetDiscoveryBatchSize" type="number" min="1" max="10" value="${escapeHtml(discovery.variables.batchSize)}"></label>
+            <label>Initial qualified-list goal<input id="targetDiscoveryInitialTarget" type="number" min="1" value="${escapeHtml(discovery.variables.initialTarget)}"></label>
+          </div>
+          <p class="muted">One criterion per line. Team structure and technology use remain hypotheses until a public source confirms them.</p>
+        </details>
         <p class="messaging-save-status" id="targetDiscoverySetupStatus"></p>
       `;
       main.appendChild(setup);
@@ -19552,14 +19479,31 @@
       approachesSection.id = "target-search-approaches";
       approachesSection.dataset.toc = "Search Approaches";
       approachesSection.className = "workspace-section";
+      approachesSection.hidden = true;
       main.appendChild(approachesSection);
       const renderApproaches = () => {
         approachesSection.innerHTML = `
-          <h2>Focused search approaches</h2>
-          <p>Use these separately. Each query tests one observable part of the current hypothesis.</p>
-          <div class="active-plan-actions">${discovery.approaches.map((item) => `<article class="active-plan-action"><div class="active-plan-action-copy"><h3>${escapeHtml(item.label)}</h3><p><strong>Query:</strong> ${escapeHtml(item.query)}</p><p><strong>Why:</strong> ${escapeHtml(item.why)}</p><p><strong>Evidence boundary:</strong> ${escapeHtml(item.evidenceBoundary)}</p><div class="active-plan-link-row"><a href="https://www.google.com/search?q=${encodeURIComponent(item.query)}" target="_blank" rel="noopener">Open this focused search</a></div></div></article>`).join("")}</div>
-          <div class="overview-note"><strong>Controlled AI step</strong><p>No paid browser-triggered research runs here. Copy the AI discovery prompt into an approved research session, then paste its sourced JSON results below.</p></div>
+          <h2>Search is ready</h2>
+          <p>The complete research request was prepared from the plan. This workspace does not run paid research automatically.</p>
+          <div class="active-plan-link-row">${discovery.approaches.map((item) => `<a href="https://www.google.com/search?q=${encodeURIComponent(item.query)}" target="_blank" rel="noopener">${escapeHtml(item.label)}</a>`).join("")}</div>
+          <div class="card-actions no-print"><button type="button" class="secondary" id="copyTargetDiscoveryPrompt">Copy complete research request</button></div>
+          <p class="messaging-save-status" id="targetDiscoveryPromptStatus"></p>
         `;
+        approachesSection.querySelector("#copyTargetDiscoveryPrompt").addEventListener("click", async () => {
+          const prompt = window.GTM_TARGET_DISCOVERY.buildDiscoveryPrompt({
+            company: data.companyName,
+            variables: discovery.variables,
+            approaches: discovery.approaches,
+            feedback: discovery.feedback
+          });
+          const status = approachesSection.querySelector("#targetDiscoveryPromptStatus");
+          try {
+            await copyTextToClipboard(prompt);
+            status.textContent = "Research request copied. Run it in an approved research session, then paste the sourced results below.";
+          } catch (error) {
+            status.textContent = "Copy failed. Use one of the public search links above.";
+          }
+        });
       };
       renderApproaches();
 
@@ -19567,42 +19511,25 @@
       candidateInput.id = "target-candidate-input";
       candidateInput.dataset.toc = "Candidate Results";
       candidateInput.className = "workspace-section";
-      const candidatePasteField = guidedInputMarkup({
-        id: "targetCandidateResults",
-        label: `Sourced candidate-company results for ${subject}`,
-        subject,
-        why: "The app needs structured public evidence before it can present a company for user approval.",
-        answer: "Paste the JSON returned by the copied AI prompt. Each candidate must include company, source URL, observed evidence, inferred fit, missing information, and risks.",
-        scoreEffect: "Reviewing candidates advances Target List Setup; it does not change the readiness score.",
-        optional: true,
-        wide: true,
-        control: '<textarea id="targetCandidateResults" rows="10" placeholder="{ &quot;candidates&quot;: [...] }"></textarea>'
-      });
-      candidateInput.innerHTML = `<h2>Review a sourced candidate batch</h2><div class="guided-input-grid">${candidatePasteField}</div><div class="card-actions no-print"><button type="button" id="reviewTargetCandidates">Review pasted candidate batch</button></div><p class="messaging-save-status" id="targetCandidateInputStatus"></p>`;
+      candidateInput.hidden = true;
+      candidateInput.innerHTML = `<h2>Add sourced results</h2><p>Paste the structured result batch from the copied research request. Each company must include a public source and separate observed evidence from inference.</p><label>Candidate results<textarea id="targetCandidateResults" rows="10" placeholder="{ &quot;candidates&quot;: [...] }"></textarea></label><div class="card-actions no-print"><button type="button" id="reviewTargetCandidates">Show candidate companies</button></div><p class="messaging-save-status" id="targetCandidateInputStatus"></p>`;
       main.appendChild(candidateInput);
 
       const candidateReview = document.createElement("section");
       candidateReview.id = "target-candidate-review";
       candidateReview.dataset.toc = "Approve Companies";
       candidateReview.className = "workspace-section";
+      candidateReview.hidden = !discovery.candidates.length;
       main.appendChild(candidateReview);
       const candidateList = (items, fallback) => items.length ? personaAssetListMarkup(items) : `<p class="muted">${escapeHtml(fallback)}</p>`;
       const renderCandidates = () => {
         candidateReview.innerHTML = `
           <h2>Approve, reject, or refine</h2>
           <p>The user remains the approver. Accepted means “qualified enough for manual HubSpot verification,” not “proven fit.”</p>
-          ${discovery.candidates.length ? `<div class="active-plan-actions">${discovery.candidates.map((candidate) => `<article class="active-plan-action" data-target-candidate="${escapeHtml(candidate.id)}"><div class="active-plan-action-copy"><h3>${escapeHtml(candidate.company)}</h3><p><a href="${escapeHtml(candidate.url)}" target="_blank" rel="noopener">${escapeHtml(candidate.sourceLabel || candidate.url)}</a></p><h4>Observed fit evidence</h4>${candidateList(candidate.observedEvidence, "No observed evidence was supplied.")}<h4>Inferred fit — hypothesis only</h4>${candidateList(candidate.inferredFit, "No inference was supplied.")}<h4>Missing information</h4>${candidateList(candidate.missingInformation, "No missing-information note was supplied.")}<h4>Exclusion or risk notes</h4>${candidateList(candidate.risks, "No risk note was supplied.")}<div class="guided-input-grid">${guidedInputMarkup({
-            id: `candidate-decision-${candidate.id}`,
-            label: `Approval decision for ${candidate.company}`,
-            subject: candidate.company,
-            why: "Only the user can decide whether this evidence is sufficient for manual HubSpot verification.",
-            answer: "Choose Pending review, Accepted, or Rejected, then record the evidence or pattern that should affect the next batch.",
-            scoreEffect: "This changes discovery workflow status, not the readiness score.",
-            optional: false,
-            control: `<select data-candidate-status>${messagingOptions(["Pending review", "Accepted", "Rejected"], candidate.status)}</select><textarea data-candidate-reason rows="2" placeholder="Why accept/reject, or what pattern should change?">${escapeHtml(candidate.decisionReason)}</textarea>`
-          })}</div><div class="card-actions no-print"><button type="button" data-save-candidate-decision>Save this decision</button></div></div></article>`).join("")}</div>` : '<p class="muted">No sourced candidates are ready for review. Build the search pack, run the controlled research step, and paste the returned JSON.</p>'}
+          ${discovery.candidates.length ? `<div class="active-plan-actions">${discovery.candidates.map((candidate) => `<article class="active-plan-action" data-target-candidate="${escapeHtml(candidate.id)}"><div class="active-plan-action-copy"><h3>${escapeHtml(candidate.company)}</h3><p><a href="${escapeHtml(candidate.url)}" target="_blank" rel="noopener">${escapeHtml(candidate.sourceLabel || candidate.url)}</a></p><p><strong>Why it is worth review:</strong> ${escapeHtml(candidate.observedEvidence[0] || "A public source was supplied, but the fit evidence still needs review.")}</p><h4>Observed evidence</h4>${candidateList(candidate.observedEvidence, "No observed evidence was supplied.")}<h4>Inference — verify before use</h4>${candidateList(candidate.inferredFit, "No inference was supplied.")}<h4>Still unknown</h4>${candidateList(candidate.missingInformation, "No missing-information note was supplied.")}<h4>Exclusion or risk notes</h4>${candidateList(candidate.risks, "No risk note was supplied.")}<label>Decision<select data-candidate-status>${messagingOptions(["Pending review", "Accepted", "Rejected"], candidate.status)}</select></label><label>Reason or next-search refinement<textarea data-candidate-reason rows="2" placeholder="What should change in the next batch?">${escapeHtml(candidate.decisionReason)}</textarea></label><div class="card-actions no-print"><button type="button" data-save-candidate-decision>Save decision</button></div></div></article>`).join("")}</div><details><summary>How we searched</summary>${discovery.approaches.map((item) => `<p><strong>${escapeHtml(item.label)}:</strong> ${escapeHtml(item.why)} <span class="muted">${escapeHtml(item.evidenceBoundary)}</span></p>`).join("")}</details>` : ""}
           <p class="messaging-save-status" id="targetCandidateDecisionStatus"></p>
         `;
+        candidateReview.hidden = !discovery.candidates.length;
         candidateReview.querySelectorAll("[data-save-candidate-decision]").forEach((button) => {
           button.addEventListener("click", async () => {
             const card = button.closest("[data-target-candidate]");
@@ -19621,18 +19548,8 @@
       refinement.id = "target-discovery-refinement";
       refinement.dataset.toc = "Refine Next Batch";
       refinement.className = "workspace-section";
-      const feedbackField = guidedInputMarkup({
-        id: "targetDiscoveryFeedback",
-        label: `Next-batch refinements for ${subject}`,
-        subject,
-        why: "Accepted, rejected, and repeatedly disqualified companies should improve the next search batch instead of merely accumulating notes.",
-        answer: "Record concise changes by category. Leave a line blank when that variable should stay unchanged.",
-        scoreEffect: "This changes the next discovery prompt, not the readiness score.",
-        optional: true,
-        wide: true,
-        control: `<div class="grid"><label>Industry pattern<input data-discovery-feedback="industry" value="${escapeHtml(discovery.feedback.industry || "")}"></label><label>Geography pattern<input data-discovery-feedback="geography" value="${escapeHtml(discovery.feedback.geography || "")}"></label><label>Size pattern<input data-discovery-feedback="size" value="${escapeHtml(discovery.feedback.size || "")}"></label><label>Technology-signal pattern<input data-discovery-feedback="technology" value="${escapeHtml(discovery.feedback.technology || "")}"></label><label>Referral-path pattern<input data-discovery-feedback="referral" value="${escapeHtml(discovery.feedback.referral || "")}"></label><label>New exclusion pattern<input data-discovery-feedback="exclusion" value="${escapeHtml(discovery.feedback.exclusion || "")}"></label></div>`
-      });
-      refinement.innerHTML = `<h2>Refine the next batch</h2><div class="guided-input-grid">${feedbackField}</div><div class="card-actions no-print"><button type="button" id="saveTargetDiscoveryFeedback">Save refinements and rebuild search pack</button></div><p class="messaging-save-status" id="targetDiscoveryFeedbackStatus"></p>`;
+      refinement.hidden = !discovery.candidates.length;
+      refinement.innerHTML = `<h2>Refine the next batch</h2><p>Use patterns from accepted and rejected companies to steer the next search.</p><div class="grid"><label>Prefer this signal<select data-discovery-feedback="preferredSignal"><option value="">No added preference</option>${observableSignals.map((signal) => `<option value="${escapeHtml(signal.label)}"${signal.label === discovery.feedback.preferredSignal ? " selected" : ""}>${escapeHtml(signal.label)}</option>`).join("")}</select></label><label>Industry preference<input data-discovery-feedback="industry" value="${escapeHtml(discovery.feedback.industry || "")}"></label><label>Geography preference<input data-discovery-feedback="geography" value="${escapeHtml(discovery.feedback.geography || "")}"></label><label>Company-size preference<input data-discovery-feedback="size" value="${escapeHtml(discovery.feedback.size || "")}"></label><label>Public technology pattern<input data-discovery-feedback="technology" value="${escapeHtml(discovery.feedback.technology || "")}"></label><label>Referral or access preference<input data-discovery-feedback="referral" value="${escapeHtml(discovery.feedback.referral || "")}"></label><label>Exclude this verified pattern<input data-discovery-feedback="exclusion" value="${escapeHtml(discovery.feedback.exclusion || "")}"></label></div><div class="card-actions no-print"><button type="button" id="saveTargetDiscoveryFeedback">Use these refinements for the next search</button></div><p class="messaging-save-status" id="targetDiscoveryFeedbackStatus"></p>`;
       main.appendChild(refinement);
 
       const handoff = document.createElement("section");
@@ -19642,21 +19559,12 @@
       main.appendChild(handoff);
       const renderHandoff = () => {
         const accepted = discovery.candidates.filter((item) => item.status === "Accepted");
-        const countField = guidedInputMarkup({
-          id: "targetListInitialCount",
-          label: `Accepted companies added or verified in ${systemLabel}`,
-          subject: `The approved target-company batch for ${data.companyName || "the saved plan"}`,
-          why: `Accepted candidates still require manual ${systemLabel} entry and property verification because no CRM connector is being used.`,
-          answer: "Enter the whole-number count actually added or verified in HubSpot, not the number merely accepted in discovery.",
-          scoreEffect: "This completes Target List Setup and advances Tool Setup; it does not change the readiness score.",
-          optional: false,
-          control: `<input id="targetListInitialCount" type="number" min="0" step="1" value="${escapeHtml(targetWorkspace.initialCount ?? accepted.length)}">`
-        });
+        handoff.hidden = !accepted.length;
         handoff.innerHTML = `
           <h2>Add accepted companies to ${escapeHtml(systemLabel)}</h2>
-          <p>${accepted.length ? `${accepted.length} candidate${accepted.length === 1 ? "" : "s"} accepted for manual verification: ${escapeHtml(accepted.map((item) => item.company).join(", "))}.` : "Accept at least one sourced candidate before completing the HubSpot handoff."}</p>
+          <p>${accepted.length} candidate${accepted.length === 1 ? "" : "s"} accepted for manual verification: ${escapeHtml(accepted.map((item) => item.company).join(", "))}. No CRM connector is used.</p>
           <h3>Required Fields</h3>${personaAssetListMarkup(requiredFields)}
-          <div class="guided-input-grid">${countField}</div>
+          <label>Companies actually added or verified in ${escapeHtml(systemLabel)}<input id="targetListInitialCount" type="number" min="0" step="1" value="${escapeHtml(targetWorkspace.initialCount ?? accepted.length)}"></label>
           <div class="card-actions no-print"><button type="button" id="confirmAcceptedTargetsAdded"${accepted.length ? "" : " disabled"}>Confirm HubSpot additions and continue</button><button type="button" class="secondary" id="copyTargetListFields">Copy Fields list</button></div>
           <p class="messaging-save-status" id="targetHubSpotStatus"></p>
         `;
@@ -19688,7 +19596,7 @@
         });
       };
 
-      const splitInput = (value) => String(value || "").split(/\s*;\s*/).map((item) => item.trim()).filter(Boolean);
+      const splitInput = (value) => String(value || "").split(/\s*(?:;|\n)\s*/).map((item) => item.trim()).filter(Boolean);
       const collectVariables = () => {
         discovery.variables = {
           categories: splitInput(setup.querySelector("#targetDiscoveryCategories").value),
@@ -19703,20 +19611,11 @@
           batchSize: Math.max(1, Math.min(10, Number(setup.querySelector("#targetDiscoveryBatchSize").value) || 5)),
           initialTarget: Math.max(1, Number(setup.querySelector("#targetDiscoveryInitialTarget").value) || 25)
         };
-        const selectedSignalId = setup.querySelector("#targetObservableSignal").value;
-        discovery.signalPriority = {
-          selectedSignalId,
-          evidenceSource: setup.querySelector("#targetObservableSignalSource").value.trim(),
-          pointChange: selectedSignalId ? setup.querySelector("#targetObservableSignalPoints").value : ""
-        };
       };
-      setup.querySelector("#targetObservableSignal").addEventListener("change", (event) => {
-        const selected = observableSignals.find((signal) => signal.id === event.currentTarget.value);
-        const priorityRule = setup.querySelector("[data-target-priority-rule]");
-        priorityRule.hidden = !selected;
-        if (!selected) setup.querySelector("#targetObservableSignalPoints").value = "";
-        const label = priorityRule.querySelector("label");
-        if (label) label.textContent = `Outreach-priority rule for ${selected?.label || "the selected observable signal"}`;
+      setup.querySelector("#editTargetSearchCriteria").addEventListener("click", () => {
+        const editor = setup.querySelector("#targetSearchCriteriaEditor");
+        editor.open = !editor.open;
+        if (editor.open) editor.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
       setup.querySelector("#buildTargetSearchPack").addEventListener("click", async () => {
         collectVariables();
@@ -19724,24 +19623,21 @@
         discovery.updatedAt = new Date().toISOString();
         await saveTargetListWorkspace(data, targetWorkspace, profile, setup.querySelector("#targetDiscoverySetupStatus"));
         renderApproaches();
-        approachesSection.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-      setup.querySelector("#copyTargetDiscoveryPrompt").addEventListener("click", async () => {
-        collectVariables();
-        discovery.approaches = window.GTM_TARGET_DISCOVERY.buildSearchApproaches(discovery.variables);
+        approachesSection.hidden = false;
+        candidateInput.hidden = false;
         const prompt = window.GTM_TARGET_DISCOVERY.buildDiscoveryPrompt({
           company: data.companyName,
           variables: discovery.variables,
           approaches: discovery.approaches,
           feedback: discovery.feedback
         });
-        const status = setup.querySelector("#targetDiscoverySetupStatus");
         try {
           await copyTextToClipboard(prompt);
-          status.textContent = "AI discovery prompt copied. Run it in an approved research session, then paste the sourced JSON candidate batch below.";
+          setup.querySelector("#targetDiscoverySetupStatus").textContent = "Research request copied. Run it in an approved research session or use a public search link below.";
         } catch (error) {
-          status.textContent = "Copy failed. Use the focused search links or select and copy the generated search variables.";
+          setup.querySelector("#targetDiscoverySetupStatus").textContent = "Use a public search link below. Automatic paid research is not enabled.";
         }
+        approachesSection.scrollIntoView({ behavior: "smooth", block: "start" });
       });
       candidateInput.querySelector("#reviewTargetCandidates").addEventListener("click", async () => {
         const status = candidateInput.querySelector("#targetCandidateInputStatus");
@@ -19759,6 +19655,7 @@
           status.textContent = `${parsed.length} sourced candidate${parsed.length === 1 ? "" : "s"} added for user review.`;
           candidateInput.querySelector("#targetCandidateResults").value = "";
           renderCandidates();
+          refinement.hidden = !discovery.candidates.length;
           renderHandoff();
         } catch (error) {
           status.textContent = `Candidate results were not added: ${error.message}`;

@@ -543,7 +543,7 @@ Only one proposal can be pending at a time. Applying a proposal writes the appro
   - `status`: `Pending review`, `Accepted`, or `Rejected`
   - `decisionReason`
 - `feedback`
-  - `industry`, `geography`, `size`, `technology`, `referral`, `exclusion`
+  - `preferredSignal`, `industry`, `geography`, `size`, `technology`, `referral`, `exclusion`
 - `signalPriority`
   - `selectedSignalId`: supported sourceable signal type selected by the user
   - `evidenceSource`: public page, referral context, or CRM context used to verify an account-level observation
@@ -551,6 +551,8 @@ Only one proposal can be pending at a time. Applying a proposal writes the appro
 - `updatedAt`
 
 Records without `targetListWorkspace.discovery` are initialized from canonical ICP fields on read. Existing discovery values take precedence, so later user refinement is not overwritten by a newly derived default.
+
+The default discovery screen renders these values as a concise generated brief. The detailed variables remain editable only through the optional Search Criteria drawer. Signal preferences and exclusion refinements are requested only after a result batch exists.
 
 Legacy generic signals such as `Customer complaints` remain in their original canonical fields for record compatibility, but are classified `Legacy / unverified` and excluded from active target prioritization. When a user explicitly replaces one through the inline readiness task, the prior routing rule is copied to `legacyUnverifiedBuyingSignals` before the canonical signal field is updated.
 

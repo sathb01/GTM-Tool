@@ -4,6 +4,15 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-30 Concise Find Target Companies
+
+- Replaced the generated-variable form wall with a concise plan-derived brief for company type, size, geography, observable signals, and exclusions.
+- Made criteria editing optional and line-oriented, with plain referral/access and exclusion preferences instead of technical semicolon-entry instructions.
+- Removed the pre-search buying-signal selector, source-verification prompts, point controls, and internal contextual-input scaffolding from Target Discovery.
+- Kept the primary `Find target companies` action and a controlled public-search / copied-research-request handoff without enabling paid research.
+- Candidate results now lead with source, observed evidence, clearly labeled inference, and a concise reason to review; search-method details appear only after results.
+- Limited signal preference and exclusion refinement to future batches after candidates exist.
+
 ## 2026-07-30 Observable Buying Signals
 
 - Replaced the generic `Customer complaints` target-prioritization path with sourceable signal types relevant to ClientRenew's saved ICP.
