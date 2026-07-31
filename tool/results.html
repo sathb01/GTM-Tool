@@ -10369,7 +10369,12 @@
       bar.className = "workspace-return-bar workspace-section no-print";
       const returnLabel = taskOrigin === "this-week" ? "This Week" : "Plan Summary";
       bar.innerHTML = `<div class="workspace-return-bar-copy"><span class="workspace-return-bar-label">${escapeHtml(task?.label || returnLabel)}</span><strong>${task ? `Complete the actual ${escapeHtml(task.label)} work here.` : "Complete the current work here."}</strong><span class="workspace-return-bar-origin">Opened from ${escapeHtml(returnLabel)}. Completion and return keep that context.</span></div><a class="secondary" href="${escapeHtml(guidedToolReturnUrl(taskOrigin))}">Return to ${escapeHtml(returnLabel)}</a>`;
-      main.prepend(bar);
+      // Keep the report header in the full-width first grid row. Prepending this
+      // workspace section would move that header into the sidebar's grid area.
+      // The return bar belongs directly below the current-page navigation.
+      const currentNav = document.getElementById("currentSectionNav");
+      if (currentNav) currentNav.insertAdjacentElement("afterend", bar);
+      else main.prepend(bar);
       // The browser resolves a hash before this sticky return bar exists. Re-align
       // the requested workspace afterward so its heading and first control are not
       // hidden beneath the navigation layers.
