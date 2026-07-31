@@ -7547,7 +7547,10 @@
         subtitle: "Review valid saved evidence, standard weights, and the two launch paths.",
         content: `<p><strong>${escapeHtml(status.label)}:</strong> ${escapeHtml(status.reason)} The score is ${escapeHtml(model.readinessScore)}/100.</p><p class="summary-primary-action">${escapeHtml(focusedLaunch.explanation)}</p><div class="card-actions no-print"><a href="${escapeHtml(focusedLaunch.href)}">${escapeHtml(focusedLaunch.label)}</a>${setupBlocker ? `<a class="secondary" href="${escapeHtml(setupBlocker.href)}">${escapeHtml(guidedToolTask(setupBlocker.tool.id)?.completeLabel || `Complete ${setupBlocker.tool.label}`)}</a>` : !blockerReady ? `<a class="secondary" data-readiness-target="${escapeHtml(blockerTarget)}" href="#${escapeHtml(blockerTarget)}">Improve the highest-impact blockers</a>` : ""}</div><div class="score-breakdown-host"></div>`
       });
-      renderScoreBreakdown(model.readinessDiagnostic, readinessPanel.querySelector(".score-breakdown-host"), model);
+      // The summary card is a launch decision, not an inline remediation form.
+      // Keep score-changing work in its own direct workspace so this view does not
+      // expose implementation logic or ask the user to complete unrelated inputs.
+      renderScoreBreakdown(model.readinessDiagnostic, readinessPanel.querySelector(".score-breakdown-host"), model, { summaryOnly: true });
       recommendation.appendChild(readinessPanel);
 
       const opportunityPanel = summarySupportPanel({
@@ -14012,12 +14015,9 @@
     }) {
       return `<div class="guided-input${wide ? " wide" : ""}">
         <label for="${escapeHtml(id)}">${escapeHtml(label)}</label>
-        <p><strong>Applies to:</strong> ${escapeHtml(subject)}</p>
-        <p><strong>Why now:</strong> ${escapeHtml(why)}</p>
-        <p><strong>What to enter:</strong> ${escapeHtml(answer)}</p>
-        <p class="guided-input-meta"><strong>Readiness effect:</strong> ${escapeHtml(scoreEffect)}</p>
+        <p class="guided-input-help">${escapeHtml(answer)}</p>
         ${control}
-        ${optional ? '<p class="guided-input-meta">Optional for now. You may continue without adding it.</p>' : ""}
+        ${optional ? '<p class="guided-input-meta">Optional. Leave this blank to continue.</p>' : ""}
       </div>`;
     }
 
@@ -14026,10 +14026,6 @@
         <div>
           <h3>${escapeHtml(title)}</h3>
           <p>${escapeHtml(why)}</p>
-        </div>
-        <div class="guided-task-context">
-          <p><strong>Saved plan item:</strong> ${escapeHtml(subject)}</p>
-          ${savedContext ? `<p><strong>Using saved context:</strong> ${escapeHtml(savedContext)}</p>` : ""}
         </div>
         <div class="guided-input-grid">${fields.join("")}</div>
         ${actions}
@@ -14708,9 +14704,30 @@
       };
     }
 
-    function renderScoreBreakdown(diagnostic, targetContainer = null, model = null) {
+    function renderScoreBreakdown(diagnostic, targetContainer = null, model = null, options = {}) {
       const container = targetContainer || document.getElementById("scoreBreakdown");
       if (!container || !diagnostic) return;
+      if (options.summaryOnly) {
+        const decision = launchDecisionForScore(diagnostic.overallScore);
+        const strongestComponent = [...diagnostic.components].sort((left, right) => right.score - left.score)[0];
+        const weakestComponent = [...diagnostic.components].sort((left, right) => left.score - right.score)[0];
+        container.innerHTML = `
+          <div class="score-metric-strip">
+            <div>
+              <span>GTM readiness</span>
+              <strong>${escapeHtml(diagnostic.overallScore)}/100</strong>
+              <small>${escapeHtml(decision.label)} based on the current plan.</small>
+            </div>
+            <div>
+              <span>What this means</span>
+              <strong>${escapeHtml(weakestComponent?.label || "Readiness")}</strong>
+              <small>Needs the most attention. ${escapeHtml(strongestComponent?.label || "Your saved plan")} is currently strongest.</small>
+            </div>
+          </div>
+          <p class="muted">Use the launch path above to continue the current plan or address the one recommended blocker. Score details and setup work appear only in their own workspaces.</p>
+        `;
+        return;
+      }
       let savedChange = null;
       if (model) {
         try {
@@ -14744,8 +14761,13 @@
           </details>
         `;
       }).join("");
+      // Signal research is performed in Target List Discovery. It is not a readiness
+      // form task: the user should evaluate returned companies, not configure the
+      // app's signal-routing mechanics.
       const readinessTasks = model
-        ? diagnostic.improvements.map((item, index) => readinessTaskForImprovement(item, model, index))
+        ? diagnostic.improvements
+          .filter((item) => !/buying[- ]signal/i.test(item.area || ""))
+          .map((item, index) => readinessTaskForImprovement(item, model, index))
         : [];
       const improvementRows = readinessTasks.length
         ? readinessTasks.map((task) => task.html).join("")
