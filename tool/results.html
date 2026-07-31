@@ -19477,8 +19477,10 @@
           <p class="messaging-save-status" id="targetDiscoveryPromptStatus"></p>
         `;
         approachesSection.querySelector("#copyTargetDiscoveryPrompt").addEventListener("click", async () => {
-          const prompt = window.GTM_TARGET_DISCOVERY.buildDiscoveryPrompt({
+          const prompt = window.GTM_TARGET_DISCOVERY.buildResearchPromptPack({
             company: data.companyName,
+            icp: discoveryContext.icp,
+            buyer: targetBuyer,
             variables: discovery.variables,
             approaches: discovery.approaches,
             feedback: discovery.feedback
@@ -19512,10 +19514,27 @@
           <h2>Review target companies</h2>
           ${discovery.searchSummary ? `<p>${escapeHtml(discovery.searchSummary)}</p>` : ""}
           <p>Choose Good fit to add a company to the review list. No outreach or CRM update happens here.</p>
-          ${discovery.candidates.length ? `<div class="active-plan-actions">${discovery.candidates.map((candidate) => `<article class="active-plan-action" data-target-candidate="${escapeHtml(candidate.id)}"><div class="active-plan-action-copy"><h3>${escapeHtml(candidate.rank)}. ${escapeHtml(candidate.company)}</h3>${candidateSources(candidate)}<p><strong>Why review:</strong> ${escapeHtml(candidate.whyReview || candidate.observedEvidence[0] || "The public evidence is worth checking against the current criteria.")}</p><h4>Observed evidence</h4>${candidateList(candidate.observedEvidence, "No observed evidence was supplied.")}<h4>Inference — not confirmed</h4>${candidateList(candidate.inferredFit, "No inference was supplied.")}<h4>Still unknown</h4>${candidateList(candidate.missingInformation, "Nothing else was listed as unknown.")}${candidate.risks.length ? `<h4>Possible mismatch</h4>${candidateList(candidate.risks, "")}` : ""}<label>Your decision<select data-candidate-status><option value="Pending review"${candidate.status === "Pending review" ? " selected" : ""}>Not sure</option><option value="Accepted"${candidate.status === "Accepted" ? " selected" : ""}>Good fit</option><option value="Rejected"${candidate.status === "Rejected" ? " selected" : ""}>Not a fit</option></select></label><label>Reason <span class="muted">(optional)</span><select data-candidate-reason><option value="">No reason selected</option>${["Matches the service model", "Relevant public signal", "Strong size and geography fit", "Needs more evidence", "Wrong company type", "Wrong size or geography", "Conflicting public evidence"].map((reason) => `<option value="${escapeHtml(reason)}"${candidate.decisionReason === reason ? " selected" : ""}>${escapeHtml(reason)}</option>`).join("")}</select></label><div class="card-actions no-print"><button type="button" data-save-candidate-decision>Save decision</button></div></div></article>`).join("")}</div><details><summary>How we searched</summary>${discovery.approaches.map((item) => `<p><strong>${escapeHtml(item.label)}:</strong> ${escapeHtml(item.why)} <span class="muted">${escapeHtml(item.evidenceBoundary)}</span></p>`).join("")}</details>` : ""}
+          ${discovery.candidates.length ? `<div class="active-plan-actions">${discovery.candidates.map((candidate) => `<article class="active-plan-action" data-target-candidate="${escapeHtml(candidate.id)}"><div class="active-plan-action-copy"><h3>${escapeHtml(candidate.rank)}. ${escapeHtml(candidate.company)}</h3>${candidateSources(candidate)}<p><strong>Why review:</strong> ${escapeHtml(candidate.whyReview || candidate.observedEvidence[0] || "The public evidence is worth checking against the current criteria.")}</p><h4>Observed evidence</h4>${candidateList(candidate.observedEvidence, "No observed evidence was supplied.")}<h4>Inference — not confirmed</h4>${candidateList(candidate.inferredFit, "No inference was supplied.")}<h4>Still unknown</h4>${candidateList(candidate.missingInformation, "Nothing else was listed as unknown.")}${candidate.risks.length ? `<h4>Possible mismatch</h4>${candidateList(candidate.risks, "")}` : ""}<label>Your decision<select data-candidate-status><option value="Pending review"${candidate.status === "Pending review" ? " selected" : ""}>Not sure</option><option value="Accepted"${candidate.status === "Accepted" ? " selected" : ""}>Good fit</option><option value="Rejected"${candidate.status === "Rejected" ? " selected" : ""}>Not a fit</option></select></label><label>Reason <span class="muted">(optional)</span><select data-candidate-reason><option value="">No reason selected</option>${["Matches the service model", "Relevant public signal", "Strong size and geography fit", "Needs more evidence", "Wrong company type", "Wrong size or geography", "Conflicting public evidence"].map((reason) => `<option value="${escapeHtml(reason)}"${candidate.decisionReason === reason ? " selected" : ""}>${escapeHtml(reason)}</option>`).join("")}</select></label><div class="card-actions no-print"><button type="button" data-save-candidate-decision>Save decision</button></div></div></article>`).join("")}</div><details><summary>How we searched</summary>${discovery.approaches.map((item) => `<p><strong>${escapeHtml(item.label)}:</strong> ${escapeHtml(item.why)} <span class="muted">${escapeHtml(item.evidenceBoundary)}</span></p>`).join("")}<div class="card-actions no-print"><button type="button" class="secondary" id="copyResearchPrompts">Copy research prompts</button></div><p class="messaging-save-status" id="copyResearchPromptsStatus"></p></details>` : ""}
           <p class="messaging-save-status" id="targetCandidateDecisionStatus"></p>
         `;
         candidateReview.hidden = !discovery.candidates.length;
+        candidateReview.querySelector("#copyResearchPrompts")?.addEventListener("click", async () => {
+          const promptPack = window.GTM_TARGET_DISCOVERY.buildResearchPromptPack({
+            company: data.companyName,
+            icp: discoveryContext.icp,
+            buyer: targetBuyer,
+            variables: discovery.variables,
+            approaches: discovery.approaches,
+            feedback: discovery.feedback
+          });
+          const status = candidateReview.querySelector("#copyResearchPromptsStatus");
+          try {
+            await copyTextToClipboard(promptPack);
+            status.textContent = "Research prompts copied.";
+          } catch (error) {
+            status.textContent = "Copy failed. Try again or use the automatic search.";
+          }
+        });
         candidateReview.querySelectorAll("[data-save-candidate-decision]").forEach((button) => {
           button.addEventListener("click", async () => {
             const card = button.closest("[data-target-candidate]");

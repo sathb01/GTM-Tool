@@ -4,6 +4,13 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-31 Optional Research Prompt Copy
+
+- Added an optional `Copy research prompts` action inside the post-results `How we searched` disclosure.
+- The copied prompt pack uses the current saved ICP, focused search approaches, and guided refinements.
+- Kept the payload human-readable and removed JSON response schemas or internal candidate plumbing.
+- Preserved automatic server-side discovery as the primary action and retained the no-contact, no-outreach, and no-CRM-write boundaries.
+
 ## 2026-07-30 API-Backed Target Discovery
 
 - Added authenticated `GET/POST /api/target-discovery`; the endpoint runs only when the server has `OPENAI_API_KEY`.

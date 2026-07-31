@@ -94,6 +94,8 @@ Behavior:
 6. Good-fit companies enter an internal review list only. No contact discovery, outreach, or CRM write occurs.
 7. The endpoint is limited to five runs per network per day.
 
+After results exist, `How we searched` includes an optional `Copy research prompts` action. It copies a human-readable set of focused searches based on the current saved ICP and guided refinements. It does not expose the JSON candidate schema and does not replace the primary server-run workflow.
+
 If `OPENAI_API_KEY` is absent, the status endpoint reports `configured: false` and the POST returns 501. The UI explains the server configuration step and reveals public-search links / a copied research request only as an optional fallback. Raw queries, pasted JSON, and the internal candidate schema are not part of the normal workflow.
 
 `OPENAI_MODEL` is optional; target discovery uses the shared server model default when it is not set. The API key never enters the browser.

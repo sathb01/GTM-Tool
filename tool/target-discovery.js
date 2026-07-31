@@ -265,10 +265,38 @@
     ].join("\n");
   }
 
+  function buildResearchPromptPack(context = {}) {
+    const variables = context.variables || {};
+    const approaches = context.approaches || buildSearchApproaches(variables);
+    const feedback = context.feedback && typeof context.feedback === "object" ? context.feedback : {};
+    const refinements = Object.entries(feedback)
+      .filter(([, value]) => clean(value))
+      .map(([key, value]) => `${key.replace(/([A-Z])/g, " $1").toLowerCase()}: ${clean(value)}`);
+    return [
+      `Find a small batch of target-company hypotheses for ${clean(context.company) || "this GTM plan"}.`,
+      clean(context.icp) ? `Current ICP: ${clean(context.icp)}` : "",
+      clean(context.buyer) ? `Primary buyer context: ${clean(context.buyer)}` : "",
+      "",
+      "Use these focused public-web searches separately:",
+      ...approaches.map((item, index) => [
+        `${index + 1}. ${clean(item.label)}`,
+        `   Search: ${clean(item.query)}`,
+        `   Purpose: ${clean(item.why)}`,
+        `   Caution: ${clean(item.evidenceBoundary)}`
+      ].join("\n")),
+      "",
+      refinements.length ? `Guided refinements from prior review:\n- ${refinements.join("\n- ")}` : "No additional review refinements are saved yet.",
+      "",
+      "For each company, provide its name, direct public source links, observed evidence, any inference clearly labeled as unconfirmed, and what is still unknown.",
+      "Do not find contacts, draft outreach, send messages, or write to a CRM. Do not present a hypothesis as proven fit."
+    ].filter((line) => line !== "").join("\n");
+  }
+
   root.GTM_TARGET_DISCOVERY = Object.freeze({
     deriveSearchVariables,
     buildSearchApproaches,
     buildDiscoveryPrompt,
+    buildResearchPromptPack,
     parseCandidateResults,
     normalizeCandidate,
     observableBuyingSignals,
