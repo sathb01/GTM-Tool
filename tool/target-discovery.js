@@ -15,6 +15,71 @@
     return Array.from(new Set(values.map(clean).filter(Boolean)));
   }
 
+  function isLegacyUnverifiedSignal(value) {
+    return /^customer complaints?$/i.test(clean(value));
+  }
+
+  function normalizeSavedBuyingSignal(value) {
+    const label = clean(value);
+    return {
+      label,
+      status: isLegacyUnverifiedSignal(label) ? "Legacy / unverified" : label ? "Saved" : "Missing",
+      eligibleForPriority: Boolean(label) && !isLegacyUnverifiedSignal(label)
+    };
+  }
+
+  function observableBuyingSignals(context = {}) {
+    const icp = clean(context.icp);
+    const buyer = clean(context.buyer) || "the saved buyer";
+    const crm = clean(context.crm) || "the CRM";
+    const combined = `${icp} ${clean(context.industry)} ${list(context.mustHave).join(" ")}`.toLowerCase();
+    const signals = [
+      {
+        id: "retention-operations-hiring",
+        label: "Customer-success, account-management, renewal, or RevOps hiring",
+        whereFound: "Company careers page, LinkedIn jobs, or a public job board",
+        implication: `A verified role or job requirement can indicate investment in client retention or account operations relevant to ${buyer}; it does not prove a renewal problem.`
+      },
+      {
+        id: "recurring-client-service",
+        label: "Managed-services or recurring-client-service language",
+        whereFound: "Company services pages, pricing pages, case studies, or public profiles",
+        implication: "Public managed-service, retainer, recurring support, or account-management language can indicate an ongoing client relationship model; it does not prove contract volume or renewal risk."
+      },
+      {
+        id: "growth-or-service-expansion",
+        label: "Acquisition, rapid growth, or service expansion",
+        whereFound: "Company news, press releases, leadership posts, service pages, or hiring activity",
+        implication: "A sourced acquisition, growth event, or service expansion can increase account-management complexity; it does not prove the company has a client-visibility problem."
+      },
+      {
+        id: "referral-renewal-context",
+        label: "Referral or existing relationship identifies renewal-risk or client-visibility needs",
+        whereFound: `A named referral conversation, partner note, or existing relationship recorded in ${crm}`,
+        implication: "First-party context can justify review when the source explicitly names the need; it remains reported context until the buyer confirms it."
+      }
+    ];
+    if (/hubspot/.test(combined) || /hubspot/i.test(clean(context.crm))) {
+      signals.splice(1, 0, {
+        id: "public-hubspot-evidence",
+        label: "Public HubSpot use, integration, partner, or job evidence",
+        whereFound: "HubSpot partner directory, company integration or technology pages, or public job requirements",
+        implication: "A sourced HubSpot mention indicates an association worth verifying; it does not prove current production use or a specific configuration."
+      });
+    }
+    return signals;
+  }
+
+  function priorityRuleForSignal(signalId, signals = observableBuyingSignals()) {
+    const selected = signals.find((signal) => signal.id === clean(signalId));
+    if (!selected) return null;
+    return {
+      signalId: selected.id,
+      label: selected.label,
+      explanation: "This point rule ranks accounts for outreach review only. It does not prove fit, change market truth, or change the GTM readiness score."
+    };
+  }
+
   function parseEmployeeRange(text) {
     const value = clean(text);
     const range = value.match(/(\d{1,5})\s*(?:to|-|–|—)\s*(\d{1,5})\s+employees?/i);
@@ -192,6 +257,10 @@
     buildSearchApproaches,
     buildDiscoveryPrompt,
     parseCandidateResults,
-    normalizeCandidate
+    normalizeCandidate,
+    observableBuyingSignals,
+    normalizeSavedBuyingSignal,
+    isLegacyUnverifiedSignal,
+    priorityRuleForSignal
   });
 })(typeof window !== "undefined" ? window : globalThis);

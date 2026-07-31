@@ -3712,7 +3712,7 @@
   <script src="gtm-taxonomy.js?v=20260617-revenue-motions"></script>
   <script src="intake-schema.js?v=20260723-revenue-motion-buyer-roles-1"></script>
   <script src="guided-task-context.js?v=20260729-contextual-next-step-1"></script>
-  <script src="target-discovery.js?v=20260730-guided-discovery-1"></script>
+  <script src="target-discovery.js?v=20260730-observable-signals-1"></script>
   <script>
     const schema = window.GTM_INTAKE_SCHEMA;
     const STORAGE_KEY = schema.storageKey;
@@ -6076,6 +6076,10 @@
       return scoped.length ? scoped : repeatableRows(data, tableId);
     }
 
+    function legacyUnverifiedBuyingSignal(value) {
+      return Boolean(window.GTM_TARGET_DISCOVERY?.isLegacyUnverifiedSignal(value));
+    }
+
     function signalReadinessDimensions(data, playRowId = null) {
       const activePlayRowId = playRowId || primarySignalPlayRowId(data);
       const play = signalPlayRows(data).find((row) => row.rowId === activePlayRowId);
@@ -6084,14 +6088,16 @@
       const fitSignals = signalRows(data, activePlayRowId, "fitSignals").filter((row) => row.values.signal || row.values.signalCategory);
       const negativeSignals = signalRows(data, activePlayRowId, "negativeSignalRules").filter((row) => row.values.negativeSignal || row.values.notes);
       const sourceRows = repeatableRows(data, "signalDataSourceReadiness").filter((row) => row.values.source || row.values.availableToday || row.values.owner);
-      const routingRules = signalRows(data, activePlayRowId, "signalRoutingRules").filter((row) => row.values.signal || row.values.scoreImpact || row.values.recommendedAction);
+      const routingRules = signalRows(data, activePlayRowId, "signalRoutingRules")
+        .filter((row) => !legacyUnverifiedBuyingSignal(row.values.signal))
+        .filter((row) => row.values.signal || row.values.scoreImpact || row.values.recommendedAction);
       const actionRows = signalRows(data, activePlayRowId, "signalActionPlan").filter((row) => row.values.highPrioritySignal || row.values.outreachAngle || row.values.channel);
       const savedTriggers = [
         ...repeatableListItems(data, "bestFitTrigger"),
         ...repeatableListItems(data, "buyingTriggersSummary"),
         data.quickUrgencyNow,
         priorityGroup?.values.whyNow
-      ].map(cleanText).filter(Boolean);
+      ].map(cleanText).filter((value) => value && !legacyUnverifiedBuyingSignal(value));
       const savedFitSignals = [
         ...repeatableListItems(data, "icpMustHaveSignals"),
         priorityGroup?.values.observableSignals,
@@ -13844,6 +13850,8 @@
     function scoreFieldHasValue(data, fieldId) {
       if (!fieldId) return false;
       const directValue = cleanText(data[fieldId]);
+      const routingField = fieldId.match(/^(.*signalRoutingRules.*__signal-rule-[^_]+__)(?:scoreImpact|owner|recommendedAction)$/);
+      if (routingField && legacyUnverifiedBuyingSignal(data[`${routingField[1]}signal`])) return false;
       if (/easiestNextStep$/.test(fieldId) && !window.GTM_GUIDED_TASK_CONTEXT.isMeaningfulNextStep(directValue)) return false;
       if (directValue) return true;
       const prefix = `${fieldId}__`;
@@ -13956,7 +13964,13 @@
       const channels = cleanText(motion?.values.channelSource || data.quickPrimaryRevenueSource) || "the selected channel";
       const savedActivity = cleanText(signalPlay?.values.playNotes || signalPlay?.values.playName);
       const savedResultTarget = cleanText(data.quick90DaySuccessMetric || data.quickSuccessMeasure);
-      const signalName = cleanText(repeatableListItems(data, "bestFitTrigger")[0] || repeatableListItems(data, "buyingTriggersSummary")[0] || data.quickUrgencyNow) || "the saved buying signal";
+      const savedSignalNames = [
+        ...repeatableListItems(data, "bestFitTrigger"),
+        ...repeatableListItems(data, "buyingTriggersSummary"),
+        data.quickUrgencyNow
+      ].map(cleanText).filter(Boolean);
+      const legacySignal = savedSignalNames.find(legacyUnverifiedBuyingSignal) || "";
+      const signalName = savedSignalNames.find((value) => !legacyUnverifiedBuyingSignal(value)) || "";
       const owner = cleanText(data.signalRoutingOwner || data.signalOperatingOwner || data.primaryRevenueOwner);
       const metric = firstSavedMetric(data);
       const offerRowId = model.primaryOffer?.rowId || primaryOfferRow(data)?.rowId || "offer-1";
@@ -14121,49 +14135,82 @@
         const impactField = `${routingPrefix}scoreImpact`;
         const ownerField = `${routingPrefix}owner`;
         const actionField = `${routingPrefix}recommendedAction`;
+        const signalField = `${routingPrefix}signal`;
+        const observableSignals = window.GTM_TARGET_DISCOVERY.observableBuyingSignals({
+          icp: customer,
+          buyer,
+          crm: cleanText(data.crmName || data.crmSystem || data.currentCrm || data.revenueTrackingSystem),
+          mustHave: repeatableListItems(data, "icpMustHaveSignals")
+        });
+        const selectedSignal = observableSignals.find((signal) => signal.label === signalName);
+        const signalOptions = [
+          '<option value="">Select an observable signal</option>',
+          ...observableSignals.map((signal) => `<option value="${escapeHtml(signal.label)}"${selectedSignal?.id === signal.id ? " selected" : ""}>${escapeHtml(signal.label)}</option>`)
+        ].join("");
+        const signalGuidance = observableSignals.map((signal) => `<article class="overview-note"><strong>${escapeHtml(signal.label)}</strong><p><strong>Where to find it:</strong> ${escapeHtml(signal.whereFound)}</p><p><strong>What it implies:</strong> ${escapeHtml(signal.implication)}</p></article>`).join("");
+        const hasSelectedSignal = Boolean(selectedSignal);
         return {
-          title: `Route "${signalName}"`,
-          summary: `When "${signalName}" appears for ${customer}, confirm who acts for ${buyer} and what happens next.`,
-          derivedWrites: {
-            [`${routingPrefix}signal`]: signalName,
-            [`${routingPrefix}signalType`]: "Trigger"
-          },
+          title: `Choose an observable buying signal for ${customer}`,
+          summary: `Select a signal that can be sourced publicly, through a referral, or in CRM context before ranking accounts for ${buyer}.`,
+          legacySignal: legacySignal ? {
+            label: legacySignal,
+            signalField,
+            scoreImpact: cleanText(data[impactField]),
+            owner: cleanText(data[ownerField]),
+            recommendedAction: cleanText(data[actionField])
+          } : null,
+          derivedWrites: { [`${routingPrefix}signalType`]: "Trigger" },
           html: guidedTaskMarkup({
             id: taskId,
-            title: `When “${signalName}” appears, who acts and what happens next?`,
-            subject: `${signalName} for ${customer}`,
-            why: `The signal is already saved for ${buyer}. Readiness only needs the routing decision that turns it into action.`,
-            savedContext: `Buyer: ${buyer}. Saved motion: ${cleanText(signalPlay?.values.gtmMotion || motionName)}.`,
+            title: `Choose a sourceable buying signal for ${customer}`,
+            subject: `${customer} accounts reviewed for ${buyer}`,
+            why: "A buying signal must be observable before it can rank an account. The app will not turn a generic saved phrase into a scoring rule.",
+            savedContext: `${legacySignal ? `Legacy / unverified value retained: ${legacySignal}. It is excluded from active prioritization. ` : ""}Buyer: ${buyer}. Saved motion: ${cleanText(signalPlay?.values.gtmMotion || motionName)}.`,
             fields: [
               guidedInputMarkup({
-                id: `guided-${index}-impact`,
-                label: `Priority change when “${signalName}” appears`,
-                subject: `${signalName} for ${customer}`,
-                why: "This tells the target-list workflow how strongly the signal should affect account priority.",
-                answer: "Choose a point change: +3 strong priority, +2 medium priority, +1 slight priority, or 0 for review only.",
-                scoreEffect: "Adds the score-impact rule used by Buying-signal readiness.",
-                control: `<select id="guided-${index}-impact" data-score-field="${escapeHtml(impactField)}">${messagingOptions(["", "+3", "+2", "+1", "0"], data[impactField])}</select>`
+                id: `guided-${index}-signal`,
+                label: `Observable signal to investigate for ${customer}`,
+                subject: `${customer} accounts for ${buyer}`,
+                why: "The selected signal names what the team can actually look for before outreach.",
+                answer: "Choose one sourceable signal. The guidance below identifies where it can be found and the limited inference it supports.",
+                scoreEffect: "Selecting a signal enables a contextual routing rule; selection alone does not change the readiness score.",
+                control: `<select id="guided-${index}-signal" data-score-field="${escapeHtml(signalField)}" data-observable-signal-select>${signalOptions}</select>${signalGuidance}`
               }),
-              guidedInputMarkup({
-                id: `guided-${index}-owner`,
-                label: `Person who acts when “${signalName}” appears`,
-                subject: `${signalName} for ${buyer}`,
-                why: "A named role prevents the signal from remaining an unowned observation.",
-                answer: "Choose or confirm the role responsible for reviewing the account and starting the next step.",
-                scoreEffect: "Adds the routing owner used by Buying-signal readiness.",
-                control: `<select id="guided-${index}-owner" data-score-field="${escapeHtml(ownerField)}">${messagingOptions(guidedOwnerRoleOptions(data[ownerField] || owner), data[ownerField] || owner)}</select>`
-              }),
-              guidedInputMarkup({
-                id: `guided-${index}-action`,
-                label: `Action triggered by “${signalName}”`,
-                subject: `${signalName} for ${customer}`,
-                why: "This connects the saved signal to the outbound motion instead of leaving the response implicit.",
-                answer: "Choose the single next action the owner should take when the signal appears.",
-                scoreEffect: "Adds the recommended action used by Buying-signal readiness.",
-                control: `<select id="guided-${index}-action" data-score-field="${escapeHtml(actionField)}">${messagingOptions(["", "Add to target list", "Prioritize outreach", "Send to sales", "Nurture", "Disqualify", "Needs review", "Ask qualification question"], data[actionField])}</select>`
-              })
+              `<div class="guided-input wide" data-observable-priority-fields${hasSelectedSignal ? "" : " hidden"}>
+                <p><strong>Priority rule for the selected observable signal</strong></p>
+                <p>This rule ranks accounts for outreach review only. It does not prove fit, change market truth, or change the GTM readiness score.</p>
+                <div class="guided-input-grid">
+                  ${guidedInputMarkup({
+                    id: `guided-${index}-impact`,
+                    label: "Outreach-priority point change for the selected signal",
+                    subject: `${customer} accounts where the selected signal is actually observed`,
+                    why: "The point change determines review order only after the signal has a source.",
+                    answer: "Choose +3 strong priority, +2 medium priority, +1 slight priority, or 0 for review only.",
+                    scoreEffect: "Completes the score-impact routing input used by Buying-signal readiness; it does not validate fit.",
+                    control: `<select id="guided-${index}-impact" data-score-field="${escapeHtml(impactField)}">${messagingOptions(["", "+3", "+2", "+1", "0"], hasSelectedSignal ? data[impactField] : "")}</select>`
+                  })}
+                  ${guidedInputMarkup({
+                    id: `guided-${index}-owner`,
+                    label: "Role that reviews an account with the selected signal",
+                    subject: `${buyer} outreach for ${customer}`,
+                    why: "A named role keeps a sourced observation from becoming an unowned note.",
+                    answer: "Choose the role responsible for verifying the source and deciding whether the account enters outreach.",
+                    scoreEffect: "Completes the routing-owner input used by Buying-signal readiness.",
+                    control: `<select id="guided-${index}-owner" data-score-field="${escapeHtml(ownerField)}">${messagingOptions(guidedOwnerRoleOptions(hasSelectedSignal ? (data[ownerField] || owner) : owner), hasSelectedSignal ? (data[ownerField] || owner) : owner)}</select>`
+                  })}
+                  ${guidedInputMarkup({
+                    id: `guided-${index}-action`,
+                    label: "Action after the selected signal is verified",
+                    subject: `${customer} accounts reviewed for ${buyer}`,
+                    why: "This states the one next step after the source is checked.",
+                    answer: "Choose the next action. Verification remains required before any fit claim or outreach decision.",
+                    scoreEffect: "Completes the recommended-action input used by Buying-signal readiness.",
+                    control: `<select id="guided-${index}-action" data-score-field="${escapeHtml(actionField)}">${messagingOptions(["", "Add to target list", "Prioritize outreach", "Send to sales", "Nurture", "Disqualify", "Needs review", "Ask qualification question"], hasSelectedSignal ? data[actionField] : "")}</select>`
+                  })}
+                </div>
+              </div>`
             ],
-            actions,
+            actions: `<div class="card-actions no-print"><button type="button" data-save-score-component="${escapeHtml(item.componentKey || "evidence")}"${hasSelectedSignal ? "" : " disabled"}>Save this signal rule and recalculate</button><button type="button" class="secondary" data-skip-score-component="${escapeHtml(item.componentKey || "evidence")}">Continue without adding / Skip for now</button></div>`,
             status
           })
         };
@@ -14652,12 +14699,35 @@
         </details>
       `;
       if (model) {
+        container.querySelectorAll("[data-observable-signal-select]").forEach((select) => {
+          const editor = select.closest(".guided-task");
+          const priorityFields = editor?.querySelector("[data-observable-priority-fields]");
+          const saveButton = editor?.querySelector("[data-save-score-component]");
+          const syncSignalRuleState = () => {
+            const hasSelection = Boolean(select.value);
+            if (priorityFields) priorityFields.hidden = !hasSelection;
+            if (saveButton) saveButton.disabled = !hasSelection;
+          };
+          select.addEventListener("change", syncSignalRuleState);
+          syncSignalRuleState();
+        });
         container.querySelectorAll("[data-save-score-component]").forEach((button) => {
           button.addEventListener("click", async () => {
             const editor = button.closest(".guided-task");
             const taskIndex = Number(editor?.id?.replace("readiness-improvement-", ""));
             const task = readinessTasks[taskIndex];
             const before = diagnostic.overallScore;
+            if (task?.legacySignal) {
+              const history = Array.isArray(model.data.legacyUnverifiedBuyingSignals)
+                ? model.data.legacyUnverifiedBuyingSignals
+                : [];
+              if (!history.some((item) => item.signalField === task.legacySignal.signalField && item.label === task.legacySignal.label)) {
+                model.data.legacyUnverifiedBuyingSignals = [
+                  ...history,
+                  { ...task.legacySignal, status: "Legacy / unverified", excludedFromPriority: true, migratedAt: new Date().toISOString() }
+                ];
+              }
+            }
             editor.querySelectorAll("[data-score-field]").forEach((control) => {
               model.data[control.dataset.scoreField] = control.value.trim();
             });
@@ -19298,6 +19368,19 @@
           ...claimListValue(selectedRevenueMotion(data)?.values.channelSource || "")
         ].filter(Boolean)
       };
+      const targetBuyer = cleanText(selectedSignalPlay(data)?.values.primaryBuyerPersona || data.bestFitDecisionMaker || data.primaryBuyer) || "the saved buyer";
+      const observableSignals = window.GTM_TARGET_DISCOVERY.observableBuyingSignals({
+        ...discoveryContext,
+        buyer: targetBuyer,
+        crm: systemLabel
+      });
+      const signalPlayRowId = selectedSignalPlay(data)?.rowId || primarySignalPlayRowId(data) || "play-1";
+      const savedRoutingSignal = cleanText(data[`${signalScopedTable(signalPlayRowId, "signalRoutingRules")}__signal-rule-1__signal`]);
+      const legacySignals = Array.from(new Set([
+        ...repeatableListItems(data, "bestFitTrigger"),
+        ...repeatableListItems(data, "buyingTriggersSummary"),
+        savedRoutingSignal
+      ].filter((value) => window.GTM_TARGET_DISCOVERY.isLegacyUnverifiedSignal(value))));
       const derived = window.GTM_TARGET_DISCOVERY.deriveSearchVariables(discoveryContext);
       const storedDiscovery = targetWorkspace.discovery && typeof targetWorkspace.discovery === "object"
         ? targetWorkspace.discovery
@@ -19315,8 +19398,15 @@
           ? storedDiscovery.candidates.map((item, index) => window.GTM_TARGET_DISCOVERY.normalizeCandidate(item, index))
           : [],
         feedback: storedDiscovery.feedback && typeof storedDiscovery.feedback === "object" ? storedDiscovery.feedback : {},
+        signalPriority: storedDiscovery.signalPriority && typeof storedDiscovery.signalPriority === "object"
+          ? { ...storedDiscovery.signalPriority }
+          : { selectedSignalId: "", evidenceSource: "", pointChange: "" },
         updatedAt: storedDiscovery.updatedAt || ""
       };
+      if (!observableSignals.some((signal) => signal.id === discovery.signalPriority.selectedSignalId)) {
+        discovery.signalPriority.selectedSignalId = "";
+        discovery.signalPriority.pointChange = "";
+      }
       targetWorkspace.discovery = discovery;
       const requiredFields = [
         "Company or account name",
@@ -19413,11 +19503,46 @@
           control: `<div class="grid"><label>Companies per review batch<input id="targetDiscoveryBatchSize" type="number" min="1" max="10" value="${escapeHtml(discovery.variables.batchSize)}"></label><label>Initial qualified-list target<input id="targetDiscoveryInitialTarget" type="number" min="1" value="${escapeHtml(discovery.variables.initialTarget)}"></label></div>`
         })
       ];
+      const selectedObservableSignal = observableSignals.find((signal) => signal.id === discovery.signalPriority.selectedSignalId);
+      const observableSignalCards = observableSignals.map((signal) => `
+        <article class="overview-note">
+          <strong>${escapeHtml(signal.label)}</strong>
+          <p><strong>Where it can be found:</strong> ${escapeHtml(signal.whereFound)}</p>
+          <p><strong>What it implies:</strong> ${escapeHtml(signal.implication)}</p>
+        </article>
+      `).join("");
+      const observableSignalField = guidedInputMarkup({
+        id: "targetObservableSignal",
+        label: `Observable buying signal for ${discoveryContext.icp || "the saved ICP"}`,
+        subject: `${discoveryContext.icp || "The saved ICP"} and ${targetBuyer}`,
+        why: "A signal can influence account review order only when the team can identify where to look for it.",
+        answer: "Select one sourceable signal, then record the public page, referral, or CRM context where an account-level observation would be verified.",
+        scoreEffect: "This configures target-list prioritization only. It does not prove fit, alter market truth, or change the GTM readiness score.",
+        optional: true,
+        wide: true,
+        control: `<select id="targetObservableSignal"><option value="">Select an observable signal</option>${observableSignals.map((signal) => `<option value="${escapeHtml(signal.id)}"${signal.id === discovery.signalPriority.selectedSignalId ? " selected" : ""}>${escapeHtml(signal.label)}</option>`).join("")}</select>
+          <textarea id="targetObservableSignalSource" rows="2" placeholder="Public URL, referral context, or CRM note to verify">${escapeHtml(discovery.signalPriority.evidenceSource || "")}</textarea>
+          ${observableSignalCards}`
+      });
+      const priorityRuleField = guidedInputMarkup({
+        id: "targetObservableSignalPoints",
+        label: `Outreach-priority rule for ${selectedObservableSignal?.label || "the selected observable signal"}`,
+        subject: `${discoveryContext.icp || "The saved ICP"} accounts where the selected signal is actually observed`,
+        why: "The point change helps order a review queue after the source has been checked.",
+        answer: "Choose +3 strong priority, +2 medium priority, +1 slight priority, or 0 for review only.",
+        scoreEffect: "This ranks accounts for outreach review only. It does not prove fit, change market truth, or change the GTM readiness score.",
+        optional: true,
+        wide: true,
+        control: `<select id="targetObservableSignalPoints">${messagingOptions(["", "+3", "+2", "+1", "0"], discovery.signalPriority.pointChange || "")}</select>`
+      });
       setup.innerHTML = `
         <h2>Find target companies</h2>
         <p>Start from the current ICP, then translate it into observable public signals. Do not paste the full ICP into a search engine, and do not treat an inferred fit as a fact.</p>
         <div class="overview-note"><strong>Observable facts versus inferences</strong><p>Category, geography, public company size, website language, directories, technology mentions, team pages, and job posts can be observed and sourced. Recurring-contract volume, current HubSpot use, and the absence of a dedicated customer-success function remain unknown until evidence confirms them.</p></div>
         <div class="guided-input-grid">${variableFields.join("")}</div>
+        <h3>Choose an observable buying signal</h3>
+        ${legacySignals.length ? `<div class="overview-note"><strong>Legacy / unverified signal retained</strong><p>${escapeHtml(legacySignals.join("; "))} remains in the saved plan for history, but it is excluded from automatic target prioritization until replaced with a sourceable signal.</p></div>` : ""}
+        <div class="guided-input-grid">${observableSignalField}<div data-target-priority-rule${selectedObservableSignal ? "" : " hidden"}>${priorityRuleField}</div></div>
         <div class="card-actions no-print"><button type="button" id="buildTargetSearchPack">Build focused search pack</button><button type="button" class="secondary" id="copyTargetDiscoveryPrompt">Copy AI discovery prompt</button></div>
         <p class="messaging-save-status" id="targetDiscoverySetupStatus"></p>
       `;
@@ -19578,7 +19703,21 @@
           batchSize: Math.max(1, Math.min(10, Number(setup.querySelector("#targetDiscoveryBatchSize").value) || 5)),
           initialTarget: Math.max(1, Number(setup.querySelector("#targetDiscoveryInitialTarget").value) || 25)
         };
+        const selectedSignalId = setup.querySelector("#targetObservableSignal").value;
+        discovery.signalPriority = {
+          selectedSignalId,
+          evidenceSource: setup.querySelector("#targetObservableSignalSource").value.trim(),
+          pointChange: selectedSignalId ? setup.querySelector("#targetObservableSignalPoints").value : ""
+        };
       };
+      setup.querySelector("#targetObservableSignal").addEventListener("change", (event) => {
+        const selected = observableSignals.find((signal) => signal.id === event.currentTarget.value);
+        const priorityRule = setup.querySelector("[data-target-priority-rule]");
+        priorityRule.hidden = !selected;
+        if (!selected) setup.querySelector("#targetObservableSignalPoints").value = "";
+        const label = priorityRule.querySelector("label");
+        if (label) label.textContent = `Outreach-priority rule for ${selected?.label || "the selected observable signal"}`;
+      });
       setup.querySelector("#buildTargetSearchPack").addEventListener("click", async () => {
         collectVariables();
         discovery.approaches = window.GTM_TARGET_DISCOVERY.buildSearchApproaches(discovery.variables);

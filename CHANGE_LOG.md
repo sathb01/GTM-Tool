@@ -4,6 +4,14 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-30 Observable Buying Signals
+
+- Replaced the generic `Customer complaints` target-prioritization path with sourceable signal types relevant to ClientRenew's saved ICP.
+- Added source guidance and bounded implications for retention-operations hiring, public HubSpot evidence, recurring-service language, growth/change events, and referral or CRM context.
+- Kept point rules hidden until a user selects an observable signal; the UI explains that points only rank outreach review and do not prove fit or change readiness.
+- Preserved legacy generic values without counting them as active routing evidence; explicit replacement archives the old rule before saving the new one.
+- Added focused ClientRenew regression coverage for legacy handling, evidence boundaries, conditional priority controls, and non-fabrication.
+
 ## 2026-07-30 Target-Company Discovery
 
 - Replaced literal full-ICP searching with an editable observable-variable model for category, geography, size, public technology evidence, recurring-service language, team/job hypotheses, referral paths, and exclusions.
