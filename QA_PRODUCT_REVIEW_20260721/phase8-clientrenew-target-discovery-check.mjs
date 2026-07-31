@@ -73,7 +73,7 @@ check("Next-batch feedback uses bounded prior-decision tuning", ["moreLikeCompan
 check("Good-fit companies enter a review list, not CRM", /add a company to the review list/.test(targetSource) && /Save review list and continue/.test(targetSource));
 check("Discovery does not expose CRM fields or write actions", !/Required HubSpot fields|copyTargetListFields|Confirm HubSpot additions/.test(targetSource));
 check("Initial target defaults to 25 with optional editing", variables.initialTarget === 25 && /Initial qualified-list goal/.test(targetSource));
-check("Saving the review list advances Tool Setup", /toolSetup\.statuses\.targets = "Ready"/.test(targetSource) && /setupTask: nextTool\.id/.test(targetSource));
+check("Saving the review list advances Tool Setup", /toolSetup\.statuses\.targets = "Ready"/.test(targetSource) && /guidedToolWorkspaceUrl\(nextTool\.id, origin\)/.test(targetSource));
 
 const failed = checks.filter((item) => !item.passed);
 console.log(JSON.stringify({ checks: checks.length, passed: checks.length - failed.length, failed: failed.length, failures: failed }, null, 2));

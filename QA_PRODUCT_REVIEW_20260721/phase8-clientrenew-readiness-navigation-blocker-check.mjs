@@ -68,7 +68,7 @@ check("Clearing a completed blocker honors observed readiness", clearCompletedBl
 check("Ready state restores This Week", ready.label === "This Week" && ready.actionLabel === "Start This Week", JSON.stringify(ready));
 check("Complete execution state preserves This Week", complete.label === "This Week" && complete.actionLabel === "Resume This Week", JSON.stringify(complete));
 check("Sidebar uses state-aware label and exact destination", /addNavItem\("Plan", setupNavigation\.guidance\.label, setupNavigation\.href/.test(resultsSource));
-check("Exact setup task is encoded in direct routes", /reportAssetUrlWithState\("active", \{ setupTask: (current|tool)\.id \}\)/.test(resultsSource));
+check("Exact setup task is encoded in direct routes", /guidedToolWorkspaceUrl\(current\.id, "summary"\)/.test(resultsSource) && /guidedToolWorkspaceUrl\(tool\.id, "summary"\)/.test(resultsSource));
 check("Requested setup task opens directly", /requestedSetupTask[\s\S]*?requestedTool[\s\S]*?currentSetupTool = requestedTool/.test(resultsSource));
 check("Blocker is canonical workflow state", /resolveToolBlockerState\(\{[\s\S]*?toolSetup\.statuses\[toolId\] = next\.status/.test(resultsSource));
 check("Clearing removes the canonical reason key", /else delete toolSetup\.reasons\[toolId\]/.test(resultsSource));
@@ -76,9 +76,9 @@ check("Clear blocker has a dedicated direct action", /id="clearToolSetupBlockerB
 check("Clear blocker persists then recomputes immediately", /#clearToolSetupBlockerButton[\s\S]*?persistActivePlanData\(data, status\)[\s\S]*?renderActivePlanWorkspace\(data\)/.test(resultsSource));
 check("Started setup cannot claim complete while blocked", /objective\.innerHTML = toolSetup\.started && toolSetup\.ready/.test(resultsSource));
 check("Plan Summary includes saved setup blocker", /setupNavigation\.blockers\[0\][\s\S]*?setupBlocker\?\.reason/.test(resultsSource));
-check("Plan Summary blocker routes directly to exact task", /Resolve \$\{escapeHtml\(setupBlocker\.tool\.label\)\} blocker/.test(resultsSource));
+check("Plan Summary blocker routes directly to exact task", /guidedToolTask\(setupBlocker\.tool\.id\)\?\.completeLabel/.test(resultsSource) && /href="\$\{escapeHtml\(setupBlocker\.href\)\}"/.test(resultsSource));
 check("Redundant manual status dropdown was removed", !/data-tool-setup-status/.test(resultsSource));
-check("Reference completion is contextual inline confirmation", /data-mark-tool-ready/.test(resultsSource) && /Mark \$\{tool\.label\} ready and continue/.test(resultsSource));
+check("Reference completion occurs in the actual brief workspace", /appendGuidedReferenceCompletion\(data, "icp"\)/.test(resultsSource) && /appendGuidedReferenceCompletion\(data, "personas"\)/.test(resultsSource) && !/data-mark-tool-ready/.test(resultsSource));
 check("Target List readiness is inferred from its guided confirmation", /toolSetup\.statuses\.targets = initialGuidance\.ready \? "Ready" : "In progress"/.test(resultsSource));
 check("Messaging save advances its setup status", /saveMessagingWorkspace[\s\S]*?markObservedToolReady\(data, "messaging"\)/.test(resultsSource));
 check("Outreach save advances its setup status", /saveOutreachWorkspace[\s\S]*?markObservedToolReady\(data, "outreach"\)/.test(resultsSource));

@@ -40,7 +40,7 @@ check("Setup does not render weekly decision-choice confirmation", !/weeklySetup
 check("Setup reuses canonical owner, cadence, CRM, and decision rules", /pipelineReviewOwner[\s\S]*?revenueReportingCadence[\s\S]*?revenueTrackingSystem[\s\S]*?continueRule[\s\S]*?stopRule/.test(conciseSource));
 check("Setup asks only for missing canonical values", /const ownerInput = owner \? ""/i.test(conciseSource) && /const crmInput = crm \? ""/i.test(conciseSource) && /const dayInput = reviewDay \? ""/i.test(conciseSource));
 check("Setup completion is one readiness confirmation", /id="setWeeklyReviewReady">Set weekly review ready/.test(conciseSource));
-check("Ready setup provides a direct current-work action", /Continue to current work/.test(conciseSource));
+check("Ready setup provides a direct current-work action", /Set weekly review ready and continue/.test(conciseSource) && /guidedToolNextUrl\(data, "weekly-review-setup", origin\)/.test(conciseSource));
 check("Actual weekly review contains the small scorecard", /Weekly scorecard:[\s\S]*?activity, responses, conversations, qualified opportunities, and one learning signal/.test(weeklyWorkspaceSource));
 check("Actual weekly review saves the learning signal", /learningSignal: overview\.querySelector\("#weeklyReviewLearningSignal"\)/.test(weeklyWorkspaceSource));
 check("Actual weekly review retains Continue Revise Pause Stop choices", /Final decision[\s\S]*?\["Need more evidence", "Continue", "Revise", "Pause \/ Stop"\]/.test(weeklyWorkspaceSource));

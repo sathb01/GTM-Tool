@@ -1694,14 +1694,14 @@
     .action-runner-note p:last-child {
       margin-bottom: 0;
     }
-    .workspace-return-bar { position: sticky; top: 12px; z-index: 18; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 16px; border: 1px solid #f6b39f; border-left: 4px solid #ff7a59; background: #ffffff; box-shadow: 0 8px 20px rgba(22, 32, 51, 0.08); }
-    html { scroll-padding-top: 130px; }
-    main > section, .score-component-detail, #icp-brief, #persona-overview { scroll-margin-top: 130px; }
+    .workspace-return-bar { position: sticky; top: 70px; z-index: 18; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 16px; border: 1px solid #f6b39f; border-left: 4px solid #ff7a59; background: #ffffff; box-shadow: 0 8px 20px rgba(22, 32, 51, 0.08); }
+    html { scroll-padding-top: 200px; }
+    main > section, .score-component-detail, #icp-brief, #persona-overview, .workspace-section { scroll-margin-top: 200px; }
     .workspace-return-bar-copy { min-width: 0; }
     .workspace-return-bar-copy span, .workspace-return-bar-copy strong { display: block; overflow-wrap: anywhere; }
     .workspace-return-bar-label { color: #9d3d28; font-size: 12px; font-weight: 800; text-transform: uppercase; }
     .workspace-return-bar-origin { color: var(--muted); font-size: 13px; margin-top: 3px; }
-    @media (max-width: 760px) { .workspace-return-bar { align-items: flex-start; flex-direction: column; } }
+    @media (max-width: 760px) { .workspace-return-bar { align-items: flex-start; flex-direction: column; top: 64px; } }
 
     .validation-workspace-toolbar,
     .validation-interview-nav,
@@ -7324,6 +7324,103 @@
       return `${destination.pathname.split("/").pop() || "results.html"}${destination.search}${destination.hash}`;
     }
 
+    const GUIDED_TOOL_TASKS = Object.freeze([
+      { id: "icp", label: "ICP Brief", asset: "icp", completeLabel: "Mark ICP Brief ready and continue" },
+      { id: "personas", label: "Persona Brief", asset: "personas", completeLabel: "Mark Persona Brief ready and continue" },
+      { id: "targets", label: "Target List Setup", asset: "targets", completeLabel: "Complete Target List Setup and continue" },
+      { id: "messaging", label: "Messaging Kit", asset: "messaging", completeLabel: "Complete Messaging Kit and continue" },
+      { id: "outreach", label: "Outreach Sequence", asset: "outreach", completeLabel: "Complete Outreach Sequence and continue" },
+      { id: "weekly-review-setup", label: "Weekly GTM Review Setup", asset: "weekly-review-setup", completeLabel: "Set weekly review ready and continue" }
+    ]);
+
+    function guidedToolTask(taskOrAsset) {
+      const value = typeof taskOrAsset === "object" ? taskOrAsset?.id : taskOrAsset;
+      return GUIDED_TOOL_TASKS.find((task) => task.id === value || task.asset === value || task.label === value) || null;
+    }
+
+    function guidedToolOrigin(value = "") {
+      return value === "this-week" || value === "active" ? "this-week" : "summary";
+    }
+
+    function guidedToolWorkspaceUrl(taskOrAsset, origin = "summary") {
+      const task = guidedToolTask(taskOrAsset);
+      if (!task) return reportAssetUrl(String(taskOrAsset || "active"));
+      return reportAssetUrlWithState(task.asset, { taskOrigin: guidedToolOrigin(origin) });
+    }
+
+    function guidedToolReturnUrl(origin = "") {
+      return guidedToolOrigin(origin) === "this-week"
+        ? reportAssetUrlWithState("active", { view: "this-week" })
+        : reportAssetUrl("gtm");
+    }
+
+    function guidedToolNextUrl(data, taskId, origin = "summary") {
+      const plan = activePlanDefinition(data);
+      const setup = activePlanToolSetup(data, plan, activePlanWeeklyWorkspace(data, plan));
+      const currentIndex = setup.tools.findIndex((tool) => tool.id === taskId);
+      const next = setup.tools.slice(Math.max(0, currentIndex + 1))
+        .find((tool) => !["Ready", "Complete", "Skip for now"].includes(setup.statuses[tool.id]));
+      return next ? guidedToolWorkspaceUrl(next.id, origin) : guidedToolReturnUrl(origin);
+    }
+
+    async function saveGuidedToolState(data, taskId, status, reason = "", statusElement = null) {
+      const plan = activePlanDefinition(data);
+      const setup = activePlanToolSetup(data, plan, activePlanWeeklyWorkspace(data, plan));
+      setup.statuses[taskId] = status;
+      if (cleanText(reason)) setup.reasons[taskId] = cleanText(reason);
+      else delete setup.reasons[taskId];
+      setup.ready = setup.tools.every((tool) => ["Ready", "Complete", "Skip for now"].includes(setup.statuses[tool.id]));
+      return persistActivePlanData(data, statusElement);
+    }
+
+    function appendGuidedToolSecondaryControls(data, taskId) {
+      const task = guidedToolTask(taskId);
+      const main = document.querySelector("main");
+      if (!task || !main || document.getElementById("guidedToolSecondaryControls")) return;
+      const origin = guidedToolOrigin(new URLSearchParams(window.location.search).get("taskOrigin"));
+      const section = document.createElement("section");
+      section.id = "guidedToolSecondaryControls";
+      section.className = "workspace-section guided-tool-secondary no-print";
+      section.dataset.toc = "Pause or Block";
+      section.innerHTML = `<details><summary>Pause or flag a blocker</summary><p class="muted">Use these only when ${escapeHtml(task.label)} cannot be completed now.</p><label>${escapeHtml(task.label)} blocker and unblock condition<input id="guidedToolBlockerReason" placeholder="Name what is blocked and what must happen to continue."></label><div class="card-actions"><button type="button" class="secondary" id="saveGuidedToolBlocker">Save blocker</button><button type="button" class="secondary" id="continueGuidedToolLater">Continue later</button><span class="messaging-save-status" id="guidedToolSecondaryStatus"></span></div></details>`;
+      main.appendChild(section);
+      const statusElement = section.querySelector("#guidedToolSecondaryStatus");
+      section.querySelector("#saveGuidedToolBlocker").addEventListener("click", async () => {
+        const reason = section.querySelector("#guidedToolBlockerReason").value;
+        if (!cleanText(reason)) {
+          statusElement.textContent = "Name the blocker and what must happen to continue.";
+          return;
+        }
+        if (await saveGuidedToolState(data, task.id, "Waiting / Blocked", reason, statusElement)) {
+          window.location.href = guidedToolReturnUrl("summary");
+        }
+      });
+      section.querySelector("#continueGuidedToolLater").addEventListener("click", async () => {
+        if (await saveGuidedToolState(data, task.id, "Skip for now", "", statusElement)) {
+          window.location.href = guidedToolNextUrl(data, task.id, origin);
+        }
+      });
+    }
+
+    function appendGuidedReferenceCompletion(data, taskId) {
+      const task = guidedToolTask(taskId);
+      const main = document.querySelector("main");
+      if (!task || !main || document.getElementById("guidedReferenceCompletion")) return;
+      const origin = guidedToolOrigin(new URLSearchParams(window.location.search).get("taskOrigin"));
+      const section = document.createElement("section");
+      section.id = "guidedReferenceCompletion";
+      section.className = "workspace-section guided-tool-completion no-print";
+      section.dataset.toc = "Complete";
+      section.innerHTML = `<h2>Finish ${escapeHtml(task.label)}</h2><p>Confirm that this brief is clear enough to use in the next setup task.</p><div class="card-actions"><button type="button" id="completeGuidedReference">${escapeHtml(task.completeLabel)}</button><span class="messaging-save-status" id="guidedReferenceStatus"></span></div>`;
+      main.appendChild(section);
+      section.querySelector("#completeGuidedReference").addEventListener("click", async (event) => {
+        event.currentTarget.disabled = true;
+        const saved = await saveGuidedToolState(data, task.id, "Ready", "", section.querySelector("#guidedReferenceStatus"));
+        event.currentTarget.disabled = false;
+        if (saved) window.location.href = guidedToolNextUrl(data, task.id, origin);
+      });
+    }
+
     function focusedTestLaunchState(model) {
       const plan = activePlanDefinition(model.data);
       const weekly = activePlanWeeklyWorkspace(model.data, plan);
@@ -7339,9 +7436,7 @@
         resultsLocation: model.data.weeklyGtmReviewSetupWorkspace?.evidenceLocation || model.data.revenueTrackingSystem || "Weekly GTM Review"
       });
       const href = current
-        ? current.type === "reference"
-          ? reportAssetUrlWithState("active", { setupTask: current.id })
-          : activePlanToolUrl(current.asset, "setup")
+        ? guidedToolWorkspaceUrl(current.id, "summary")
         : reportAssetUrlWithState("active", { focusedTest: "1" });
       return { ...guidance, href, currentTool: current };
     }
@@ -7440,7 +7535,7 @@
         tone: "risk",
         target: blockerTarget || undefined,
         href: blockerReady ? nextState.href : blockerHref || undefined,
-        actionLabel: blockerReady ? nextState.label : setupBlocker ? `Resolve ${setupBlocker.tool.label} blocker` : "Complete blockers",
+        actionLabel: blockerReady ? nextState.label : setupBlocker ? (guidedToolTask(setupBlocker.tool.id)?.completeLabel || `Complete ${setupBlocker.tool.label}`) : "Complete blockers",
         claim: claims.risk
       });
 
@@ -7450,7 +7545,7 @@
         tone: "readiness",
         title: "GTM Readiness: Score and Launch Decision",
         subtitle: "Review valid saved evidence, standard weights, and the two launch paths.",
-        content: `<p><strong>${escapeHtml(status.label)}:</strong> ${escapeHtml(status.reason)} The score is ${escapeHtml(model.readinessScore)}/100.</p><p class="summary-primary-action">${escapeHtml(focusedLaunch.explanation)}</p><div class="card-actions no-print"><a href="${escapeHtml(focusedLaunch.href)}">${escapeHtml(focusedLaunch.label)}</a>${setupBlocker ? `<a class="secondary" href="${escapeHtml(setupBlocker.href)}">Resolve ${escapeHtml(setupBlocker.tool.label)} blocker</a>` : !blockerReady ? `<a class="secondary" data-readiness-target="${escapeHtml(blockerTarget)}" href="#${escapeHtml(blockerTarget)}">Improve the highest-impact blockers</a>` : ""}</div><div class="score-breakdown-host"></div>`
+        content: `<p><strong>${escapeHtml(status.label)}:</strong> ${escapeHtml(status.reason)} The score is ${escapeHtml(model.readinessScore)}/100.</p><p class="summary-primary-action">${escapeHtml(focusedLaunch.explanation)}</p><div class="card-actions no-print"><a href="${escapeHtml(focusedLaunch.href)}">${escapeHtml(focusedLaunch.label)}</a>${setupBlocker ? `<a class="secondary" href="${escapeHtml(setupBlocker.href)}">${escapeHtml(guidedToolTask(setupBlocker.tool.id)?.completeLabel || `Complete ${setupBlocker.tool.label}`)}</a>` : !blockerReady ? `<a class="secondary" data-readiness-target="${escapeHtml(blockerTarget)}" href="#${escapeHtml(blockerTarget)}">Improve the highest-impact blockers</a>` : ""}</div><div class="score-breakdown-host"></div>`
       });
       renderScoreBreakdown(model.readinessDiagnostic, readinessPanel.querySelector(".score-breakdown-host"), model);
       recommendation.appendChild(readinessPanel);
@@ -7460,7 +7555,7 @@
         tone: "opportunity",
         title: "90-Day GTM Experiment",
         subtitle: "A learning objective, not a rigid mandate.",
-        content: `<p class="summary-primary-action">Test the current ICP, offer, and revenue motion with an initial 25-account list.</p><div class="summary-secondary-context"><h3>Why this matters</h3><p>A defined set of qualified accounts is the missing execution gap. Buyer responses will show whether the current strategy deserves more investment.</p></div><ol><li>Build and work the first 25-account list.</li><li>Use buyer responses to confirm, refine, or change the ICP, criteria, offer, message, or channel.</li><li>Make any controlled strategy adjustment in the weekly evidence and review loop.</li></ol><div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("targets"))}">Build the first list</a></div>`
+        content: `<p class="summary-primary-action">Test the current ICP, offer, and revenue motion with an initial 25-account list.</p><div class="summary-secondary-context"><h3>Why this matters</h3><p>A defined set of qualified accounts is the missing execution gap. Buyer responses will show whether the current strategy deserves more investment.</p></div><ol><li>Build and work the first 25-account list.</li><li>Use buyer responses to confirm, refine, or change the ICP, criteria, offer, message, or channel.</li><li>Make any controlled strategy adjustment in the weekly evidence and review loop.</li></ol><div class="card-actions no-print"><a href="${escapeHtml(guidedToolWorkspaceUrl("targets", "summary"))}">Build the first list</a></div>`
       });
       recommendation.appendChild(opportunityPanel);
 
@@ -7481,10 +7576,10 @@
         content: blockerReady
           ? `<p class="summary-primary-action">${escapeHtml(nextState.copy)}</p><div class="card-actions no-print"><a href="${escapeHtml(nextState.href)}">${escapeHtml(nextState.label)}</a></div>`
           : `<p>Complete these items to launch and learn with confidence.</p><ol>${blockers.map((item, index) => {
-            if (item.kind === "setup") return `<li><strong>${escapeHtml(item.title)}:</strong> ${escapeHtml(item.summary)} <a href="${escapeHtml(item.href)}">Resolve this setup blocker</a></li>`;
+            if (item.kind === "setup") return `<li><strong>${escapeHtml(item.title)}:</strong> ${escapeHtml(item.summary)} <a href="${escapeHtml(item.href)}">${escapeHtml(guidedToolTask(item.area)?.completeLabel || `Complete ${item.area}`)}</a></li>`;
             const task = readinessTaskForImprovement(item, model, index - (setupBlocker ? 1 : 0));
             return `<li><strong>${escapeHtml(task.title || item.area)}:</strong> ${escapeHtml(task.summary || item.action || topRisk)}</li>`;
-          }).join("")}</ol><div class="card-actions no-print">${setupBlocker ? `<a href="${escapeHtml(setupBlocker.href)}">Resolve ${escapeHtml(setupBlocker.tool.label)} blocker</a>` : `<a data-readiness-target="${escapeHtml(blockerTarget)}" href="#${escapeHtml(blockerTarget)}">Complete the first readiness task</a>`}</div>`
+          }).join("")}</ol><div class="card-actions no-print">${setupBlocker ? `<a href="${escapeHtml(setupBlocker.href)}">${escapeHtml(guidedToolTask(setupBlocker.tool.id)?.completeLabel || `Complete ${setupBlocker.tool.label}`)}</a>` : `<a data-readiness-target="${escapeHtml(blockerTarget)}" href="#${escapeHtml(blockerTarget)}">Complete the first readiness task</a>`}</div>`
       });
       recommendation.appendChild(riskPanel);
       recommendation.querySelectorAll("[data-readiness-target]").forEach((link) => {
@@ -10260,16 +10355,17 @@
     function renderPlanWorkReturnBar() {
       const params = new URLSearchParams(window.location.search);
       const workReturn = params.get("workReturn");
-      if (!["setup", "active"].includes(workReturn) || params.get("asset") === "active") return;
+      const task = guidedToolTask(params.get("asset"));
+      const taskOrigin = guidedToolOrigin(params.get("taskOrigin") || workReturn);
+      if ((!task && !["setup", "active"].includes(workReturn)) || params.get("asset") === "active") return;
       document.getElementById("planWorkReturnBar")?.remove();
       const main = document.querySelector("main");
       if (!main) return;
-      const returnUrl = new URL(reportAssetUrl("active"), window.location.href);
-      returnUrl.hash = workReturn === "setup" ? "active-plan-objective" : "active-plan-this-week";
       const bar = document.createElement("section");
       bar.id = "planWorkReturnBar";
       bar.className = "workspace-return-bar workspace-section no-print";
-      bar.innerHTML = `<div class="workspace-return-bar-copy"><span class="workspace-return-bar-label">${workReturn === "setup" ? "Tool Setup" : "This Week"}</span><strong>Use this ${workReturn === "setup" ? "before weekly work begins" : "for the current task"}.</strong><span class="workspace-return-bar-origin">${workReturn === "setup" ? "Mark it Ready or Skip for now when you return." : "Return to the task card to record the result."}</span></div><a class="secondary" href="${escapeHtml(`${returnUrl.pathname.split("/").pop() || "results.html"}${returnUrl.search}${returnUrl.hash}`)}">Return to ${workReturn === "setup" ? "Tool Setup" : "This Week"}</a>`;
+      const returnLabel = taskOrigin === "this-week" ? "This Week" : "Plan Summary";
+      bar.innerHTML = `<div class="workspace-return-bar-copy"><span class="workspace-return-bar-label">${escapeHtml(task?.label || returnLabel)}</span><strong>${task ? `Complete the actual ${escapeHtml(task.label)} work here.` : "Complete the current work here."}</strong><span class="workspace-return-bar-origin">Opened from ${escapeHtml(returnLabel)}. Completion and return keep that context.</span></div><a class="secondary" href="${escapeHtml(guidedToolReturnUrl(taskOrigin))}">Return to ${escapeHtml(returnLabel)}</a>`;
       main.prepend(bar);
     }
 
@@ -16638,9 +16734,7 @@
     }
 
     function activePlanToolUrl(asset, returnMode = "active") {
-      const destination = new URL(reportAssetUrl(asset), window.location.href);
-      destination.searchParams.set("workReturn", returnMode);
-      return `${destination.pathname.split("/").pop() || "results.html"}${destination.search}${destination.hash}`;
+      return guidedToolWorkspaceUrl(asset, returnMode === "active" ? "this-week" : "summary");
     }
 
     function activePlanToolSetup(data, plan, weeklyWorkspace) {
@@ -16754,7 +16848,7 @@
         ? cleanText(setup.reasons[current.id])
         : "";
       const href = current
-        ? reportAssetUrlWithState("active", { setupTask: current.id })
+        ? guidedToolWorkspaceUrl(current.id, "summary")
         : reportAssetUrl("active");
       const guidance = window.GTM_GUIDED_TASK_CONTEXT.readinessNavigationGuidance({
         ready: !current,
@@ -16768,7 +16862,7 @@
         .map((tool) => ({
           tool,
           reason: cleanText(setup.reasons[tool.id]),
-          href: reportAssetUrlWithState("active", { setupTask: tool.id })
+          href: guidedToolWorkspaceUrl(tool.id, "summary")
         }));
       return { setup, current, blocker, href, guidance, blockers };
     }
@@ -16972,12 +17066,6 @@
       return assets.slice(0, 4);
     }
 
-    function activePlanToolUrl(asset) {
-      const destination = new URL(reportAssetUrl(asset), window.location.href);
-      destination.searchParams.set("workReturn", "active");
-      return `${destination.pathname.split("/").pop()}${destination.search}${destination.hash}`;
-    }
-
     function activePlanReferenceMarkup(action, data) {
       const assets = activePlanReferenceAssets(action, data);
       if (!assets.length) {
@@ -17007,7 +17095,7 @@
       updateActivePlanLocalCache(data);
       const recordId = activeReportRecordId();
       if (!recordId || !API_BASE) {
-        statusElement.textContent = "Saved in this browser.";
+        if (statusElement) statusElement.textContent = "Saved in this browser.";
         return true;
       }
       try {
@@ -17019,11 +17107,11 @@
         if (!response.ok) throw new Error("The workspace copy could not be updated.");
         const result = await response.json();
         if (result.record) cacheRecord(result.record);
-        statusElement.textContent = "Plan updates saved.";
+        if (statusElement) statusElement.textContent = "Plan updates saved.";
         return true;
       } catch (error) {
         console.warn(error.message);
-        statusElement.textContent = "Saved in this browser, but the workspace copy could not be updated.";
+        if (statusElement) statusElement.textContent = "Saved in this browser, but the workspace copy could not be updated.";
         return false;
       }
     }
@@ -17561,17 +17649,7 @@
       const requestedTool = toolSetup.tools.find((tool) => tool.id === requestedSetupTask && !["Ready", "Complete", "Skip for now"].includes(toolSetup.statuses[tool.id]));
       const currentSetupTool = requestedTool || toolSetup.tools.find((tool) => !["Ready", "Complete", "Skip for now"].includes(toolSetup.statuses[tool.id])) || toolSetup.tools.at(-1);
       const toolCards = toolSetup.tools.filter((tool) => tool.id === currentSetupTool?.id).map((tool) => {
-        const actionLabel = tool.id === "targets"
-          ? `Set up and confirm the list in ${cleanText(data.revenueTrackingSystem) || "HubSpot"}`
-          : tool.type === "reference"
-            ? `Mark ${tool.label} ready and continue`
-            : tool.id === "weekly-review-setup"
-              ? "Complete GTM Review recommendations and continue"
-              : tool.id === "messaging"
-                ? "Complete Messaging Kit and continue"
-                : tool.id === "outreach"
-                  ? "Complete Outreach Sequence and continue"
-                  : `Complete ${tool.label} and continue`;
+        const actionLabel = guidedToolTask(tool.id)?.completeLabel || `Complete ${tool.label} and continue`;
         const referenceContent = tool.id === "icp"
           ? `<details class="score-component-detail" open><summary>ICP Brief — read before marking ready</summary><p><strong>Who belongs:</strong> ${escapeHtml(planCustomerName({ data, priorityGroup: selectedCustomerGroup(data), primaryOffer: primaryOfferRow(data) }))}</p><p><strong>Problem:</strong> ${escapeHtml(data.bestFitPrimaryPain || data.quickBuyerProblem || "Confirm the priority problem in the ICP Brief.")}</p><p><strong>Fit and timing:</strong> ${escapeHtml(data.bestFitTrigger || data.quickUrgencyNow || "Use the saved fit and trigger criteria.")}</p></details>`
           : tool.id === "personas"
@@ -17593,7 +17671,7 @@
           <p class="active-plan-tool-purpose">${escapeHtml(tool.purpose)}</p>
           <p class="active-plan-tool-done"><strong>Ready when:</strong> ${escapeHtml(tool.done)}</p>
           ${referenceContent}
-          <div class="active-plan-link-row">${tool.type === "reference" ? `<button type="button" data-mark-tool-ready="${escapeHtml(tool.id)}">${escapeHtml(actionLabel)}</button>` : `<a href="${escapeHtml(activePlanToolUrl(tool.asset, "setup"))}">${escapeHtml(actionLabel)}</a>`}</div>
+          <div class="active-plan-link-row"><a href="${escapeHtml(guidedToolWorkspaceUrl(tool.id, "summary"))}">${escapeHtml(actionLabel)}</a></div>
           <div class="guided-input-grid">${reasonGuidance}</div>
           <div class="active-plan-link-row"><button type="button" class="secondary" data-continue-tool-later="${escapeHtml(tool.id)}">Continue later and go to the next setup task</button></div>
         </article>`;
@@ -17618,14 +17696,6 @@
         });
         toolSetup.ready = toolSetup.tools.every((tool) => ["Ready", "Complete", "Skip for now"].includes(toolSetup.statuses[tool.id]));
       };
-      objective.querySelectorAll("[data-mark-tool-ready]").forEach((button) => {
-        button.addEventListener("click", async () => {
-          toolSetup.statuses[button.dataset.markToolReady] = "Ready";
-          toolSetup.reasons[button.dataset.markToolReady] = "";
-          await persistActivePlanData(data, objective.querySelector("#toolSetupStatus"));
-          renderActivePlanWorkspace(data);
-        });
-      });
       objective.querySelectorAll("[data-continue-tool-later]").forEach((button) => {
         button.addEventListener("click", async () => {
           const toolId = button.dataset.continueToolLater;
@@ -18171,7 +18241,7 @@
       grid.querySelectorAll(".field").forEach((field) => {
         const label = field.querySelector("h3")?.textContent.trim();
         if (label === "Start here") {
-          field.insertAdjacentHTML("beforeend", `<div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("targets"))}">Set Up Target List</a></div>`);
+          field.insertAdjacentHTML("beforeend", `<div class="card-actions no-print"><a class="secondary" href="${escapeHtml(guidedToolWorkspaceUrl("targets", "summary"))}">Preview next: Target List Setup</a></div>`);
         }
         if (label === "What still needs to be proven") {
           field.insertAdjacentHTML("beforeend", `<div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("weekly-review"))}">Review ICP Evidence</a></div>`);
@@ -18187,6 +18257,9 @@
         });
       }
       main.appendChild(section);
+
+      appendGuidedReferenceCompletion(data, "icp");
+      appendGuidedToolSecondaryControls(data, "icp");
 
       setupReportNavigation();
       configureAssetPdfExport();
@@ -19340,9 +19413,10 @@
         button.disabled = false;
         if (!saved) return;
         status.textContent = `List creation confirmed with ${count} qualified account${count === 1 ? "" : "s"}. ${nextTool ? `${nextTool.label} is next.` : "Tool Setup is ready."}`;
+        const origin = guidedToolOrigin(new URLSearchParams(window.location.search).get("taskOrigin"));
         window.location.href = nextTool
-          ? reportAssetUrlWithState("active", { setupTask: nextTool.id })
-          : reportAssetUrl("active");
+          ? guidedToolWorkspaceUrl(nextTool.id, origin)
+          : guidedToolReturnUrl(origin);
       });
       setupReportNavigation();
       configureAssetPdfExport("targets", data, profile.model);
@@ -19600,7 +19674,10 @@
           event.currentTarget.disabled = true;
           const saved = await saveTargetListWorkspace(data, targetWorkspace, profile, status);
           event.currentTarget.disabled = false;
-          if (saved) window.location.href = nextTool ? reportAssetUrlWithState("active", { setupTask: nextTool.id }) : reportAssetUrl("active");
+          if (saved) {
+            const origin = guidedToolOrigin(new URLSearchParams(window.location.search).get("taskOrigin"));
+            window.location.href = nextTool ? guidedToolWorkspaceUrl(nextTool.id, origin) : guidedToolReturnUrl(origin);
+          }
         });
       };
 
@@ -20033,13 +20110,13 @@
       assignments.id = "outreach-target-assignments";
       assignments.dataset.toc = "Use in Your System";
       assignments.className = "workspace-section";
-      assignments.innerHTML = `<h2>Use This Sequence in Your CRM or Outreach System</h2><p class="muted">GTM Intelligence OS defines the sequence. Your CRM, spreadsheet, or outreach platform should hold the contacts, assignments, activity history, and next actions.</p>${personaAssetListMarkup(["Create the sequence steps and timing in the system your team already uses.", "Enroll or assign only targets that meet the current ICP criteria.", "Pause automation as soon as a real conversation starts.", "Keep one owner and one dated next action on every active conversation.", "Bring weekly totals, objections, and learning back to the Weekly GTM Review."])}<div class="report-bottom-actions no-print"><a href="${escapeHtml(reportAssetUrl("targets"))}">Target List Setup</a><a href="${escapeHtml(reportAssetUrl("weekly-review"))}">Weekly GTM Review</a></div>`;
+      assignments.innerHTML = `<h2>Use This Sequence in Your CRM or Outreach System</h2><p class="muted">GTM Intelligence OS defines the sequence. Your CRM, spreadsheet, or outreach platform should hold the contacts, assignments, activity history, and next actions.</p>${personaAssetListMarkup(["Create the sequence steps and timing in the system your team already uses.", "Enroll or assign only targets that meet the current ICP criteria.", "Pause automation as soon as a real conversation starts.", "Keep one owner and one dated next action on every active conversation.", "Bring weekly totals, objections, and learning back to the Weekly GTM Review."])}`;
       main.appendChild(assignments);
 
       const review = document.createElement("section");
       review.id = "outreach-sequence-review";
       review.dataset.toc = "Results";
-      review.innerHTML = `<h2>Save the Sequence</h2><p class="muted">Save the sequence design here. Track delivery and contact-level results in the CRM, then summarize decision-changing evidence in the Weekly GTM Review.</p><div class="messaging-editor-actions no-print"><button type="button" id="saveOutreachSequence">Save Sequence</button><button type="button" class="secondary" id="createOutreachSequence">Create Another Sequence</button><a class="secondary" href="${escapeHtml(reportAssetUrl("messaging"))}">Messaging Kit</a><span class="messaging-save-status" id="outreachSaveStatus"></span></div>`;
+      review.innerHTML = `<h2>Complete the Sequence</h2><p class="muted">Save this sequence as the one to use for the focused test. Delivery and contact-level results remain in the CRM; decision-changing evidence returns to the Weekly GTM Review.</p><div class="messaging-editor-actions no-print"><button type="button" id="saveOutreachSequence">Complete Outreach Sequence and continue</button><button type="button" class="secondary" id="createOutreachSequence">Create Another Sequence</button><a class="secondary" href="${escapeHtml(guidedToolWorkspaceUrl("messaging", guidedToolOrigin(new URLSearchParams(window.location.search).get("taskOrigin"))))}">Messaging Kit</a><span class="messaging-save-status" id="outreachSaveStatus"></span></div>`;
       main.appendChild(review);
 
       const collect = () => {
@@ -20048,7 +20125,16 @@
         sequence.name = `${sequence.channel} sequence - v${sequence.version || 1}`;
         sequence.updatedAt = new Date().toISOString();
       };
-      review.querySelector("#saveOutreachSequence").addEventListener("click", async () => { collect(); await saveOutreachWorkspace(data, workspace, review.querySelector("#outreachSaveStatus")); });
+      review.querySelector("#saveOutreachSequence").addEventListener("click", async (event) => {
+        collect();
+        event.currentTarget.disabled = true;
+        const saved = await saveOutreachWorkspace(data, workspace, review.querySelector("#outreachSaveStatus"));
+        event.currentTarget.disabled = false;
+        if (saved) {
+          const origin = guidedToolOrigin(new URLSearchParams(window.location.search).get("taskOrigin"));
+          window.location.href = guidedToolNextUrl(data, "outreach", origin);
+        }
+      });
       setup.querySelector("#refreshOutreachRecommendation").addEventListener("click", () => { collect(); sequence.steps = outreachRecommendedSteps(sequence.channel, profile, messages, proofAssets); data.outreachSequenceWorkspace = workspace; updateActivePlanLocalCache(data); renderOutreachWorkspace(data); });
       steps.querySelector("#addOutreachStep").addEventListener("click", async () => {
         collect();
@@ -20450,7 +20536,7 @@
         <p>These are concise setup recommendations, not a separate review form. Reuse the saved plan and keep the CRM as the single source of truth.</p>
         <ol class="weekly-review-setup-steps">${steps.map(([title, value, input]) => `<li><strong>${escapeHtml(title)}</strong><p>${escapeHtml(value)}</p>${input}</li>`).join("")}</ol>
         <div class="overview-note"><strong>At review time</strong><p>Open Evidence This Week to use the activity, responses, conversations, qualified opportunities, and learning-signal scorecard, then choose Continue, Revise, Pause, or Stop.</p></div>
-        <div class="card-actions no-print"><button type="button" id="setWeeklyReviewReady">Set weekly review ready</button><button type="button" class="secondary" id="saveWeeklyReviewSetup">Continue later</button><a class="secondary" href="${escapeHtml(reportAssetUrl("active"))}">${state.status === "ready" ? "Continue to current work" : "Return to Tool Setup"}</a></div>
+        <div class="card-actions no-print"><button type="button" id="setWeeklyReviewReady">Set weekly review ready and continue</button><button type="button" class="secondary" id="saveWeeklyReviewSetup">Continue later</button></div>
         <p class="muted" id="weeklyReviewSetupStatus">${state.status === "ready" ? "Weekly review setup is ready. Continue to the current Tool Setup or This Week task." : "Address only the missing recommendation, then confirm readiness."}</p>
       `;
       main.appendChild(section);
@@ -20484,7 +20570,12 @@
         if (setup?.statuses) setup.statuses["weekly-review-setup"] = complete ? "Ready" : "In progress";
         if (setup?.reasons) delete setup.reasons["weekly-review-setup"];
         const saved = await persistActivePlanData(data, section.querySelector("#weeklyReviewSetupStatus"));
-        if (saved) renderWeeklyReviewSetup(data);
+        if (saved && complete) {
+          const origin = guidedToolOrigin(new URLSearchParams(window.location.search).get("taskOrigin"));
+          window.location.href = guidedToolNextUrl(data, "weekly-review-setup", origin);
+        } else if (saved) {
+          renderWeeklyReviewSetup(data);
+        }
       };
       section.querySelector("#saveWeeklyReviewSetup").addEventListener("click", () => save(false));
       section.querySelector("#setWeeklyReviewReady").addEventListener("click", () => save(true));
@@ -20957,7 +21048,7 @@
       editor.id = "message-editor";
       editor.dataset.toc = "Message Editor";
       editor.className = "workspace-section";
-      editor.innerHTML = `<h2>Edit the Message</h2><div class="messaging-editor-layout"><div class="messaging-editor"><label id="messagingSubjectLabel">Subject or message label<input data-message-field="subject" value="${escapeHtml(draft.subject)}"></label><label>Opening<input data-message-field="opening" value="${escapeHtml(draft.opening)}"></label><label>Core message<textarea rows="6" data-message-field="body">${escapeHtml(draft.body)}</textarea></label><label>Next-step ask<textarea rows="3" data-message-field="cta">${escapeHtml(draft.cta)}</textarea></label><div class="messaging-editor-actions no-print"><button type="button" id="saveMessagingDraft">Save Message</button><button type="button" class="secondary" id="createMessagingVersion">Create New Version</button><button type="button" class="secondary" id="copyMessagingDraft">Copy Message</button><span class="messaging-save-status" id="messagingSaveStatus"></span></div></div><aside class="messaging-guidance-panel"><h3>What this persona needs</h3>${personaAssetListMarkup([selectedPersona.need])}<h3>Discovery questions</h3>${personaAssetListMarkup(profile.discovery.slice(0, 5))}<h3>Likely objections</h3>${personaAssetListMarkup(messagingProfileModule(profile, /objections|worries/i).slice(0, 5))}<h3>Proof to use</h3>${personaAssetListMarkup(proof.slice(0, 5), "No buyer-specific proof is confirmed yet.")}</aside></div>`;
+      editor.innerHTML = `<h2>Edit the Message</h2><div class="messaging-editor-layout"><div class="messaging-editor"><label id="messagingSubjectLabel">Subject or message label<input data-message-field="subject" value="${escapeHtml(draft.subject)}"></label><label>Opening<input data-message-field="opening" value="${escapeHtml(draft.opening)}"></label><label>Core message<textarea rows="6" data-message-field="body">${escapeHtml(draft.body)}</textarea></label><label>Next-step ask<textarea rows="3" data-message-field="cta">${escapeHtml(draft.cta)}</textarea></label><div class="messaging-editor-actions no-print"><button type="button" id="saveMessagingDraft">Complete Messaging Kit and continue</button><button type="button" class="secondary" id="createMessagingVersion">Create New Version</button><button type="button" class="secondary" id="copyMessagingDraft">Copy Message</button><span class="messaging-save-status" id="messagingSaveStatus"></span></div></div><aside class="messaging-guidance-panel"><h3>What this persona needs</h3>${personaAssetListMarkup([selectedPersona.need])}<h3>Discovery questions</h3>${personaAssetListMarkup(profile.discovery.slice(0, 5))}<h3>Likely objections</h3>${personaAssetListMarkup(messagingProfileModule(profile, /objections|worries/i).slice(0, 5))}<h3>Proof to use</h3>${personaAssetListMarkup(proof.slice(0, 5), "No buyer-specific proof is confirmed yet.")}</aside></div>`;
       main.appendChild(editor);
 
       const evidence = document.createElement("section");
@@ -20984,7 +21075,7 @@
       actions.id = "messaging-kit-actions";
       actions.dataset.toc = "Related Assets";
       actions.className = "no-print";
-      actions.innerHTML = `<h2>Related Assets</h2><div class="report-bottom-actions"><a href="${escapeHtml(reportAssetUrl("personas"))}">Persona Brief</a><a href="${escapeHtml(reportAssetUrl("targets"))}">Target List Setup</a><a href="${escapeHtml(reportAssetUrl("proof-assets"))}">Proof Asset Builder</a><a href="${escapeHtml(reportAssetUrl("outreach"))}">Outreach Sequence</a><a href="${escapeHtml(reportAssetUrl("active"))}">Active Plan</a></div>`;
+      actions.innerHTML = `<details><summary>Related references and tools</summary><div class="report-bottom-actions"><a class="secondary" href="${escapeHtml(guidedToolWorkspaceUrl("personas", guidedToolOrigin(new URLSearchParams(window.location.search).get("taskOrigin"))))}">Persona Brief</a><a class="secondary" href="${escapeHtml(guidedToolWorkspaceUrl("targets", guidedToolOrigin(new URLSearchParams(window.location.search).get("taskOrigin"))))}">Target List Setup</a><a class="secondary" href="${escapeHtml(reportAssetUrl("proof-assets"))}">Proof Asset Builder</a><a class="secondary" href="${escapeHtml(guidedToolWorkspaceUrl("outreach", guidedToolOrigin(new URLSearchParams(window.location.search).get("taskOrigin"))))}">Outreach Sequence</a></div></details>`;
       main.appendChild(actions);
 
       const recommendationContainer = context.querySelector("#messagingRecommendation");
@@ -21043,7 +21134,15 @@
         });
         return saved;
       };
-      editor.querySelector("#saveMessagingDraft").addEventListener("click", () => saveCurrent(editor.querySelector("#messagingSaveStatus")));
+      editor.querySelector("#saveMessagingDraft").addEventListener("click", async (event) => {
+        event.currentTarget.disabled = true;
+        const saved = await saveCurrent(editor.querySelector("#messagingSaveStatus"));
+        event.currentTarget.disabled = false;
+        if (saved) {
+          const origin = guidedToolOrigin(new URLSearchParams(window.location.search).get("taskOrigin"));
+          window.location.href = guidedToolNextUrl(data, "messaging", origin);
+        }
+      });
       evidence.querySelector("#saveMessagingResults").addEventListener("click", () => saveCurrent(evidence.querySelector("#messagingResultsStatus")));
       editor.querySelector("#copyMessagingDraft").addEventListener("click", async () => {
         collectMessagingDraft(editor, draft);
@@ -21130,8 +21229,11 @@
         note.textContent = "No additional role is currently mapped. Add one only if another person meaningfully influences the next decision.";
         network.appendChild(note);
       }
-      network.insertAdjacentHTML("beforeend", `<div class="card-actions no-print"><a href="${escapeHtml(reportAssetUrl("messaging"))}">Messaging Kit</a><a href="${escapeHtml(reportAssetUrl("targets"))}">Target List Setup</a></div>`);
+      network.insertAdjacentHTML("beforeend", `<div class="card-actions no-print"><a class="secondary" href="${escapeHtml(guidedToolWorkspaceUrl("targets", "summary"))}">Preview next: Target List Setup</a></div>`);
       main.appendChild(network);
+
+      appendGuidedReferenceCompletion(data, "personas");
+      appendGuidedToolSecondaryControls(data, "personas");
 
       setupReportNavigation();
       configureAssetPdfExport("personas", data, profile.model);
@@ -21153,6 +21255,9 @@
       }
       const requestedAsset = new URLSearchParams(window.location.search).get("asset") || "";
       const finishAsset = (asset = "gtm") => {
+        const guidedTask = guidedToolTask(asset);
+        if (guidedTask?.id === "icp" || guidedTask?.id === "personas") appendGuidedReferenceCompletion(data, guidedTask.id);
+        if (guidedTask) appendGuidedToolSecondaryControls(data, guidedTask.id);
         renderWorkflowReturnBar();
         setupReportNavigation();
         applyStandardActionIcons();

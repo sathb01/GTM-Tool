@@ -55,9 +55,11 @@ try {
   await page.goto(`${baseUrl}/results.html?asset=active`, { waitUntil: "load" });
   await page.waitForSelector("#active-plan-objective .active-plan-tool-card");
   check("Tool Setup shows one current task", await page.locator("#active-plan-objective .active-plan-tool-card").count() === 1);
-  check("First brief uses an in-context ready action", await page.locator("[data-mark-tool-ready='icp']").count() === 1);
-  await page.locator("[data-mark-tool-ready='icp']").click();
-  await page.waitForSelector("[data-mark-tool-ready='personas']");
+  check("First brief opens its actual guided workspace", await page.locator("a[href*='asset=icp'][href*='taskOrigin=summary']").count() === 1);
+  await page.locator("a[href*='asset=icp'][href*='taskOrigin=summary']").click();
+  await page.waitForSelector("#completeGuidedReference");
+  await page.locator("#completeGuidedReference").click();
+  await page.waitForSelector("#persona-overview");
   check("Completing a brief advances to the next guided task", await page.locator("#active-plan-objective .active-plan-tool-card").count() === 1);
 
   await page.goto(`${baseUrl}/results.html?asset=weekly-review-setup`, { waitUntil: "load" });

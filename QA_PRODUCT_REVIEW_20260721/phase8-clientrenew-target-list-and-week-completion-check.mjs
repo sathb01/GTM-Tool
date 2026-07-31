@@ -39,8 +39,8 @@ check("Good fits create a review list without CRM work", /Choose Good fit to add
 check("Target page exposes one review-list completion action", /id="confirmTargetReviewList"/.test(targetSource) && /Save review list and continue/.test(targetSource));
 check("Target page removes old setup and progress actions", !/openTargetListSetup|saveTargetListProgress|targetListSetupProgress|Continue later in Tool Setup/.test(targetSource));
 check("Review-list completion marks setup ready", /toolSetup\.statuses\.targets = "Ready"/.test(targetSource));
-check("Review-list completion advances directly to the next ordered tool", /nextTool[\s\S]*?reportAssetUrlWithState\("active", \{ setupTask: nextTool\.id \}\)/.test(targetSource));
-check("Every active setup card has a positive completion path", /Mark \$\{tool\.label\} ready and continue/.test(activeSource) && /Set up and confirm the list/.test(activeSource) && /Complete Messaging Kit and continue/.test(activeSource) && /Complete Outreach Sequence and continue/.test(activeSource) && /Complete GTM Review recommendations and continue/.test(activeSource));
+check("Review-list completion advances directly to the next ordered tool", /nextTool[\s\S]*?guidedToolWorkspaceUrl\(nextTool\.id, origin\)/.test(targetSource));
+check("Every active setup card has a positive completion path", /guidedToolTask\(tool\.id\)\?\.completeLabel/.test(activeSource) && /guidedToolWorkspaceUrl\(tool\.id, "summary"\)/.test(activeSource));
 check("Blocker save is secondary", /class="secondary" id="saveToolSetupButton"/.test(activeSource));
 check("Continue later remains secondary", /class="secondary" data-continue-tool-later/.test(activeSource));
 check("Week completion has one user-facing completion action", /id="reviewCloseWeekButton">Complete Week \$\{weeklyWorkspace\.currentWeek\} and Continue/.test(activeSource));

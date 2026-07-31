@@ -40,7 +40,7 @@ check("Complete launch names the first action", /Build the Target List/.test(com
 check("Complete launch names list status and result location", /List created with required fields/.test(complete.explanation) && /HubSpot and Weekly GTM Review/.test(complete.explanation), complete.explanation);
 check("Summary computes a state-aware focused-launch route", /const focusedLaunch = focusedTestLaunchState\(model\)/.test(resultsSource));
 check("Summary no longer hardcodes Start focused test to generic active route", !/href="\$\{escapeHtml\(reportAssetUrl\("active"\)\)\}">Start the focused test/.test(resultsSource));
-check("Current tool routes directly to its task", /current\.type === "reference"[\s\S]*?setupTask: current\.id[\s\S]*?activePlanToolUrl\(current\.asset, "setup"\)/.test(resultsSource));
+check("Current tool routes directly to its task", /guidedToolWorkspaceUrl\(current\.id, "summary"\)/.test(resultsSource) && !/reportAssetUrlWithState\("active", \{ setupTask: current\.id \}\)/.test(resultsSource));
 check("Completed setup uses an explicit execution-state route", /reportAssetUrlWithState\("active", \{ focusedTest: "1" \}\)/.test(resultsSource));
 check("Focused-test route starts Week 1 only when setup is ready", /focusedTestRequested && toolSetup\.ready && !toolSetup\.started/.test(resultsSource));
 check("Execution entry shows first action and 25-account status", /Focused test started[\s\S]*?First action:[\s\S]*?25-account test:/.test(resultsSource));

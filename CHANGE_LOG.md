@@ -4,6 +4,16 @@ Last updated: 2026-06-12
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-07-31 Unified Tool Setup Navigation
+
+- Added one canonical task-to-workspace route for ICP Brief, Persona Brief, Target List Setup, Messaging Kit, Outreach Sequence, and Weekly GTM Review Setup.
+- Plan Summary, Readiness Blockers, Continue Readiness, This Week, and direct asset links now open the actual task workspace instead of an intermediate `setupTask` card or scroll target.
+- Preserved entry context in workspace return actions: readiness entry returns to Plan Summary, while execution entry returns to This Week.
+- Moved brief completion into the brief workspaces and made Messaging Kit, Outreach Sequence, Target List, and Weekly Review completion save and advance directly to the next unfinished setup task.
+- Kept task-local blocker and continue-later actions secondary, with canonical blocker persistence and a direct Plan Summary return.
+- Increased sticky-header and anchor clearance so the workspace heading and controls remain visible below pinned navigation.
+- Added a 59-check non-browser route matrix covering all six tasks, entry paths, completion, blocker/continue-later behavior, and return context.
+
 ## 2026-07-31 Optional Research Prompt Copy
 
 - Added an optional `Copy research prompts` action inside the post-results `How we searched` disclosure.
