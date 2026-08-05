@@ -131,7 +131,9 @@
         title: blocker ? `Setup blocked - ${currentTool}` : "Continue Readiness",
         copy: blocker
           ? `${blocker} Resolve this before launch, then complete the guided ${currentTool} task or choose Continue later.`
-          : `${currentTool} is ${currentStatus.toLowerCase()}. Complete this current setup task before weekly execution begins.`,
+          : /^needs review$/i.test(currentStatus)
+            ? `${currentTool} needs review. Complete this current setup task before weekly execution begins.`
+            : `${currentTool} is ${currentStatus.toLowerCase()}. Complete this current setup task before weekly execution begins.`,
         actionLabel: blocker ? `Resolve ${currentTool} blocker` : `Continue ${currentTool}`
       };
     }

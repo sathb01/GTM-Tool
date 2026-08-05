@@ -59,6 +59,7 @@ const check = (name, passed, detail = "") => checks.push({ name, passed: Boolean
 
 check("Correct ClientRenew record loaded", /ClientRenew/i.test(record.name || data.companyName), record.name || data.companyName);
 check("Pre-ready sidebar is labeled Readiness", needsReview.label === "Readiness" && /Start here: ICP Brief/.test(needsReview.meta), JSON.stringify(needsReview));
+check("Review guidance uses grammatical task wording", needsReview.copy === "ICP Brief needs review. Complete this current setup task before weekly execution begins.", JSON.stringify(needsReview));
 check("Needs-setup state continues to the exact tool", /Target List Setup/.test(needsSetup.actionLabel) && /not ready/i.test(needsSetup.copy), JSON.stringify(needsSetup));
 check("In-progress state resumes the exact tool", /Messaging Kit/.test(inProgress.actionLabel) && /in progress/i.test(inProgress.copy), JSON.stringify(inProgress));
 check("Blocked state includes the saved blocker", /Waiting for the revenue owner/.test(blocked.copy) && /Weekly GTM Review Setup/.test(blocked.actionLabel), JSON.stringify(blocked));
@@ -76,7 +77,7 @@ check("Clear blocker has a dedicated direct action", /id="clearToolSetupBlockerB
 check("Clear blocker persists then recomputes immediately", /#clearToolSetupBlockerButton[\s\S]*?persistActivePlanData\(data, status\)[\s\S]*?renderActivePlanWorkspace\(data\)/.test(resultsSource));
 check("Started setup cannot claim complete while blocked", /objective\.innerHTML = toolSetup\.started && toolSetup\.ready/.test(resultsSource));
 check("Plan Summary includes saved setup blocker", /setupNavigation\.blockers\[0\][\s\S]*?setupBlocker\?\.reason/.test(resultsSource));
-check("Plan Summary blocker routes directly to exact task", /guidedToolTask\(setupBlocker\.tool\.id\)\?\.completeLabel/.test(resultsSource) && /href="\$\{escapeHtml\(setupBlocker\.href\)\}"/.test(resultsSource));
+check("Plan Summary blocker does not duplicate the prerequisite route", /Use \$\{escapeHtml\(currentWorkLabel\)\} above to open the current task/.test(resultsSource) && !/href="\$\{escapeHtml\(setupBlocker\.href\)\}"/.test(resultsSource));
 check("Redundant manual status dropdown was removed", !/data-tool-setup-status/.test(resultsSource));
 check("Reference completion occurs in the actual brief workspace", /appendGuidedReferenceCompletion\(data, "icp"\)/.test(resultsSource) && /appendGuidedReferenceCompletion\(data, "personas"\)/.test(resultsSource) && !/data-mark-tool-ready/.test(resultsSource));
 check("Target List readiness is inferred from its guided confirmation", /toolSetup\.statuses\.targets = initialGuidance\.ready \? "Ready" : "In progress"/.test(resultsSource));

@@ -827,3 +827,9 @@ https://gtm-tool-1mib.onrender.com/login
 - Added a distinct Weekly GTM Review Setup workspace that reuses canonical owner, cadence, CRM, and selected-motion review-rule fields and saves a durable ready/in-progress state.
 - Kept Evidence This Week separate and added a controlled next-experiment exercise built from observed evidence.
 - Added consolidated static/runtime syntax regression coverage to the permanent release gate.
+
+## 2026-08-05 - Product safety, compatibility, and continuation standard
+
+- Corrected setup navigation grammar so a task reads, for example, `ICP Brief needs review.`
+- Added `SECURITY_AND_COMPATIBILITY_STANDARD.md` as the required product rule for backward-compatible changes, data protection, AI/agent controls, and the production release gate.
+- Added `NEXT_CHAT_BRIEF.md` so future work can resume from durable project context rather than a long chat transcript.
