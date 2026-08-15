@@ -67,6 +67,9 @@ const company = await page.evaluate(() => {
     toolModes: options("toolMode"),
     businessTypes: options("businessTypeId"),
     revenueModels: options("hasRecurringRevenue"),
+    revenueModelHasBlankChoice: [...(document.querySelector('[name="hasRecurringRevenue"]')?.options || [])]
+      .slice(1)
+      .some((option) => !option.textContent.trim()),
     businessTypeValue: document.querySelector('[name="businessTypeId"]')?.value || "",
     revenueModelValue: document.querySelector('[name="hasRecurringRevenue"]')?.value || "",
     derivedStage: current.companyStage,
@@ -149,6 +152,7 @@ const checks = {
   simplifiedBusinessTypes: company.businessTypes.some((item) => /Physical Product/i.test(item)) && !company.businessTypes.some((item) => /DTC Ecommerce Brand/i.test(item)),
   legacyBusinessTypeMigrated: company.businessTypeValue === "physical_product_business",
   twoRevenueModels: company.revenueModels.filter((item) => item !== "Select one").length === 2 && company.revenueModels.includes("Recurring Revenue Model") && company.revenueModels.includes("Standard Revenue Model"),
+  noBlankRevenueModelChoice: !company.revenueModelHasBlankChoice,
   legacyRevenueModelMigrated: company.revenueModelValue === "Recurring Revenue Model",
   preRevenueDerived: company.derivedStage === "Pre-revenue" && company.derivedRevenue === "Pre-revenue" && company.derivedControlsLocked,
   expectedRevenueModelQuestion: company.expectedRevenueLabel === "Expected revenue model",
