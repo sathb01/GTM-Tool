@@ -2287,7 +2287,7 @@ function createCardTable(table) {
         Object.entries(inputs).map(([key, input]) => [key, String(input.value || "").trim()])
       );
       values.segmentName__other = String(card.querySelector(`[name="${CSS.escape(fieldName(table.id, rowId, "segmentName"))}__other"]`)?.value || "").trim();
-      validationPreviewText.textContent = preRevenueRecommendedValidationTest(values, getFormData());
+      validationPreviewText.textContent = preRevenueRecommendedValidationTest(values, getFormData(), rowId, formStateData);
     }
 
     Object.values(inputs).forEach((input) => {
@@ -4737,12 +4737,19 @@ function isPreRevenueMode() {
   return selectedMode === "Pre-Revenue Validation";
 }
 
-function preRevenueRecommendedValidationTest(values = {}, data = {}) {
+function preRevenueRecommendedValidationTest(values = {}, data = {}, rowId = "", storedData = {}) {
+  const storedValue = (fieldId) => rowId
+    ? String(storedData[fieldName("preCustomerHypotheses", rowId, fieldId)] || "").trim()
+    : "";
   const target = firstFilledValue(
     values.specificUseCaseDefinition,
     values.segmentName__other,
     values.segmentNameUnknown,
     values.segmentName,
+    storedValue("specificUseCaseDefinition"),
+    storedValue("segmentName__other"),
+    storedValue("segmentNameUnknown"),
+    storedValue("segmentName"),
     "this candidate segment"
   );
   const explicitPath = String(values.likelyBuyerPath || "").trim();
