@@ -80,16 +80,14 @@ try {
   const untested = await inspect("untested", executionScenario(false));
   const executed = await inspect("executed", executionScenario(true));
   const checks = {
-    threeSeparateMetrics: executed.metrics.length === 3,
+    conciseDecisionMetrics: executed.metrics.length === 2,
     readinessMetricNamed: executed.metrics[0]?.includes("GTM readiness"),
-    confidenceMetricNamed: executed.metrics[1]?.includes("Evidence confidence"),
-    executionMetricNamed: executed.metrics[2]?.includes("Execution progress"),
-    executionProgressChanges: untested.metrics[2] !== executed.metrics[2] && executed.metrics[2].includes("/100"),
+    decisionMeaningNamed: executed.metrics[1]?.includes("What this means"),
+    executionVolumeExcludedFromSummary: !executed.metrics.some((metric) => /Execution progress/i.test(metric)),
+    summaryStableWhenOnlyActivityVolumeChanges: JSON.stringify(untested.metrics) === JSON.stringify(executed.metrics),
     readinessUnaffectedByActivityVolume: untested.readiness === executed.readiness,
-    threeWeightedComponents: executed.components.length === 3,
-    componentWeightsExplained: executed.components.every((text) => /% of overall score/.test(text)),
-    foundationClearlyNamed: executed.components.some((text) => /^Customer, offer, and signal foundation:/i.test(text)),
-    weightedFormulaExplained: /55% customer, offer, and signal foundation; 35% planned operating readiness; and 10% respondent self-assessment/i.test(executed.visibleText),
+    detailedComponentsExcludedFromSummary: executed.components.length === 0,
+    scoreWorkRoutedElsewhere: /Score details and setup work appear only in their own workspaces/i.test(executed.visibleText),
     confidenceNotWeightedComponent: !executed.components.some((text) => /^Evidence confidence:/i.test(text)),
     countedEvidenceShown: executed.components.every((text) => text.includes("Saved evidence counted")),
     nextInputsShown: executed.components.every((text) => text.includes("Inputs that can change this area")),

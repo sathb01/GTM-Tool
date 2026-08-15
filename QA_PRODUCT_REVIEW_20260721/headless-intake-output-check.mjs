@@ -19,7 +19,7 @@ const commonAssets = [
   ["icp", "#icp-brief, #draft-icp"],
   ["personas", "#persona-overview"],
   ["messaging", "#messaging-workspace"],
-  ["targets", "#target-list-workspace"],
+  ["targets", "#target-company-discovery"],
   ["proof-assets", "#proof-asset-workspace"],
   ["outreach", "#outreach-sequence-workspace"],
   ["weekly-review", "#weekly-review-workspace"]
@@ -124,8 +124,17 @@ try {
       page.on("console", (message) => {
         if (message.type() === "error" && /TypeError|ReferenceError|SyntaxError|failed to render/i.test(message.text())) errors.push(message.text());
       });
-      const response = await page.goto(`${baseUrl}/results.html?v=20260722-product-review&asset=${asset}&recordId=${profile.id}`, { waitUntil: "load" });
-      await page.waitForSelector(selector, { timeout: 15000 });
+      const targetHash = selector.split(",")[0].trim().replace(/^#/, "");
+      const response = await page.goto(`${baseUrl}/results.html?v=20260722-product-review&asset=${asset}&recordId=${profile.id}#${targetHash}`, { waitUntil: "load" });
+      await page.waitForSelector(selector, { state: "attached", timeout: 15000 });
+      await page.locator(selector).first().evaluate((element) => {
+        let parent = element.parentElement;
+        while (parent) {
+          if (parent.tagName === "DETAILS") parent.open = true;
+          parent = parent.parentElement;
+        }
+      });
+      await page.waitForSelector(selector, { state: "visible", timeout: 15000 });
       await page.waitForFunction(
         (expectedCompany) => (document.querySelector("main")?.innerText || document.body.innerText || "").includes(expectedCompany),
         profile.name,

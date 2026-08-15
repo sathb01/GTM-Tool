@@ -22,14 +22,14 @@ const profiles = [
   { id: "qa3-post-mixed-trailpour-20260724", preRevenue: false },
   { id: "qa3-post-saas-clientrenew-20260724", preRevenue: false }
 ];
-const sharedAssets = ["gtm", "health", "active", "icp", "personas", "messaging", "targets", "proof-assets", "outreach", "weekly-review"];
+const sharedAssets = ["gtm", "active", "icp", "personas", "messaging", "targets", "proof-assets", "outreach", "weekly-review"];
 const results = [];
 
 try {
   for (const profile of profiles) {
     const assets = profile.preRevenue
       ? [...sharedAssets, "validation", "validation-workspace"]
-      : sharedAssets;
+      : [...sharedAssets, "health"];
     for (const asset of assets) {
       await page.goto(`${baseUrl}/results.html?asset=${encodeURIComponent(asset)}&recordId=${encodeURIComponent(profile.id)}`, { waitUntil: "load" });
       await page.waitForFunction(

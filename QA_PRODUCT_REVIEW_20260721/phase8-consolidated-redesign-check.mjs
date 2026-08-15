@@ -10,7 +10,7 @@ const scripts = [...results.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g
 
 const checks = [
   ["All inline result scripts parse", () => scripts.forEach((source, index) => new vm.Script(source, { filename: `results-inline-${index + 1}.js` }))],
-  ["Plan Summary is the return destination", () => /resultsUrl\(undefined,\s*"gtm"\)/.test(app) && /Return to Plan Summary/.test(app)],
+  ["Intake returns to the current plan context", () => /resultsUrl\(undefined,\s*planStarted\s*\?\s*"active"\s*:\s*"gtm"\)/.test(app) && /planStarted\s*\?\s*"Return to This Week"\s*:\s*"View Plan"/.test(app)],
   ["Summary uses launch decisions and blockers", () => /function launchDecisionForScore/.test(results) && /Readiness Blockers \/ What Needs Attention/.test(results)],
   ["Evidence confidence is removed from score display", () => !/<span>Evidence confidence<\/span>/.test(results) && !/Evidence confidence: \$\{/.test(results)],
   ["Advanced weight presets compare standard and current scores", () => /readinessWeightSettings/.test(results) && /Standard score:/.test(results) && /The launch decision changed/.test(results)],

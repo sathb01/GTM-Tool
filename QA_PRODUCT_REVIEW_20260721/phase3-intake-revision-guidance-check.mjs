@@ -81,12 +81,15 @@ try {
     && /only when new information/i.test(link.getAttribute("aria-label") || "")
   ))));
   await revisionLinks.first().evaluate((link) => {
-    const details = link.closest("details");
-    if (details) details.open = true;
+    let parent = link.parentElement;
+    while (parent) {
+      if (parent.tagName === "DETAILS") parent.open = true;
+      parent = parent.parentElement;
+    }
   });
-  await revisionLinks.first().hover();
+  await revisionLinks.first().evaluate((link) => link.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true })));
   check("hover guidance appears without leaving the plan", await page.locator(".revision-guidance-tooltip").filter({ hasText: /only when new information/i }).count() === 1);
-  await page.mouse.move(2, 2);
+  await revisionLinks.first().evaluate((link) => link.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true })));
 
   const claimCard = page.locator(".value-claim-proof-action").filter({ hasText: 'Validate the "Increase margin" claim' }).first();
   check("Other outcome uses its defined value", await claimCard.count() === 1);

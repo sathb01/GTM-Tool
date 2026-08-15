@@ -5858,19 +5858,22 @@ function updateResultsLink() {
   const weeklyWorkspace = data?.activePlanWeeklyWorkspace;
   const locallyStarted = Boolean(activeRecordId() && localStorage.getItem(`${STORAGE_KEY}:planStarted:${activeRecordId()}`) === "true");
   const planStarted = locallyStarted || Boolean(
-    weeklyWorkspace
-    && typeof weeklyWorkspace === "object"
-    && Array.isArray(weeklyWorkspace.currentPriorities)
-    && weeklyWorkspace.currentPriorities.length
+    data?.activePlanToolSetupWorkspace?.started
+    || (
+      weeklyWorkspace
+      && typeof weeklyWorkspace === "object"
+      && Array.isArray(weeklyWorkspace.currentPriorities)
+      && weeklyWorkspace.currentPriorities.length
+    )
   );
-  const url = resultsUrl(undefined, "gtm");
+  const url = resultsUrl(undefined, planStarted ? "active" : "gtm");
 
   ["viewResultsLink", "topResultsLink"].forEach((id) => {
     const link = document.getElementById(id);
 
     if (link) {
       link.href = url;
-      link.textContent = planStarted ? "Return to Plan Summary" : "View Plan";
+      link.textContent = planStarted ? "Return to This Week" : "View Plan";
     }
   });
 }

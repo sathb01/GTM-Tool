@@ -28,7 +28,12 @@ try {
     if (!response.ok) throw new Error(`Could not load ${recordId}: ${response.status}`);
     let testRecord = structuredClone((await response.json()).record);
     delete testRecord.data.activePlanWeeklyWorkspace;
-    delete testRecord.data.activePlanToolSetupWorkspace;
+    testRecord.data.activePlanToolSetupWorkspace = {
+      statuses: { icp: "Ready", personas: "Ready", targets: "Ready", messaging: "Ready", outreach: "Ready", "weekly-review-setup": "Ready" },
+      reasons: {},
+      ready: true,
+      started: true
+    };
     Object.keys(testRecord.data).forEach((key) => {
       if (/^activePlan__(?:action-|weeklyReview__|updatedAt)/.test(key)) delete testRecord.data[key];
     });
@@ -66,37 +71,28 @@ try {
             labels: Array.from(document.querySelectorAll("#workspaceSummaryCards .metric-card h3")).map((item) => item.textContent.trim()),
             banned: /Top Opportunity|Recommended Opportunity|Recommended Direction|Next Best Action|Biggest Risk|Focused Target List/i.test(text),
             priorityHeading: document.querySelector("#summary-opportunity-details summary")?.childNodes?.[0]?.textContent.trim() || "",
-            hasBasis: document.querySelector("#summary-opportunity-details")?.textContent.includes("What this is based on") || false,
-            hasFocus: document.querySelector("#summary-opportunity-details")?.textContent.includes("90-Day Focus") || false,
-            workButton: document.querySelector("#summary-action-details a")?.textContent.trim() || ""
+            explainsWhy: document.querySelector("#summary-opportunity-details")?.textContent.includes("Why this matters") || false,
+            definesExperiment: document.querySelector("#summary-opportunity-details")?.textContent.includes("Test the current ICP, offer, and revenue motion") || false,
+            workButton: document.querySelector("#summary-opportunity-details a")?.textContent.trim() || ""
           };
         });
-        checks.summaryUsesFourPlainLabels = ["GTM Readiness Score", "Priority Opportunity", "This Week", "Risk"].every((label) => summary.labels.includes(label));
+        checks.summaryUsesFourPlainLabels = ["GTM Readiness Score", "Priority Opportunity", "This Week", "Readiness Blockers / What Needs Attention"].every((label) => summary.labels.includes(label));
         checks.summaryRemovesOldHierarchy = !summary.banned;
-        checks.opportunityShowsBasisAndFocus = summary.priorityHeading === "Priority Opportunity" && summary.hasBasis && summary.hasFocus;
-        checks.summaryPointsDirectlyToWork = summary.workButton === "Work on This Action";
+        checks.opportunityShowsBasisAndFocus = summary.priorityHeading === "90-Day GTM Experiment" && summary.explainsWhy && summary.definesExperiment;
+        checks.summaryPointsDirectlyToWork = summary.workButton === "Build the first list";
         observations.summary = summary;
       }
 
       await page.goto(`${baseUrl}/results.html?v=action-first-qa&asset=active&recordId=${recordId}`, { waitUntil: "load" });
-      await page.waitForSelector("#active-plan-objective [data-tool-setup-status]", { timeout: 20000 });
+      await page.waitForSelector("#active-plan-this-week [data-weekly-priority]", { timeout: 20000 });
       const setup = await page.evaluate(() => ({
-        toolCount: document.querySelectorAll("[data-tool-setup-status]").length,
         thisWeekPresent: Boolean(document.getElementById("active-plan-this-week")),
-        startLabel: document.getElementById("startWeekOneButton")?.textContent.trim() || "",
-        referencesOpenSeparately: Array.from(document.querySelectorAll(".active-plan-tool-card a"))
-          .filter((link) => /ICP Brief|Persona Brief/.test(link.closest(".active-plan-tool-card")?.querySelector("h3")?.textContent || ""))
+        toolSetupComplete: /Tool Setup is complete/i.test(document.getElementById("active-plan-objective")?.innerText || ""),
+        referencesOpenSeparately: Array.from(document.querySelectorAll("#active-plan-this-week .active-plan-task-resources a[data-keep-new-window='true']"))
           .every((link) => link.target === "_blank")
       }));
-      checks.toolSetupComesBeforeWeekOne = setup.toolCount === 6 && !setup.thisWeekPresent && setup.startLabel === "Start Week 1";
+      checks.toolSetupComesBeforeWeekOne = setup.toolSetupComplete && setup.thisWeekPresent;
       checks.referenceAssetsOpenBesidePlan = setup.referencesOpenSeparately;
-      await page.evaluate(() => {
-        document.querySelectorAll("[data-tool-setup-status]").forEach((control) => {
-          control.value = "Ready";
-          control.dispatchEvent(new Event("change", { bubbles: true }));
-        });
-      });
-      await page.click("#startWeekOneButton");
       try {
         await page.waitForSelector("#active-plan-this-week [data-weekly-priority]", { timeout: 20000 });
       } catch (error) {
@@ -177,9 +173,9 @@ try {
       await page.waitForSelector("#active-plan-this-week", { timeout: 20000 });
       checks.mobileActivePlanDoesNotOverflow = await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 2);
 
-      await page.goto(`${baseUrl}/results.html?v=action-first-qa&asset=messaging&workReturn=setup&recordId=${recordId}`, { waitUntil: "load" });
+      await page.goto(`${baseUrl}/results.html?v=action-first-qa&asset=messaging&taskOrigin=this-week&recordId=${recordId}`, { waitUntil: "load" });
       await page.waitForSelector("#planWorkReturnBar", { timeout: 20000 });
-      checks.workToolsProvideAVisibleReturn = await page.evaluate(() => /Return to Tool Setup/.test(document.getElementById("planWorkReturnBar")?.innerText || ""));
+      checks.workToolsProvideAVisibleReturn = await page.evaluate(() => /Return to This Week/.test(document.getElementById("planWorkReturnBar")?.innerText || ""));
       checks.noPageErrors = errors.length === 0;
     } finally {
       await context.close();

@@ -722,6 +722,27 @@ function buildRecord(profile) {
   for (let pass = 0; pass < 3; pass += 1) sections.forEach((section) => walkNode(section, profile, data, unresolved, new Set()));
   data.qaProfileVersion = "2026-07-24-semantic-v2";
   data.qaEvidenceBoundary = JSON.stringify(profile.provenance);
+  data.weeklyGtmReviewSetupWorkspace = {
+    status: "ready",
+    reviewDay: "Friday",
+    reviewOwner: profile.operator.role,
+    evidenceLocation: "QA GTM workspace",
+    updatedAt: new Date().toISOString()
+  };
+  data.activePlanToolSetupWorkspace = {
+    statuses: {
+      icp: "Ready",
+      personas: "Ready",
+      targets: "Ready",
+      messaging: "Ready",
+      outreach: "Ready",
+      "weekly-review-setup": "Ready"
+    },
+    reasons: {},
+    ready: true,
+    started: true,
+    startedAt: new Date().toISOString()
+  };
   data.savedAt = new Date().toISOString();
   const uniqueUnresolved = [...new Map(unresolved.filter((item) => !filled(data[item.key])).map((item) => [item.key, item])).values()];
   return {

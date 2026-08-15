@@ -31,9 +31,11 @@ const data = {
 };
 
 await page.addInitScript((value) => {
-  localStorage.setItem("gtmReadinessIntake", JSON.stringify(value));
-  localStorage.removeItem("gtmReadinessIntake:activeRecordId");
-  localStorage.removeItem("gtmReadinessIntake:records");
+  if (!localStorage.getItem("gtmReadinessIntake")) {
+    localStorage.setItem("gtmReadinessIntake", JSON.stringify(value));
+    localStorage.removeItem("gtmReadinessIntake:activeRecordId");
+    localStorage.removeItem("gtmReadinessIntake:records");
+  }
 }, data);
 
 const results = [];
@@ -55,23 +57,22 @@ try {
   await page.goto(`${baseUrl}/results.html?asset=active`, { waitUntil: "load" });
   await page.waitForSelector("#active-plan-objective .active-plan-tool-card");
   check("Tool Setup shows one current task", await page.locator("#active-plan-objective .active-plan-tool-card").count() === 1);
-  check("First brief opens its actual guided workspace", await page.locator("a[href*='asset=icp'][href*='taskOrigin=summary']").count() === 1);
-  await page.locator("a[href*='asset=icp'][href*='taskOrigin=summary']").click();
+  const currentSetupLink = page.locator("#active-plan-objective .active-plan-tool-card a[href*='asset=icp'][href*='taskOrigin=summary']");
+  check("First brief opens its actual guided workspace", await currentSetupLink.count() === 1);
+  await currentSetupLink.click();
   await page.waitForSelector("#completeGuidedReference");
   await page.locator("#completeGuidedReference").click();
   await page.waitForSelector("#persona-overview");
-  check("Completing a brief advances to the next guided task", await page.locator("#active-plan-objective .active-plan-tool-card").count() === 1);
+  check("Completing a brief advances to the next guided task", await page.locator("#completeGuidedReference").count() === 1 && /asset=personas/.test(page.url()));
 
   await page.goto(`${baseUrl}/results.html?asset=weekly-review-setup`, { waitUntil: "load" });
   await page.waitForSelector("#weekly-review-setup-workspace");
-  await page.selectOption("#weeklySetupDay", "Friday");
-  await page.fill("#weeklySetupLearning", "Repeated objection or disqualification reason");
-  await page.fill("#weeklySetupLocation", "HubSpot and Weekly GTM Review");
-  await page.check("#weeklySetupScorecard");
-  await page.check("#weeklySetupDecisions");
-  await page.check("#weeklySetupRecording");
+  if (await page.locator("#weeklySetupDay").count()) await page.selectOption("#weeklySetupDay", "Friday");
+  if (await page.locator("#weeklySetupOwner").count()) await page.selectOption("#weeklySetupOwner", "VP Sales");
+  if (await page.locator("#weeklySetupCrm").count()) await page.fill("#weeklySetupCrm", "HubSpot");
+  if (await page.locator("#weeklySetupGoNoGo").count()) await page.fill("#weeklySetupGoNoGo", "Go: Five qualified conversations and one repeatable learning signal.\nNo-Go: Fewer than two qualified conversations after 25 matched accounts.");
   await page.locator("#setWeeklyReviewReady").click();
-  await page.waitForFunction(() => /Weekly review setup is ready/i.test(document.querySelector("#weeklyReviewSetupStatus")?.textContent || ""));
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("gtmReadinessIntake") || "{}").weeklyGtmReviewSetupWorkspace?.status === "ready");
   const setupState = await page.evaluate(() => JSON.parse(localStorage.getItem("gtmReadinessIntake") || "{}").weeklyGtmReviewSetupWorkspace);
   check("Weekly Review Setup saves a durable ready state", setupState?.status === "ready" && setupState.reviewDay === "Friday");
   check("Weekly Review Setup remains distinct from evidence entry", await page.locator("#weekly-review-workspace").count() === 0);

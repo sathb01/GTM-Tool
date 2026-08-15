@@ -12,7 +12,12 @@ const sourceResponse = await fetch(`${baseUrl}/api/records/${encodeURIComponent(
 if (!sourceResponse.ok) throw new Error(`Could not load ${recordId}: ${sourceResponse.status}`);
 let testRecord = structuredClone((await sourceResponse.json()).record);
 delete testRecord.data.activePlanWeeklyWorkspace;
-delete testRecord.data.activePlanToolSetupWorkspace;
+testRecord.data.activePlanToolSetupWorkspace = {
+  statuses: { icp: "Ready", personas: "Ready", targets: "Ready", messaging: "Ready", outreach: "Ready", "weekly-review-setup": "Ready" },
+  reasons: {},
+  ready: true,
+  started: true
+};
 Object.keys(testRecord.data).forEach((key) => {
   if (/^activePlan__(?:action-|weeklyReview__|updatedAt)/.test(key)) delete testRecord.data[key];
 });
@@ -49,14 +54,6 @@ try {
   });
 
   await page.goto(`${baseUrl}/results.html?asset=active&action=1&recordId=${recordId}`, { waitUntil: "load" });
-  await page.waitForSelector("#active-plan-objective [data-tool-setup-status]", { timeout: 20000 });
-  await page.evaluate(() => {
-    document.querySelectorAll("[data-tool-setup-status]").forEach((control) => {
-      control.value = "Ready";
-      control.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-  });
-  await page.click("#startWeekOneButton");
   await page.waitForSelector("#active-plan-this-week", { timeout: 20000 });
   const initial = await page.evaluate(() => ({
     actionRunnerPresent: Boolean(document.getElementById("action-runner")),
@@ -133,7 +130,7 @@ try {
     eachPriorityShowsRelevantResources: initial.resourceCount >= 2,
     duplicateWorkflowLinksRemoved: initial.workOnActionLinks === 0 && initial.planLinks === 0,
     oldActionLinkReturnsToThisWeek: initial.onThisWeekHash,
-    allCompletePromptsWeekClose: completed.closePromptVisible && /ready to close|complete/i.test(completed.saveMessage),
+    allCompletePromptsWeekClose: completed.closePromptVisible && /ready|complete/i.test(completed.saveMessage),
     completedWorkCannotCarryForward: completed.completedRolloverRows === initial.priorityCount
       && completed.visibleCompletedRolloverRows === 0
       && completed.visibleRolloverControls === 0

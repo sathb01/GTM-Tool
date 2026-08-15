@@ -10344,7 +10344,7 @@
       const version = params.get("v") || "20260712-pre-revenue-assets";
       const recordId = activeReportRecordId();
       const query = new URLSearchParams({ v: version, asset });
-      const hashes = { health: "plan-health-dashboard", active: "active-plan-objective", validation: "plan-decision", "validation-workspace": "", gtm: "draft-icp", icp: "icp-brief", personas: "persona-overview", messaging: "messaging-workspace", targets: "target-list-workspace", "proof-assets": "proof-asset-workspace", outreach: "outreach-sequence-workspace", "weekly-review-setup": "weekly-review-setup-workspace", "weekly-review": "weekly-review-workspace", reconciliation: "evidence-reconciliation-workspace" };
+      const hashes = { health: "plan-health-dashboard", active: "active-plan-objective", validation: "plan-decision", "validation-workspace": "", gtm: "draft-icp", icp: "icp-brief", personas: "persona-overview", messaging: "messaging-workspace", targets: "target-company-discovery", "proof-assets": "proof-asset-workspace", outreach: "outreach-sequence-workspace", "weekly-review-setup": "weekly-review-setup-workspace", "weekly-review": "weekly-review-workspace", reconciliation: "evidence-reconciliation-workspace" };
       const hash = Object.prototype.hasOwnProperty.call(hashes, asset) ? hashes[asset] : "draft-icp";
       if (recordId) {
         query.set("recordId", recordId);
@@ -16821,7 +16821,9 @@
     }
 
     function activePlanToolUrl(asset, returnMode = "active") {
-      return guidedToolWorkspaceUrl(asset, returnMode === "active" ? "this-week" : "summary");
+      const task = guidedToolTask(asset);
+      if (task) return guidedToolWorkspaceUrl(asset, returnMode === "active" ? "this-week" : "summary");
+      return reportAssetUrlWithState(asset, { workReturn: returnMode });
     }
 
     function activePlanToolSetup(data, plan, weeklyWorkspace) {

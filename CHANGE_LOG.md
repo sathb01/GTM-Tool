@@ -1,8 +1,16 @@
 # GTM Tool Change Log
 
-Last updated: 2026-08-13
+Last updated: 2026-08-15
 
 This file records the major actions and changes made during the GTM Tool refinement work.
+
+## 2026-08-15 Production Acceptance and Release Gate Repair
+
+- Live-tested the deployed pre-revenue flow with a fresh QA Sock Co record, including locked pre-revenue defaults, hidden post-revenue fields, revenue-model behavior, saved-record persistence, segment scoring, and validation-plan generation.
+- Removed the unintended blank revenue-model choice and kept the two requested options only.
+- Preserved plan context across navigation: a started plan returns to This Week, while an unstarted plan opens the Plan Summary.
+- Corrected Target Company Discovery links to open the current discovery workspace anchor.
+- Updated the permanent QA fixtures and assertions to the current product contracts; the complete local release gate now passes 1,414 of 1,414 checks.
 
 ## 2026-08-13 Pre-Revenue Intake Simplification
 

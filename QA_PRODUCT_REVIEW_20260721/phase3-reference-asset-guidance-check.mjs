@@ -84,7 +84,8 @@ for (const viewport of [
       .filter((link) => link.type === "tool")
       .every((link) => !link.target
         && /[?&]asset=(?:messaging|targets|proof-assets|outreach|validation-workspace|weekly-review)(?:&|$)/.test(link.href || "")
-        && /[?&]workReturn=active(?:&|#|$)/.test(link.href || ""))), JSON.stringify(result.references.map((item) => item.links.filter((link) => link.type === "tool"))));
+        && (/[?&]taskOrigin=this-week(?:&|#|$)/.test(link.href || "")
+          || /[?&]workReturn=active(?:&|#|$)/.test(link.href || "")))), JSON.stringify(result.references.map((item) => item.links.filter((link) => link.type === "tool"))));
     check(`${label}: priority cards do not overflow`, !result.bodyOverflow && result.references.every((item) => !item.overflow));
     check(`${label}: no page errors`, errors.length === 0, errors.join(" | "));
     await page.close();

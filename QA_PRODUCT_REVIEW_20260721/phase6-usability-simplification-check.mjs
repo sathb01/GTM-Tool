@@ -76,12 +76,12 @@ try {
     if (activeState.workToolLinks.length) {
       toolReturnState.applicable = true;
       await page.goto(activeState.workToolLinks[0], { waitUntil: "load" });
-      await page.waitForSelector("#workflowReturnBar", { timeout: qaTimeout });
+      await page.waitForSelector("#planWorkReturnBar", { timeout: qaTimeout });
       toolReturnState = await page.evaluate(() => ({
         applicable: true,
-        returnBarVisible: Boolean(document.getElementById("workflowReturnBar")?.offsetParent),
+        returnBarVisible: Boolean(document.getElementById("planWorkReturnBar")?.offsetParent),
         returnHrefPointsToActive: new URL(
-          document.querySelector("#workflowReturnBar a")?.href || "",
+          document.querySelector("#planWorkReturnBar a")?.href || "",
           window.location.href
         ).searchParams.get("asset") === "active"
       }));
