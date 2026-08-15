@@ -3709,7 +3709,7 @@
       }
     })();
   </script>
-  <script src="gtm-taxonomy.js?v=20260617-revenue-motions"></script>
+  <script src="gtm-taxonomy.js?v=20260815-pre-revenue-redesign-1"></script>
   <script src="intake-schema.js?v=20260723-revenue-motion-buyer-roles-1"></script>
   <script src="guided-task-context.js?v=20260729-contextual-next-step-1"></script>
   <script src="target-discovery.js?v=20260730-observable-signals-1"></script>
@@ -15052,9 +15052,9 @@
       const problem = cleanText(values.problemUnknown || values.problem);
       const whyNow = cleanText(values.whyNowUnknown || values.whyNow);
       const buyer = cleanText(preRevenueBuyerRoles(values));
-      const reach = cleanText(values.reachabilityUnknown || values.reachability);
+      const reach = cleanText(values.firstConversationAccessUnknown || values.firstConversationAccess || values.reachabilityUnknown || values.reachability);
       const credibility = cleanText(values.credibilityUnknown || values.credibility);
-      const validationPath = cleanText(preRevenueValidationPaths(values));
+      const validationPath = cleanText(preRevenueValidationPaths(values) || values.validationRecommendationReview || "Generated from segment context");
       if (!problem || scoreSelectPercent(values.problemIntensity) < 60) gaps.push("Validate that the problem is specific, painful, frequent, and costly enough.");
       if (!whyNow || scoreSelectPercent(values.urgencyTrigger) < 60) gaps.push("Identify the trigger or timing reason that creates near-term action.");
       if (!buyer) gaps.push("Clarify who would buy, influence, approve, recommend, or carry the product.");
@@ -15129,16 +15129,29 @@
       };
       const routeToMarket = preRevenueListParts(row?.values.likelyBuyerPath);
       const directToConsumer = routeToMarket.some((item) => /direct to consumer|end user/i.test(item));
-      const decisionRoles = preRevenueListParts(row?.values.buyingRequirements)
+      const values = row?.values || {};
+      const decisionRoles = preRevenueListParts(values.buyingRequirements || preRevenueBuyerRoles(values))
         .filter((item) => !(directToConsumer && /^(end consumer|consumer|end user)$/i.test(item)));
       addGroup("Route to Market and Decision Path", [
         ...routeToMarket,
         ...decisionRoles
       ]);
-      addGroup("Operational Requirements", [row?.values.implementationRequirements]);
-      addGroup("Buyer Risks and Objections", [preRevenueBuyerWorries(row?.values)]);
-      addGroup("Timing and Buying Window", [row?.values.timingRequirements]);
-      addGroup("Success Signals", [preRevenueKnownOrClue(row?.values.successRequirements, row?.values.successRequirementsUnknown)]);
+      addGroup("Operational Requirements", [
+        values.implementationRequirements,
+        values.deliveryFit,
+        directToConsumer ? "A small product, prototype, sample, or manual test can be delivered reliably" : "A concept, sample, demo, pilot, or small order can be reviewed without a full rollout"
+      ]);
+      addGroup("Buyer Risks and Objections", [
+        preRevenueBuyerWorries(values),
+        values.risks,
+        directToConsumer ? "Test price, trust, product fit, and delivery concerns" : "Test buyer demand, margin or economics, operating fit, and delivery risk"
+      ]);
+      addGroup("Timing and Buying Window", [values.timingRequirements, values.whyNow, values.whyNowUnknown, "Confirm whether a relevant buying or use window exists during the next 30 days"]);
+      addGroup("Success Signals", [
+        preRevenueKnownOrClue(values.successRequirements, values.successRequirementsUnknown),
+        directToConsumer ? "Multiple target users confirm the problem and at least one takes a measurable next step" : "Multiple target buyers confirm the need and at least one requests pricing, a sample, a test order, a pilot, or another measurable next step"
+      ]);
+      addGroup("Respondent Addition", [values.validationChecklistMissing]);
       return { groupedBlueprintItems: groups };
     }
 
@@ -15170,6 +15183,9 @@
           row.values.likelyBuyerChannel,
           row.values.likelyBuyer,
           row.values.likelyBuyerUnknown,
+          row.values.firstConversationAccess,
+          row.values.firstConversationAccessUnknown,
+          row.values.repeatableReach,
           row.values.reachability,
           row.values.reachabilityUnknown,
           row.values.credibility,
@@ -15218,13 +15234,17 @@
     function preRevenuePrimaryHypothesis(data) {
       const hypotheses = preRevenueHypotheses(data);
       const selected = preRevenueSelectedHypothesis(data, hypotheses);
-      if (selected && preRevenueRowMatchesRoute(selected, data)) return selected;
+      if (selected) return selected;
       const routeMatched = hypotheses.find((row) => preRevenueRowMatchesRoute(row, data));
-      return routeMatched || selected || hypotheses[0] || null;
+      return routeMatched || hypotheses[0] || null;
     }
 
     function preRevenueScore(data) {
+      const hypotheses = preRevenueHypotheses(data);
       const primary = preRevenuePrimaryHypothesis(data);
+      const recommended = hypotheses[0] || null;
+      const selected = preRevenueSelectedHypothesis(data, hypotheses);
+      const overrideConflict = Boolean(selected && recommended && selected.rowId !== recommended.rowId);
       const executionFeedback = executionEvidenceFeedback(data);
       const components = primary ? [
         { key: "problemIntensity", label: "Problem Intensity", score: primary.dimensionScores.problemIntensity, weight: 0.2, explanation: "How painful and specific the problem is for this segment." },
@@ -15236,7 +15256,7 @@
       ] : [];
       const hypothesisScore = primary?.score || 0;
       const overallScore = boundedValidationScore(hypothesisScore + executionFeedback.scoreEffect);
-      return { overallScore, hypothesisScore, components, primary, hypotheses: preRevenueHypotheses(data), executionFeedback };
+      return { overallScore, hypothesisScore, components, primary, recommended, selected, overrideConflict, hypotheses, executionFeedback };
     }
 
     function preRevenueStage(score) {
@@ -15493,7 +15513,24 @@
     }
 
     function preRevenuePrimaryReachPath(row) {
-      return preRevenueListParts(preRevenueKnownOrClue(row?.values.reachability, row?.values.reachabilityUnknown)).join("; ");
+      return preRevenueListParts(preRevenueKnownOrClue(
+        row?.values.firstConversationAccess,
+        row?.values.firstConversationAccessUnknown,
+        row?.values.reachability,
+        row?.values.reachabilityUnknown
+      )).join("; ");
+    }
+
+    function preRevenueGeneratedValidationPath(data, row) {
+      const pathKind = preRevenuePathKindForRow(row);
+      const target = preRevenueTargetLabel(data, row);
+      const access = preRevenuePrimaryReachPath(row);
+      const accessClause = access ? ` Recruit through ${access}.` : " Start with the fastest available network, list, community, directory, marketplace, or buyer introduction.";
+      const revision = cleanText(row?.values.validationRecommendationRevision);
+      const base = pathKind === "channel"
+        ? `Build a 25-account sourcing pool for ${target}, complete 5-10 buyer or channel conversations, show a concept, sample, demo, or offer, and ask for a concrete next step such as pricing feedback, a buyer introduction, a sample review, a test order, or a limited pilot.`
+        : `Build a 25-person sourcing pool for ${target}, complete 8-10 customer conversations, test the problem and current alternative before presenting the offer, then ask for a concrete next step such as a waitlist signup, preorder, price response, sample review, trial, or referral.`;
+      return `${base}${accessClause}${revision ? ` Respondent revision: ${revision}` : ""}`;
     }
 
     function preRevenueValidationSources(data, row) {
@@ -15504,9 +15541,12 @@
     }
 
     function preRevenueAskOrSignal(data, row) {
+      const pathKind = preRevenuePathKindForRow(row);
       return preRevenueUsefulListAnswer(
         data.preMessageAsk,
-        preRevenueValidationPaths(row?.values) || "Ask for a concrete validation signal: interview, feedback, waitlist, preorder, signup, sample/demo review, referral, or willingness-to-pay answer."
+        preRevenueValidationPaths(row?.values) || (pathKind === "channel"
+          ? "Ask for a buyer introduction, pricing or terms response, sample review, test order, pilot, or other concrete channel next step."
+          : "Ask for a waitlist signup, preorder, price response, sample review, trial, referral, or other concrete customer next step.")
       );
     }
 
@@ -15652,9 +15692,15 @@
       const problem = preRevenuePrimaryProblem(row);
       const primaryRoute = cleanText(row?.values.likelyBuyerPath) || data.preRevenueRouteToMarket;
       const specificDefinition = preRevenueSpecificSegmentDefinition(data, row);
+      const recommendedTarget = preRevenueTargetLabel(data, model.recommended);
+      const conflictRows = model.overrideConflict ? [
+        ["Override status", preRevenueBulletAnswer(`User override: the plan leads with ${target}, even though the scoring model ranks ${recommendedTarget} first.`)],
+        ["Score conflict", preRevenueBulletAnswer(`${target} has a recommendation score of ${row?.recommendationScore || 0}/100 versus ${model.recommended?.recommendationScore || 0}/100 for ${recommendedTarget}. Preserve the override, but validate the reason for choosing it before scaling.`)]
+      ] : [];
       return [
         ["Decision this plan should make", preRevenueBulletAnswer(`Decide whether the selected first-win segment (${target}) should be validated further, revised, or replaced.`)],
         ["First segment to test", preRevenueBulletAnswer(target)],
+        ...conflictRows,
         ...(specificDefinition && targetCategory.toLowerCase() !== target.toLowerCase() ? [["Segment category", preRevenueBulletAnswer(targetCategory)]] : []),
         ["Primary route being tested", preRevenueBulletAnswer(primaryRoute)],
         ["Core validation thesis", preRevenueBulletAnswer(`Continue with this segment if qualified targets clearly recognize that ${problem.toLowerCase()} and take a measurable next step. If not, revise the segment, message, offer, or route before scaling.`)],
@@ -15670,6 +15716,7 @@
         ["30-day objective", preRevenueBulletAnswer(`Create enough real buyer evidence to decide whether the selected first-win segment (${target}) is the right market to pursue next.`)],
         ["Test audience", preRevenueIcpHypothesis(row, data)],
         ["Sources to use first", preRevenueValidationSources(data, row)],
+        ["Recommended 30-day test", preRevenueBulletAnswer(preRevenueGeneratedValidationPath(data, row))],
         ["Message to test", preRevenueBulletAnswer(message)],
         ["Ask / conversion signal", preRevenueAskOrSignal(data, row)],
         ["Evidence to collect", preRevenueListAnswer(preRevenueEvidenceToCollect(data, row), "Capture problem intensity, current workaround, objections, buyer language, and next-step conversion.")],
@@ -18069,7 +18116,9 @@
       document.getElementById("overallScore").textContent = scoreModel.overallScore;
       document.getElementById("readinessStage").textContent = preRevenueStage(scoreModel.overallScore);
       document.getElementById("scoreConfidence").textContent = `Hypothesis confidence: ${primary?.confidence || "Low"} | Evidence strength: ${primary?.evidenceStrength || "Low"}`;
-      document.getElementById("recommendation").textContent = assetMode === "validation"
+      document.getElementById("recommendation").textContent = scoreModel.overrideConflict
+        ? `User override active: this plan leads with ${target}. The Plan Decision section flags where the scoring model recommends a different first segment.`
+        : assetMode === "validation"
         ? "Use this asset to run the next validation test, track evidence, and decide whether to continue, revise, or stop."
         : assetMode === "gtm"
           ? "Use this asset to clarify the first-win market, ICP hypothesis, evidence, and discovery path before scaling GTM execution."
@@ -18116,7 +18165,8 @@
             ["Problem to Validate", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.problem, primary?.values.problemUnknown), "Define the problem, buying job, or unmet need this group has.")],
             ["Likely Buyer, User, or Influencer", preRevenueListAnswer(preRevenueBuyerRoles(primary?.values), "Clarify who would buy, use, influence, approve, recommend, or carry the product.")],
             ["Timing or Trigger", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.whyNow, primary?.values.whyNowUnknown), "Identify observable timing signals before list building.")],
-            ["Where to Find or Reach Them", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.reachability, primary?.values.reachabilityUnknown), "Define reachable sources, communities, directories, referrals, or lists.")],
+            ["First 10 Conversation Sources", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.firstConversationAccess, primary?.values.firstConversationAccessUnknown, primary?.values.reachability, primary?.values.reachabilityUnknown), "Define a reachable source for the first 10 validation conversations.")],
+            ["Repeatable Reach Hypothesis", preRevenueListAnswer(primary?.values.repeatableReach, "Identify the channel or source that could reach similar buyers after the initial test.")],
             ["Not a Strong ICP Yet Until", preRevenueListAnswer(preRevenueEvidenceGapItems(data, primary), "No critical evidence gaps are currently flagged for this path.")],
             ["Disqualify for Now If", preRevenueListAnswer(primary?.values.risks, "Avoid segments where reachability, validation speed, or delivery fit is weak.")]
           ]
@@ -18149,7 +18199,8 @@
             ["Broad Market / Category Fit", preRevenueListAnswer(preRevenueKnownOrClue(data.preBroadMarket, data.preBroadMarketUnknownUse, data.preBroadMarketUnknownComparable))],
             ["Demand / Unmet Need", preRevenueListAnswer(preRevenueKnownOrClue(data.preBroadMarketProblem, data.preProblemUnknownMoment, data.preProblemUnknownAlternative))],
             ["Broad Customer Types", preRevenueListAnswer(preRevenueKnownOrClue(data.preBroadCustomerTypes, data.preCustomerTypesUnknownUser, data.preCustomerTypesUnknownBuyer))],
-            ["Recommended First-Win Market Segment", preRevenueBulletAnswer(target)],
+            [scoreModel.overrideConflict ? "User-Selected First-Win Segment" : "Recommended First-Win Market Segment", preRevenueBulletAnswer(target)],
+            ...(scoreModel.overrideConflict ? [["Scoring Model Recommendation", preRevenueBulletAnswer(preRevenueTargetLabel(data, scoreModel.recommended))]] : []),
             ["Buying Path Alignment", preRevenueBulletAnswer(preRevenuePathAlignmentNote(data, primary))],
             ["Selected Segment Reason", preRevenueListAnswer(data.preHypothesisReason || data.preHypothesisNotes)],
             ["Why This Segment First", preRevenueListAnswer(preRevenueWhyFirst(primary))],

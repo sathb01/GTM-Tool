@@ -1,6 +1,6 @@
 # GTM Tool Data Model
 
-Last updated: 2026-06-18
+Last updated: 2026-08-13
 
 ## Storage Shape
 
@@ -151,6 +151,7 @@ Primary keys include:
 - `industryLabel`
 - `industryGroup`
 - `businessTypeId`
+- `legacyBusinessTypeId` (migration trace only)
 - `businessTypeLabel`
 - `businessTypeGroup`
 - `derivedGtmArchetypeId`
@@ -160,11 +161,13 @@ Primary keys include:
 - `geography`
 - `teamSize`
 - `revenueRange`
-- `hasRecurringRevenue`
+- `routeToMarket`
+- `hasRecurringRevenue` (`Recurring Revenue Model` or `Standard Revenue Model`; the existing key is retained for compatibility)
 - `monthlyRecurringRevenue`
 - `annualRecurringRevenue`
 - `customerCount`
 - `averageDealSize`
+- `expectedFirstTransactionRange`
 - `primarySalesMotion`
 - `mainGrowthConstraint`
 - `additionalGrowthConstraints__item-N`
@@ -174,6 +177,23 @@ Main tables:
 
 - `publicPresence`
 - `gtmSystems`
+- `preRevenueComparables__comparable-N__name`
+- `preRevenueComparables__comparable-N__url`
+- `preRevenueComparables__comparable-N__whyComparable`
+
+For Pre-Revenue Validation, `companyStage` and `revenueRange` are derived as `Pre-revenue`. Hidden post-revenue fields remain in saved records and are not deleted.
+
+First-Win Segment additions use the existing repeatable-card pattern:
+
+- `preCustomerHypotheses__first-win-segment-N__firstConversationAccess`
+- `preCustomerHypotheses__first-win-segment-N__firstConversationAccessUnknown`
+- `preCustomerHypotheses__first-win-segment-N__repeatableReach`
+- `preCustomerHypotheses__first-win-segment-N__validationRecommendationReview`
+- `preCustomerHypotheses__first-win-segment-N__validationRecommendationRevision`
+- `preCustomerHypotheses__first-win-segment-N__validationChecklistReview`
+- `preCustomerHypotheses__first-win-segment-N__validationChecklistMissing`
+
+Legacy per-segment reachability, validation-path, and What Must Be True keys are still read by report logic but are no longer rendered as respondent questions.
 
 ### GTM Information
 

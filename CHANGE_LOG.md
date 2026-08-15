@@ -1,8 +1,19 @@
 # GTM Tool Change Log
 
-Last updated: 2026-06-12
+Last updated: 2026-08-13
 
 This file records the major actions and changes made during the GTM Tool refinement work.
+
+## 2026-08-13 Pre-Revenue Intake Simplification
+
+- Kept two tool modes only: GTM Readiness and Pre-Revenue Validation. Founder-led selling remains a motion, not a third lifecycle track.
+- Made Pre-Revenue Validation visibly set and lock `companyStage` and `revenueRange` as `Pre-revenue`, while hiding report-period, customer/deal-size, current sales-motion, post-revenue constraint, public-presence, and GTM-system questions.
+- Split the former mixed business-model classification into business/offer type, revenue model, and route to market. Revenue model is now a two-choice dropdown: Recurring Revenue Model or Standard Revenue Model.
+- Added legacy classification and recurring-revenue migrations so existing records retain meaning.
+- Added up to three comparable-company/product URLs and incorporated them into the existing manual ChatGPT research prompt. The dormant paid `/api/research` route remains disconnected from the intake.
+- Prefilled segment buying paths from route to market, split first-test access from repeatable reach, and replaced respondent-authored validation paths and the long What Must Be True block with generated recommendations plus confirmation/revision controls.
+- Changed segment selection to an explicit plan override: the selected segment leads the plan, while a different top-scoring segment is shown as a score conflict.
+- Strengthened selected-answer visibility beneath multi-select dropdowns and added the redesign check to the permanent release gate.
 
 ## 2026-07-31 Unified Tool Setup Navigation
 

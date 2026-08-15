@@ -199,6 +199,7 @@ function multiSelectAnswer(definition, profile, rowId = "", contextLabel = "") {
   const id = definition.id || "";
   const label = `${definition.label || ""} ${contextLabel}`.toLowerCase();
   const patternMap = {
+    routeToMarket: flags.dtc ? [/direct to consumer/i, /self-serve/i] : flags.mixed ? [/retail.*wholesale/i, /direct to consumer/i] : [/direct b2b/i, /self-serve/i],
     preRevenueRouteToMarket: flags.dtc ? [/end consumer/i, /direct-to-consumer/i] : [/business buyer/i, /corporate/i, /team/i],
     preValidationFocus: [/customer/i, /problem/i, /willingness to pay|price/i],
     preExistingAccess: flags.dtc ? [/email list/i, /community/i, /founder network/i] : [/industry relationships/i, /advisor/i, /founder network/i],
@@ -536,7 +537,9 @@ function textAnswer(definition, profile, key, rowLabel = "", tableId = "") {
     preBroadMarketUnknownComparable: flags.dtc ? "Family travel gear, reusable activity kits, and screen-free children's activities" : "Clinic operations workflow and referral-management software",
     preCustomerTypesUnknownUser: flags.dtc ? profile.customer.user : profile.customer.user,
     preDecisionRulesRevision: `${profile.outcome.continue} ${profile.outcome.revise} ${profile.outcome.stop}`,
-    preReviseRule: profile.outcome.revise
+    preReviseRule: profile.outcome.revise,
+    expectedFirstTransactionRange: profile.product.priceHypothesis || (flags.dtc ? "$25-$75 first order" : "$2,500-$10,000 pilot"),
+    preHypothesisNotes: `Use ${profile.customer.primarySegment} as the first test unless new evidence changes the ranking.`
   }[id];
   if (filled(direct)) return String(direct);
   const structured = structuredTableText(definition, profile, key, rowLabel, tableId);
@@ -653,7 +656,8 @@ function dynamicRows(table, profile, data) {
 }
 
 function populateDefinition(definition, profile, data, key, unresolved, rowId = "", rowLabel = "", tableId = "", rowData = {}) {
-  if (!key || filled(data[key]) || !showWhenMatches(definition, data, rowData)) return;
+  const pre = profile.mode === "preRevenue";
+  if (!key || definition.omitFromIntake || (pre && definition.hideForPreRevenue) || (!pre && definition.preRevenueOnly) || filled(data[key]) || !showWhenMatches(definition, data, rowData)) return;
   const type = definition.type || "text";
   let answer = "";
   if (type === "scoreSelect") answer = scoreFor(definition, profile);
@@ -683,7 +687,8 @@ function populateDefinition(definition, profile, data, key, unresolved, rowId = 
 }
 
 function walkNode(node, profile, data, unresolved, seen = new Set()) {
-  if (!node || typeof node !== "object" || seen.has(node) || !showWhenMatches(node, data)) return;
+  const pre = profile.mode === "preRevenue";
+  if (!node || typeof node !== "object" || seen.has(node) || node.omitFromIntake || (pre && node.hideForPreRevenue) || (!pre && node.preRevenueOnly) || !showWhenMatches(node, data)) return;
   seen.add(node);
   if (node.id && node.type && !node.columns) populateDefinition(node, profile, data, node.id, unresolved);
   if (node.id && Array.isArray(node.columns)) {
@@ -760,7 +765,9 @@ function selectAnswerById(definition, profile, rowId, label) {
   const flags = profileFlags(profile);
   const id = definition.id || "";
   if (id === "industryId") return findOption(definition, [new RegExp(profile.company.industry.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), flags.saas ? /software|technology/i : /consumer/i], rowId);
-  if (id === "businessTypeId") return findOption(definition, [flags.saas ? /b2b saas/i : flags.dtc ? /dtc ecommerce brand/i : /wholesale product business|consumer packaged goods/i], rowId);
+  if (id === "businessTypeId") return findOption(definition, [flags.saas ? /software.*saas/i : flags.dtc ? /physical product|consumer brand/i : /physical product|consumer brand/i], rowId);
+  if (id === "validationRecommendationReview") return findOption(definition, [/use the recommended test/i], rowId);
+  if (id === "validationChecklistReview") return findOption(definition, [/use the generated checklist/i], rowId);
   if (id === "mainGrowthConstraint") return findOption(definition, flags.pre ? [/unclear product-market fit/i, /under capitalization/i] : flags.mixed ? [/lack of strategic planning/i, /process scalability/i] : [/unclear product-market fit/i, /intense competition/i], rowId);
   if (id === "prePrimaryHypothesis") return profile.customer.primarySegment;
   if (id === "segmentName") return findOption(definition, rowId.endsWith("2") ? [/problem-aware buyers/i] : flags.dtc ? [/end users with a specific use case/i] : [/small businesses or teams/i], rowId);

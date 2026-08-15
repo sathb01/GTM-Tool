@@ -608,6 +608,7 @@ function createMultiSelectDropdown(field, name = field.id) {
       otherInput.value = "";
     }
     summary.innerHTML = "";
+    summary.classList.toggle("has-selections", selected.length > 0);
     if (!selected.length) {
       const empty = document.createElement("span");
       empty.className = "multi-select-empty";
@@ -1636,10 +1637,12 @@ function appendCopyableExample(wrapper, field, input) {
 function createField(field) {
   const wrapper = document.createElement("div");
   const label = document.createElement("label");
+  const fieldLabel = isPreRevenueMode() && field.preRevenueLabel ? field.preRevenueLabel : field.label;
+  const fieldHint = isPreRevenueMode() && field.preRevenueHint ? field.preRevenueHint : field.hint;
 
   wrapper.className = field.full ? "full" : "";
   wrapper.dataset.fieldId = field.id;
-  wrapper.dataset.fieldLabel = field.label;
+  wrapper.dataset.fieldLabel = fieldLabel;
   if (field.showWhen) {
     wrapper.dataset.showWhenField = field.showWhen.field;
     if (Object.prototype.hasOwnProperty.call(field.showWhen, "contains")) {
@@ -1660,7 +1663,7 @@ function createField(field) {
     wrapper.dataset.hideWhenValue = field.showUnless.value;
   }
   label.htmlFor = field.id;
-  label.textContent = field.label;
+  label.textContent = fieldLabel;
 
   if (field.required) {
     const required = document.createElement("span");
@@ -1729,6 +1732,11 @@ function createField(field) {
   } else {
     const input = createInput(field);
     input.required = Boolean(field.required);
+    if (isPreRevenueMode() && field.derivedForPreRevenue) {
+      input.disabled = true;
+      input.setAttribute("aria-readonly", "true");
+      wrapper.classList.add("derived-field");
+    }
     appendCopyableExample(wrapper, field, input);
     wrapper.appendChild(field.type === "money" ? createMoneyControl(input) : input);
 
@@ -1741,10 +1749,10 @@ function createField(field) {
     }
   }
 
-  if (field.hint) {
+  if (fieldHint) {
     const hint = document.createElement("div");
     hint.className = "hint";
-    hint.textContent = field.hint;
+    hint.textContent = fieldHint;
     wrapper.appendChild(hint);
   }
 
@@ -2059,7 +2067,8 @@ function createCardTable(table) {
   const title = document.createElement("h3");
   const list = document.createElement("div");
   const button = document.createElement("button");
-  const groups = [...new Set(table.columns.map((column) => column.group || "Details"))];
+  const visibleColumns = table.columns.filter(intakeItemVisibleForMode);
+  const groups = [...new Set(visibleColumns.map((column) => column.group || "Details"))];
   const maxRows = table.maxRows || 5;
   const showGeneratedSummary = Boolean(table.summaryType) || table.id === "valueClaims" || table.id.endsWith("__valueClaims");
 
@@ -2162,7 +2171,7 @@ function createCardTable(table) {
       grid.className = "card-grid";
       section.appendChild(grid);
 
-      table.columns
+      visibleColumns
         .filter((column) => (column.group || "Details") === group)
         .forEach((column) => {
           const name = fieldName(table.id, rowId, column.id);
@@ -2444,7 +2453,7 @@ function renderFieldGrid(fields, titleText = "", hintText = "") {
 
   const grid = document.createElement("div");
   grid.className = "grid";
-  fields.forEach((field) => grid.appendChild(createField(field)));
+  fields.filter(intakeItemVisibleForMode).forEach((field) => grid.appendChild(createField(field)));
   fragment.appendChild(grid);
   return fragment;
 }
@@ -2827,7 +2836,7 @@ function preRevenueValidationMotionItems(data = getFormData()) {
   const firstCustomerTypes = meaningfulReadableValue(data.preFirstCustomerTypes, data.preFirstCustomerUnknownAccess, data.preBroadCustomerTypes);
   const segmentType = meaningfulReadableValue(values.segmentType, values.segmentTypeUnknown, values.segmentName__other, values.segmentName);
   const segmentTraits = meaningfulReadableValue(values.specificUseCaseDefinition, values.description, values.specificDefinition);
-  const reachPath = meaningfulReadableValue(values.reachability, values.reachabilityUnknown, data.preFastestPathToTest, data.preRoutingDecisionNextStep, data.preFirstCustomerUnknownAccess);
+  const reachPath = meaningfulReadableValue(values.firstConversationAccess, values.firstConversationAccessUnknown, values.reachability, values.reachabilityUnknown, data.preFastestPathToTest, data.preRoutingDecisionNextStep, data.preFirstCustomerUnknownAccess);
   const problem = meaningfulReadableValue(values.problem, values.problemUnknown, data.preProblemHypothesisDtc, data.preProblemHypothesisChannel, data.preBroadMarketProblem, data.preProblemUnknownMoment, data.preProblemUnknownAlternative);
   const primaryProblem = firstMeaningfulValue(problem);
   const urgency = meaningfulReadableValue(values.whyNow, values.whyNowUnknown, data.preUrgencyTriggerDtc, data.preUrgencyTriggerChannel, data.prePainMechanismDtc, data.prePainMechanismChannel, values.timingRequirements);
@@ -3325,6 +3334,17 @@ function renderSectionBody(section, sectionEl) {
     renderIntroBlocks(section.introBlocks, sectionEl);
   }
 
+  if (section.id === "company" && isPreRevenueMode()) {
+    const notice = document.createElement("div");
+    const heading = document.createElement("h3");
+    const body = document.createElement("p");
+    notice.className = "summary-card pre-revenue-context-card";
+    heading.textContent = "Pre-revenue context applied";
+    body.textContent = "Company Stage and Current Annual Revenue are set to Pre-revenue automatically and shown as locked values below. Current recurring-revenue amounts, customer count, deal size, sales motion, growth constraints, and GTM-system questions are hidden because they do not apply to this assessment.";
+    notice.append(heading, body);
+    sectionEl.appendChild(notice);
+  }
+
   if (["preRevenueBuyerDiscovery", "preRevenueValidationMotion", "preRevenueEvidenceTracker"].includes(section.id)) {
     renderCustomerContextStarter(sectionEl);
   }
@@ -3400,7 +3420,7 @@ function renderSectionBody(section, sectionEl) {
   }
 
   if (section.tables && section.tables.length) {
-    section.tables.forEach((table) => sectionEl.appendChild(createTable(table)));
+    section.tables.filter(intakeItemVisibleForMode).forEach((table) => sectionEl.appendChild(createTable(table)));
   }
 }
 
@@ -4694,6 +4714,25 @@ function isPreRevenueMode() {
   return selectedMode === "Pre-Revenue Validation";
 }
 
+function updatePreRevenueSegmentBuyingPathDefaults() {
+  if (!isPreRevenueMode()) return;
+  const data = getFormData();
+  const inferred = inferredSegmentBuyingPath(data);
+  if (!inferred) return;
+  document.querySelectorAll("select[name$='__likelyBuyerPath']").forEach((select) => {
+    if (!select.value && selectHasOption(select, inferred)) {
+      select.value = inferred;
+      formStateData[select.name] = inferred;
+    }
+  });
+}
+
+function intakeItemVisibleForMode(item = {}) {
+  if (item.omitFromIntake) return false;
+  if (isPreRevenueMode()) return !item.hideForPreRevenue;
+  return !item.preRevenueOnly;
+}
+
 function sectionVisible(section) {
   if (section.hidden || section.deprecated) {
     return false;
@@ -5513,6 +5552,8 @@ function currentVisibleFormData() {
   migrateOfferData(data);
   migrateSignalData(data);
   migrateRevenueMotionData(data);
+  migrateCompanyClassificationData(data);
+  applyPreRevenueCompanyDefaults(data);
   applyCarryForward(data);
   applyProofGapAutofill(data);
   applyOfferGeneratedFields(data);
@@ -5561,6 +5602,108 @@ function applyClassificationMetadata(data) {
     data.derivedGtmArchetypeLabel = archetype.label;
     data.scoreModel = archetype.scoreModel;
     data.derivedGtmArchetypeNotes = archetype.notes.join(" ");
+  }
+}
+
+const legacyBusinessTypeCategory = {
+  b2b_saas: "software_product",
+  enterprise_saas: "software_product",
+  self_serve_plg_saas: "software_product",
+  developer_tool_api: "software_product",
+  consumer_app: "software_product",
+  ai_software_automation_tool: "software_product",
+  consulting_firm: "consulting_business",
+  agency: "agency_business",
+  professional_services_firm: "professional_services_business",
+  managed_services_provider: "professional_services_business",
+  implementation_services_partner: "professional_services_business",
+  coaching_training_business: "professional_services_business",
+  dtc_ecommerce_brand: "physical_product_business",
+  retail_business: "physical_product_business",
+  wholesale_product_business: "physical_product_business",
+  subscription_box: "physical_product_business",
+  marketplace_seller: "physical_product_business",
+  consumer_packaged_goods_brand: "physical_product_business",
+  two_sided_marketplace: "marketplace_platform_business",
+  b2b_marketplace: "marketplace_platform_business",
+  creator_platform: "marketplace_platform_business",
+  community_platform: "marketplace_platform_business",
+  booking_listing_platform: "marketplace_platform_business",
+  local_service_business: "local_location_business",
+  local_retail_business: "local_location_business",
+  restaurant_hospitality_business: "local_location_business",
+  clinic_wellness_practice: "local_location_business",
+  franchise_location_based_business: "local_location_business",
+  course_business: "media_education_business",
+  newsletter_media_business: "media_education_business",
+  membership_community: "media_education_business",
+  events_business: "media_education_business",
+  podcast_video_media_brand: "media_education_business",
+  manufacturing_business: "industrial_product_business",
+  hardware_equipment_company: "industrial_product_business",
+  logistics_supply_chain_business: "industrial_product_business",
+  distribution_business: "industrial_product_business",
+  nonprofit_organization: "nonprofit_public_business",
+  government_public_sector_organization: "nonprofit_public_business",
+  social_impact_organization: "nonprofit_public_business"
+};
+
+function routeToPreRevenueRoute(value = "") {
+  const routes = String(value || "").split(/[;|]/).map((item) => item.trim()).filter(Boolean);
+  const mapped = routes.flatMap((route) => {
+    if (/mixed|not sure/i.test(route)) return [];
+    if (/direct to consumer|ecommerce|self-serve|product-led/i.test(route)) return ["End consumer / direct-to-consumer buyer"];
+    if (/retail|wholesale/i.test(route)) return ["Retail / wholesale buyer"];
+    if (/distributor|reseller|partner/i.test(route)) return ["Distributor or channel partner"];
+    if (/marketplace/i.test(route)) return ["Marketplace buyer"];
+    if (/direct b2b|corporate|team|business/i.test(route)) return ["Business buyer"];
+    return [];
+  });
+  return [...new Set(mapped)].join("; ");
+}
+
+function inferredSegmentBuyingPath(data = {}) {
+  const route = String(data.routeToMarket || data.preRevenueRouteToMarket || "");
+  const hasDtc = /direct to consumer|ecommerce|self-serve|product-led|end consumer/i.test(route);
+  const hasCorporate = /direct b2b|corporate|team|business buyer/i.test(route);
+  const hasChannel = /retail|wholesale|distributor|reseller|partner|marketplace/i.test(route);
+  const kinds = [hasDtc, hasCorporate, hasChannel].filter(Boolean).length;
+  if (/mixed|not sure/i.test(route) || kinds > 1) return "Mixed or not sure yet";
+  if (hasChannel) return "Retail, wholesale, distributor, or marketplace";
+  if (hasCorporate) return "Corporate or team purchase";
+  if (hasDtc) return "Direct to consumer / end user";
+  return "";
+}
+
+function migrateCompanyClassificationData(data = {}) {
+  if (legacyBusinessTypeCategory[data.businessTypeId]) {
+    data.legacyBusinessTypeId = data.legacyBusinessTypeId || data.businessTypeId;
+    data.businessTypeId = legacyBusinessTypeCategory[data.businessTypeId];
+  }
+
+  if ([true, "true", "Yes", "Recurring revenue applies to this business"].includes(data.hasRecurringRevenue)) {
+    data.hasRecurringRevenue = "Recurring Revenue Model";
+  } else if ([false, "false", "No"].includes(data.hasRecurringRevenue)) {
+    data.hasRecurringRevenue = "Standard Revenue Model";
+  }
+
+  if (!String(data.preRevenueRouteToMarket || "").trim() && String(data.routeToMarket || "").trim()) {
+    data.preRevenueRouteToMarket = routeToPreRevenueRoute(data.routeToMarket);
+  }
+
+  Object.keys(data).filter((key) => key.endsWith("__reachability")).forEach((key) => {
+    const target = key.replace(/__reachability$/, "__firstConversationAccess");
+    if (!String(data[target] || "").trim()) data[target] = data[key];
+  });
+}
+
+function applyPreRevenueCompanyDefaults(data = {}) {
+  if (data.toolMode !== "Pre-Revenue Validation") return;
+  data.companyStage = "Pre-revenue";
+  data.revenueRange = "Pre-revenue";
+  data.reviewMode = "preRevenue";
+  if (!String(data.preRevenueRouteToMarket || "").trim() && String(data.routeToMarket || "").trim()) {
+    data.preRevenueRouteToMarket = routeToPreRevenueRoute(data.routeToMarket);
   }
 }
 
@@ -6230,6 +6373,7 @@ function setFormData(data) {
 
 function updateConditionalFields() {
   updateDynamicOptionFields();
+  updatePreRevenueSegmentBuyingPathDefaults();
   updatePreRevenueBuyerDiscoveryDefaults();
   const data = getFormData();
 
@@ -7663,6 +7807,8 @@ function migrateRevenueMotionData(data) {
 
 function normalizeRepeatableData(data) {
   const normalized = { ...data };
+  migrateCompanyClassificationData(normalized);
+  applyPreRevenueCompanyDefaults(normalized);
 
   Object.keys(normalized).forEach((key) => {
     const isCustomerGroupReference = /(?:^|__)(?:customerGroup|targetCustomerGroup|priorityIcp|offerTargetSegment|verticalFit)(?:__item-\d+)?$/i.test(key);
@@ -9693,6 +9839,46 @@ function buildResearchPrompt(companyName, website) {
   const currentData = getFormData();
   const currentFields = nonEmptyFieldSummary(currentData);
   const target = companyName || website;
+
+  if (currentData.toolMode === "Pre-Revenue Validation") {
+    const comparables = Object.keys(currentData)
+      .filter((key) => /^preRevenueComparables__comparable-\d+__url$/.test(key) && String(currentData[key] || "").trim())
+      .map((key) => {
+        const prefix = key.replace(/__url$/, "");
+        return {
+          name: currentData[`${prefix}__name`] || "Unnamed comparable",
+          url: currentData[key],
+          whyComparable: currentData[`${prefix}__whyComparable`] || "Reason not supplied"
+        };
+      })
+      .slice(0, 3);
+    return [
+      `Research ${target} and the supplied comparable companies or products for a pre-revenue GTM validation intake.`,
+      "",
+      "Use current public sources only. Do not invent revenue, customers, traction, budgets, internal plans, or product-market fit.",
+      "Treat comparable-company observations as hypotheses for the respondent to review, not facts about the new company.",
+      "For each important observation, include a direct source URL and label it Public fact, Inferred, or Not found.",
+      "",
+      "Return these sections:",
+      "1. Category and buyer-language patterns",
+      "2. Common offer, product, packaging, and price signals",
+      "3. Likely routes to market and buying paths",
+      "4. Buyer, approver, user, influencer, retailer, or channel roles",
+      "5. Proof, trust, operational, and adoption requirements",
+      "6. Three plausible first-win segment hypotheses",
+      "7. For each segment: first 10 conversation sources, repeatable reach source, smallest 30-day test, meaningful commitment signal, and key risk",
+      "8. Open questions the founder must answer before accepting any suggestion",
+      "",
+      "Comparable inputs:",
+      comparables.length ? JSON.stringify(comparables, null, 2) : "- No comparable URLs supplied yet.",
+      "",
+      "Current intake context:",
+      currentFields || "- No current fields filled in yet.",
+      "",
+      `Company name: ${companyName || "unknown"}`,
+      `Website: ${website || "unknown"}`
+    ].join("\n");
+  }
 
   return [
     `Research ${target} for a GTM readiness intake.`,

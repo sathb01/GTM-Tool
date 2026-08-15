@@ -76,7 +76,7 @@
     { id: "other_not_sure", label: "Other / Not sure", group: "Other" }
   ];
 
-  const BUSINESS_TYPE_OPTIONS = [
+  const LEGACY_BUSINESS_TYPE_OPTIONS = [
     { id: "b2b_saas", label: "B2B SaaS", group: "Software / Digital Product" },
     { id: "enterprise_saas", label: "Enterprise SaaS", group: "Software / Digital Product" },
     { id: "self_serve_plg_saas", label: "Self-serve / Product-led SaaS", group: "Software / Digital Product" },
@@ -120,15 +120,29 @@
     { id: "other_not_sure", label: "Other / Not sure", group: "Other" }
   ];
 
+  const BUSINESS_TYPE_OPTIONS = [
+    { id: "software_product", label: "Software / SaaS / Digital Product", group: "Product Type" },
+    { id: "consulting_business", label: "Consulting", group: "Service Type" },
+    { id: "agency_business", label: "Agency", group: "Service Type" },
+    { id: "professional_services_business", label: "Professional or Managed Services", group: "Service Type" },
+    { id: "physical_product_business", label: "Physical Product / Consumer Brand", group: "Product Type" },
+    { id: "marketplace_platform_business", label: "Marketplace / Platform", group: "Product Type" },
+    { id: "local_location_business", label: "Local or Location-Based Business", group: "Business Type" },
+    { id: "media_education_business", label: "Media / Education / Membership", group: "Business Type" },
+    { id: "industrial_product_business", label: "Industrial / Manufacturing / Distribution", group: "Product Type" },
+    { id: "nonprofit_public_business", label: "Nonprofit / Public Sector", group: "Organization Type" },
+    { id: "other_not_sure", label: "Other / Not sure yet", group: "Other" }
+  ];
+
   const ARCHETYPE_GROUPS = [
-    { id: "b2b_software", label: "B2B Software", scoreModel: "b2b_software", businessTypes: ["b2b_saas", "enterprise_saas", "self_serve_plg_saas", "developer_tool_api", "ai_software_automation_tool"] },
-    { id: "services", label: "Services Business", scoreModel: "services", businessTypes: ["consulting_firm", "agency", "professional_services_firm", "managed_services_provider", "implementation_services_partner", "coaching_training_business"] },
-    { id: "ecommerce_physical_product", label: "Ecommerce / Physical Product", scoreModel: "ecommerce_physical_product", businessTypes: ["dtc_ecommerce_brand", "retail_business", "wholesale_product_business", "subscription_box", "marketplace_seller", "consumer_packaged_goods_brand"] },
-    { id: "marketplace_platform", label: "Marketplace / Platform", scoreModel: "marketplace_platform", businessTypes: ["two_sided_marketplace", "b2b_marketplace", "creator_platform", "community_platform", "booking_listing_platform"] },
-    { id: "local_business", label: "Local / Location-Based Business", scoreModel: "local_business", businessTypes: ["local_service_business", "local_retail_business", "restaurant_hospitality_business", "clinic_wellness_practice", "franchise_location_based_business"] },
-    { id: "media_content_education", label: "Media / Content / Education", scoreModel: "media_content_education", businessTypes: ["course_business", "newsletter_media_business", "membership_community", "events_business", "podcast_video_media_brand"] },
-    { id: "industrial_b2b", label: "Industrial / B2B", scoreModel: "industrial_b2b", businessTypes: ["manufacturing_business", "hardware_equipment_company", "logistics_supply_chain_business", "distribution_business"] },
-    { id: "nonprofit_public_sector", label: "Nonprofit / Public Sector", scoreModel: "nonprofit_public_sector", businessTypes: ["nonprofit_organization", "government_public_sector_organization", "social_impact_organization"] }
+    { id: "b2b_software", label: "Software / Digital Product", scoreModel: "b2b_software", businessTypes: ["software_product", "b2b_saas", "enterprise_saas", "self_serve_plg_saas", "developer_tool_api", "consumer_app", "ai_software_automation_tool"] },
+    { id: "services", label: "Services Business", scoreModel: "services", businessTypes: ["consulting_business", "agency_business", "professional_services_business", "consulting_firm", "agency", "professional_services_firm", "managed_services_provider", "implementation_services_partner", "coaching_training_business"] },
+    { id: "ecommerce_physical_product", label: "Physical Product", scoreModel: "ecommerce_physical_product", businessTypes: ["physical_product_business", "dtc_ecommerce_brand", "retail_business", "wholesale_product_business", "subscription_box", "marketplace_seller", "consumer_packaged_goods_brand"] },
+    { id: "marketplace_platform", label: "Marketplace / Platform", scoreModel: "marketplace_platform", businessTypes: ["marketplace_platform_business", "two_sided_marketplace", "b2b_marketplace", "creator_platform", "community_platform", "booking_listing_platform"] },
+    { id: "local_business", label: "Local / Location-Based Business", scoreModel: "local_business", businessTypes: ["local_location_business", "local_service_business", "local_retail_business", "restaurant_hospitality_business", "clinic_wellness_practice", "franchise_location_based_business"] },
+    { id: "media_content_education", label: "Media / Content / Education", scoreModel: "media_content_education", businessTypes: ["media_education_business", "course_business", "newsletter_media_business", "membership_community", "events_business", "podcast_video_media_brand"] },
+    { id: "industrial_b2b", label: "Industrial / B2B", scoreModel: "industrial_b2b", businessTypes: ["industrial_product_business", "manufacturing_business", "hardware_equipment_company", "logistics_supply_chain_business", "distribution_business"] },
+    { id: "nonprofit_public_sector", label: "Nonprofit / Public Sector", scoreModel: "nonprofit_public_sector", businessTypes: ["nonprofit_public_business", "nonprofit_organization", "government_public_sector_organization", "social_impact_organization"] }
   ];
 
   const TRUST_SENSITIVE_INDUSTRIES = new Set([
@@ -151,7 +165,8 @@
   }
 
   function getBusinessTypeById(id) {
-    return BUSINESS_TYPE_OPTIONS.find((option) => option.id === id);
+    return BUSINESS_TYPE_OPTIONS.find((option) => option.id === id)
+      || LEGACY_BUSINESS_TYPE_OPTIONS.find((option) => option.id === id);
   }
 
   function deriveGtmArchetype(industryId, businessTypeId) {
@@ -178,6 +193,7 @@
   window.GTM_TAXONOMY = {
     INDUSTRY_OPTIONS,
     BUSINESS_TYPE_OPTIONS,
+    LEGACY_BUSINESS_TYPE_OPTIONS,
     getIndustryById,
     getBusinessTypeById,
     deriveGtmArchetype

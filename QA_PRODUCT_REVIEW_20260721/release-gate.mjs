@@ -35,6 +35,7 @@ const browserSuites = [
   ["Improvement route usability", "phase1-improvement-route-audit.mjs", "routes"],
   ["Revenue buyer role options", "phase1-revenue-buyer-role-check.mjs", "schema"],
   ["Revenue channel multi-select", "phase1-revenue-channel-multiselect-check.mjs", "persistence"],
+  ["Pre-revenue intake redesign", "pre-revenue-intake-redesign-check.mjs", "persistence"],
   ["Consolidated plan and setup redesign", "phase8-consolidated-redesign-check.mjs", "plans"],
   ["Guided redesign headless workflow", "phase8-guided-redesign-headless-check.mjs", "plans"],
   ["Adaptive AI control safety", "phase2-ai-classification-check.mjs", "ai"],
