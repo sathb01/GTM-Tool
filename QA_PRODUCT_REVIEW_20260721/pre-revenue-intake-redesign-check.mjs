@@ -25,6 +25,7 @@ const data = {
   "preCustomerHypotheses__first-win-segment-1__credibilityRightToWin": "5",
   "preCustomerHypotheses__first-win-segment-1__validationSpeed": "5",
   "preCustomerHypotheses__first-win-segment-1__deliveryFitScore": "5",
+  "preCustomerHypotheses__first-win-segment-1__validationRecommendationReview": "Use the recommended test",
   "preCustomerHypotheses__first-win-segment-2__segmentName": "Problem-aware buyers",
   "preCustomerHypotheses__first-win-segment-2__problem": "Current products do not solve the use case well",
   "preCustomerHypotheses__first-win-segment-2__whyNow": "Seasonal need or buying window",
@@ -103,6 +104,8 @@ const hypotheses = await page.evaluate(() => {
     };
   };
   const buyingPaths = [...document.querySelectorAll('select[name$="__likelyBuyerPath"]')].map((select) => select.value);
+  const recommendationSelect = document.querySelector('select[name$="__validationRecommendationReview"]');
+  const recommendationPreview = document.querySelector('[data-validation-test-preview="true"]');
   return {
     buyingPaths,
     buyerRoles: clickFirst("__likelyBuyerChannel"),
@@ -110,6 +113,14 @@ const hypotheses = await page.evaluate(() => {
     repeatableReach: clickFirst("__repeatableReach"),
     oldFieldsAbsent: ["__reachability", "__validationPathDtc", "__validationPathChannel", "__buyingRequirements", "__implementationRequirements", "__successRequirements"].every((suffix) => !document.querySelector(`[name$="${suffix}"]`)),
     recommendationReviewPresent: Boolean(document.querySelector('select[name$="__validationRecommendationReview"]')),
+    recommendationPreview: {
+      count: document.querySelectorAll('[data-validation-test-preview="true"]').length,
+      text: recommendationPreview?.textContent.trim() || "",
+      appearsBeforeChoice: Boolean(recommendationPreview && recommendationSelect && (recommendationPreview.compareDocumentPosition(recommendationSelect) & Node.DOCUMENT_POSITION_FOLLOWING)),
+      label: recommendationSelect?.closest("div")?.querySelector("label")?.textContent.trim() || "",
+      optionLabels: [...(recommendationSelect?.options || [])].map((option) => option.textContent.trim()),
+      savedValue: recommendationSelect?.value || ""
+    },
     checklistReviewPresent: Boolean(document.querySelector('select[name$="__validationChecklistReview"]'))
   };
 });
@@ -162,6 +173,13 @@ const checks = {
   selectedAnswersVisible: [hypotheses.buyerRoles, hypotheses.firstAccess, hypotheses.repeatableReach].every((item) => item.exists && item.selected.length),
   selectedAnswersPersist: persistedSelected,
   firstWinSimplified: hypotheses.oldFieldsAbsent && hypotheses.recommendationReviewPresent && hypotheses.checklistReviewPresent,
+  recommendedTestVisibleBeforeChoice: hypotheses.recommendationPreview.count >= 2
+    && hypotheses.recommendationPreview.appearsBeforeChoice
+    && /Recommended 30-day test/i.test(hypotheses.recommendationPreview.text)
+    && /Build a 25-account sourcing pool/i.test(hypotheses.recommendationPreview.text)
+    && /Use this recommended 30-day test\?/i.test(hypotheses.recommendationPreview.label)
+    && ["Use this test", "Revise this test", "Not sure yet"].every((label) => hypotheses.recommendationPreview.optionLabels.includes(label))
+    && hypotheses.recommendationPreview.savedValue === "Use the recommended test",
   overrideLeadsAndFlagsConflict: report.overrideLeads && report.conflictFlagged,
   generatedTestPresent: report.generatedTestPresent,
   noPageErrors: pageErrors.length === 0

@@ -2137,6 +2137,9 @@ function createCardTable(table) {
     const hiddenSummary = document.createElement("input");
     const hiddenScore = document.createElement("input");
     const hiddenRecommendation = document.createElement("input");
+    const validationPreview = document.createElement("div");
+    const validationPreviewLabel = document.createElement("strong");
+    const validationPreviewText = document.createElement("p");
 
     card.className = "repeatable-card";
     card.dataset.cardRow = rowId;
@@ -2159,6 +2162,11 @@ function createCardTable(table) {
       header.appendChild(remove);
     }
     card.appendChild(header);
+
+    validationPreview.className = "full generated-statement validation-test-preview";
+    validationPreview.dataset.validationTestPreview = "true";
+    validationPreviewLabel.textContent = "Recommended 30-day test";
+    validationPreview.append(validationPreviewLabel, validationPreviewText);
 
     groups.forEach((group) => {
       const isCollapsibleGroup = table.advancedGroups?.includes(group) || table.collapsibleGroups?.includes(group);
@@ -2184,6 +2192,9 @@ function createCardTable(table) {
           const name = fieldName(table.id, rowId, column.id);
           const { wrapper: fieldWrapper, input } = createCardField(column, name);
           inputs[column.id] = input;
+          if (table.id === "preCustomerHypotheses" && column.id === "validationRecommendationReview") {
+            grid.appendChild(validationPreview);
+          }
           grid.appendChild(fieldWrapper);
         });
 
@@ -2270,10 +2281,25 @@ function createCardTable(table) {
       generatedText.textContent = summary;
     }
 
+    function updateValidationTestPreview() {
+      if (table.id !== "preCustomerHypotheses") return;
+      const values = Object.fromEntries(
+        Object.entries(inputs).map(([key, input]) => [key, String(input.value || "").trim()])
+      );
+      values.segmentName__other = String(card.querySelector(`[name="${CSS.escape(fieldName(table.id, rowId, "segmentName"))}__other"]`)?.value || "").trim();
+      validationPreviewText.textContent = preRevenueRecommendedValidationTest(values, getFormData());
+    }
+
     Object.values(inputs).forEach((input) => {
       input.addEventListener("change", updateGeneratedSummary);
       input.addEventListener("blur", updateGeneratedSummary);
     });
+    if (table.id === "preCustomerHypotheses") {
+      card.querySelectorAll("input, select, textarea").forEach((input) => {
+        input.addEventListener("input", updateValidationTestPreview);
+        input.addEventListener("change", updateValidationTestPreview);
+      });
+    }
 
     const negativeSignalInput = inputs.signal || inputs.negativeSignal;
     if (negativeSignalInput && inputs.whyItMatters) {
@@ -2287,6 +2313,7 @@ function createCardTable(table) {
     }
 
     list.appendChild(card);
+    updateValidationTestPreview();
     if (showGeneratedSummary) {
       updateGeneratedSummary();
     }
@@ -4708,6 +4735,38 @@ function createBaseGtmReportActions() {
 function isPreRevenueMode() {
   const selectedMode = formStateData.toolMode || document.querySelector("[name='toolMode']")?.value || "";
   return selectedMode === "Pre-Revenue Validation";
+}
+
+function preRevenueRecommendedValidationTest(values = {}, data = {}) {
+  const target = firstFilledValue(
+    values.specificUseCaseDefinition,
+    values.segmentName__other,
+    values.segmentNameUnknown,
+    values.segmentName,
+    "this candidate segment"
+  );
+  const explicitPath = String(values.likelyBuyerPath || "").trim();
+  const pathText = [
+    values.likelyBuyerPath,
+    values.segmentName__other,
+    values.segmentName,
+    values.likelyBuyerDtc,
+    values.likelyBuyerChannel,
+    data.preRevenueRouteToMarket
+  ].filter(Boolean).join(" ");
+  const hasChannelPath = /retail|wholesale|distributor|marketplace|corporate|team|business|merchant|store owner|category|channel|partner/i.test(pathText);
+  const hasConsumerPath = /direct|consumer|end user|influencer|community|hobby|gift/i.test(pathText);
+  const isChannel = explicitPath && !/mixed|not sure/i.test(explicitPath)
+    ? /retail|wholesale|distributor|marketplace|corporate|team|business|merchant|store owner|category/i.test(explicitPath)
+    : hasChannelPath && !hasConsumerPath;
+  const access = firstFilledValue(values.firstConversationAccessUnknown, values.firstConversationAccess);
+  const accessClause = access
+    ? ` Recruit through ${access}.`
+    : " Start with the fastest available network, list, community, directory, marketplace, or buyer introduction.";
+  const base = isChannel
+    ? `Build a 25-account sourcing pool for ${target}, complete 5-10 buyer or channel conversations, show a concept, sample, demo, or offer, and ask for a concrete next step such as pricing feedback, a buyer introduction, a sample review, a test order, or a limited pilot.`
+    : `Build a 25-person sourcing pool for ${target}, complete 8-10 customer conversations, test the problem and current alternative before presenting the offer, then ask for a concrete next step such as a waitlist signup, preorder, price response, sample review, trial, or referral.`;
+  return `${base}${accessClause}`;
 }
 
 function updatePreRevenueSegmentBuyingPathDefaults() {

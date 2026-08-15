@@ -11,6 +11,7 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Preserved plan context across navigation: a started plan returns to This Week, while an unstarted plan opens the Plan Summary.
 - Corrected Target Company Discovery links to open the current discovery workspace anchor.
 - Replaced the long pre-revenue context card with a one-line confirmation beside the automatically locked revenue fields.
+- Added the full route-specific 30-day test inside each First-Win Segment card before the respondent accepts, revises, or defers it; existing saved choice values remain compatible.
 - Updated the permanent QA fixtures and assertions to the current product contracts; the complete local release gate now passes 1,414 of 1,414 checks.
 
 ## 2026-08-13 Pre-Revenue Intake Simplification
