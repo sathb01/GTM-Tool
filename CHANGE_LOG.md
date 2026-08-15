@@ -10,6 +10,7 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Removed the unintended blank revenue-model choice and kept the two requested options only.
 - Preserved plan context across navigation: a started plan returns to This Week, while an unstarted plan opens the Plan Summary.
 - Corrected Target Company Discovery links to open the current discovery workspace anchor.
+- Replaced the long pre-revenue context card with a one-line confirmation beside the automatically locked revenue fields.
 - Updated the permanent QA fixtures and assertions to the current product contracts; the complete local release gate now passes 1,414 of 1,414 checks.
 
 ## 2026-08-13 Pre-Revenue Intake Simplification

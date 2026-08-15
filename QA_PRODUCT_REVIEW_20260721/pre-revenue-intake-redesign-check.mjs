@@ -83,7 +83,7 @@ const company = await page.evaluate(() => {
     comparablesVisible: Boolean(document.querySelector('[data-repeatable-card-list-for="preRevenueComparables"]')),
     hiddenFieldsAbsent: ["reviewPeriod", "customerCount", "averageDealSize", "primarySalesMotion", "mainGrowthConstraint", "monthlyRecurringRevenue", "annualRecurringRevenue"].every((name) => !document.querySelector(`[name="${name}"]`)),
     postRevenueTablesAbsent: !visibleText.includes("GTM systems and data sources") && !visibleText.includes("Website URLs, social media, and public presence"),
-    guidancePresent: /do not guess/i.test(visibleText) && /pre-revenue context applied/i.test(visibleText),
+    guidancePresent: /do not guess/i.test(visibleText) && /pre-revenue defaults applied\. Company Stage and Revenue have been set automatically\./i.test(visibleText),
     researchPromptUsesComparables: /https:\/\/example\.com\/socks/.test(buildResearchPrompt(current.companyName, current.website))
       && /hypotheses for the respondent to review/i.test(buildResearchPrompt(current.companyName, current.website))
   };

@@ -1756,6 +1756,13 @@ function createField(field) {
     wrapper.appendChild(hint);
   }
 
+  if (isPreRevenueMode() && field.id === "revenueRange") {
+    const defaultsNote = document.createElement("div");
+    defaultsNote.className = "hint pre-revenue-defaults-note";
+    defaultsNote.textContent = "Pre-revenue defaults applied. Company Stage and Revenue have been set automatically.";
+    wrapper.appendChild(defaultsNote);
+  }
+
   if (field.recommendationKey && field.type !== "multiSelectDropdown") {
     const recommendation = document.createElement("div");
     const title = document.createElement("div");
@@ -3332,17 +3339,6 @@ function renderKnownBuyerBlockerContext(sectionEl) {
 function renderSectionBody(section, sectionEl) {
   if (section.introBlocks && section.introBlocks.length) {
     renderIntroBlocks(section.introBlocks, sectionEl);
-  }
-
-  if (section.id === "company" && isPreRevenueMode()) {
-    const notice = document.createElement("div");
-    const heading = document.createElement("h3");
-    const body = document.createElement("p");
-    notice.className = "summary-card pre-revenue-context-card";
-    heading.textContent = "Pre-revenue context applied";
-    body.textContent = "Company Stage and Current Annual Revenue are set to Pre-revenue automatically and shown as locked values below. Current recurring-revenue amounts, customer count, deal size, sales motion, growth constraints, and GTM-system questions are hidden because they do not apply to this assessment.";
-    notice.append(heading, body);
-    sectionEl.appendChild(notice);
   }
 
   if (["preRevenueBuyerDiscovery", "preRevenueValidationMotion", "preRevenueEvidenceTracker"].includes(section.id)) {
