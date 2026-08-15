@@ -4750,6 +4750,12 @@ function preRevenueRecommendedValidationTest(values = {}, data = {}, rowId = "",
     storedValue("segmentName__other"),
     storedValue("segmentNameUnknown"),
     storedValue("segmentName"),
+    values.likelyBuyerChannel,
+    values.likelyBuyerDtc,
+    values.likelyBuyerUnknown,
+    storedValue("likelyBuyerChannel"),
+    storedValue("likelyBuyerDtc"),
+    storedValue("likelyBuyerUnknown"),
     "this candidate segment"
   );
   const explicitPath = String(values.likelyBuyerPath || "").trim();
