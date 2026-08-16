@@ -18103,6 +18103,9 @@
       const scoreModel = preRevenueScore(data);
       const primary = scoreModel.primary;
       const target = preRevenueTargetLabel(data, primary);
+      const validationSetupNavigation = assetMode === "validation" ? toolSetupNavigationState(data) : null;
+      const validationSetupIncomplete = Boolean(validationSetupNavigation?.current);
+      const validationPlanHomeUrl = validationSetupIncomplete ? validationSetupNavigation.href : reportAssetUrl("active");
       const reportTitle = assetMode === "validation"
         ? "Validation Plan"
         : assetMode === "gtm"
@@ -18137,12 +18140,16 @@
             <h2>Congratulations — your required Company Information is complete</h2>
             <p><strong>Now the work begins.</strong> This 30-Day Validation Plan is your reference for what to test and how to decide what happens next.</p>
             <ol>
-              <li><strong>Start now:</strong> open <strong>This Week</strong> to see the current priority and begin the first assigned action.</li>
-              <li><strong>Do the work:</strong> follow the action into the <strong>Validation Workspace</strong> when you need to add targets, record conversations, capture evidence, or make the continue, revise, or stop decision.</li>
-              <li><strong>Each time you return:</strong> open this company and choose <strong>Plan, Assets, and Tools &gt; This Week</strong>. This Week is the home base for the active plan, status, results, and next action.</li>
+              ${validationSetupIncomplete
+                ? `<li><strong>Start now:</strong> open <strong>Readiness</strong>, the first item under Plan, and complete the current setup task.</li>
+                   <li><strong>Start Week 1:</strong> after the required setup is complete, <strong>Readiness changes to This Week</strong>. Open it to begin the current priority.</li>
+                   <li><strong>Each time you return:</strong> choose <strong>Plan, Assets, and Tools &gt; Readiness</strong> until setup is complete; after Week 1 starts, return to <strong>This Week</strong>. Use the <strong>Validation Workspace</strong> to add targets, record conversations, capture evidence, and make the continue, revise, or stop decision.</li>`
+                : `<li><strong>Start now:</strong> open <strong>This Week</strong> to see the current priority and begin the first assigned action.</li>
+                   <li><strong>Do the work:</strong> follow the action into the <strong>Validation Workspace</strong> when you need to add targets, record conversations, capture evidence, or make the continue, revise, or stop decision.</li>
+                   <li><strong>Each time you return:</strong> open this company and choose <strong>Plan, Assets, and Tools &gt; This Week</strong>. This Week is the home base for the active plan, status, results, and next action.</li>`}
             </ol>
             <div class="report-bottom-actions">
-              <a href="${escapeHtml(reportAssetUrl("active"))}">Start in This Week</a>
+              <a href="${escapeHtml(validationPlanHomeUrl)}">${validationSetupIncomplete ? "Continue Readiness" : "Start in This Week"}</a>
               <a class="secondary" href="${escapeHtml(reportAssetUrl("validation-workspace"))}">Open Validation Workspace</a>
             </div>
           </div>
@@ -18272,7 +18279,9 @@
         workspaceAction.id = "validation-workspace-action";
         workspaceAction.dataset.toc = "Work the Plan";
         workspaceAction.className = "no-print";
-        workspaceAction.innerHTML = `<h2>Next: Work the Plan</h2><p>Return to <strong>This Week</strong> whenever you work the plan. It shows the current priority and routes you to the right tool. Use the <strong>Validation Workspace</strong> to manage targets, interviews, weekly evidence, and the final decision in this saved company record.</p><div class="report-bottom-actions"><a href="${escapeHtml(reportAssetUrl("active"))}">Go to This Week</a><a class="secondary" href="${escapeHtml(reportAssetUrl("validation-workspace"))}">Open Validation Workspace</a><button type="button" class="secondary" id="downloadValidationWorkbookFromPlan">Download Workbook</button></div>`;
+        workspaceAction.innerHTML = `<h2>Next: Work the Plan</h2><p>${validationSetupIncomplete
+          ? `Go to <strong>Readiness</strong> now and complete the current setup task. When setup is complete, that Plan navigation item becomes <strong>This Week</strong>, which is where you return to see the current priority and continue the plan.`
+          : `Return to <strong>This Week</strong> whenever you work the plan. It shows the current priority and routes you to the right tool.`} Use the <strong>Validation Workspace</strong> to manage targets, interviews, weekly evidence, and the final decision in this saved company record.</p><div class="report-bottom-actions"><a href="${escapeHtml(validationPlanHomeUrl)}">${validationSetupIncomplete ? "Continue Readiness" : "Go to This Week"}</a><a class="secondary" href="${escapeHtml(reportAssetUrl("validation-workspace"))}">Open Validation Workspace</a><button type="button" class="secondary" id="downloadValidationWorkbookFromPlan">Download Workbook</button></div>`;
         main.appendChild(workspaceAction);
         workspaceAction.querySelector("#downloadValidationWorkbookFromPlan").addEventListener("click", () => downloadValidationTracker(data, scoreModel));
       }

@@ -220,6 +220,8 @@ const report = await reportPage.evaluate(() => {
   const recommendationText = document.getElementById("recommendation")?.textContent || "";
   const handoff = document.getElementById("validation-plan-handoff");
   const bottomAction = document.getElementById("validation-workspace-action");
+  const handoffPrimary = handoff?.querySelector(".report-bottom-actions a");
+  const bottomPrimary = bottomAction?.querySelector(".report-bottom-actions a");
   const assetForLink = (container, label) => {
     const link = [...(container?.querySelectorAll("a") || [])].find((item) => item.textContent.trim() === label);
     return link ? new URL(link.href).searchParams.get("asset") : "";
@@ -231,10 +233,13 @@ const report = await reportPage.evaluate(() => {
     headerFlagsOverride: /User override active/i.test(recommendationText),
     completionHandoff: {
       text: handoff?.textContent || "",
-      startAsset: assetForLink(handoff, "Start in This Week"),
+      navigationLabels: [...document.querySelectorAll("#reportToc .asset-nav-label")].map((item) => item.textContent.trim()),
+      primaryLabel: handoffPrimary?.textContent.trim() || "",
+      primaryAsset: handoffPrimary ? new URL(handoffPrimary.href).searchParams.get("asset") : "",
       workspaceAsset: assetForLink(handoff, "Open Validation Workspace"),
       bottomText: bottomAction?.textContent || "",
-      bottomStartAsset: assetForLink(bottomAction, "Go to This Week"),
+      bottomPrimaryLabel: bottomPrimary?.textContent.trim() || "",
+      bottomPrimaryAsset: bottomPrimary ? new URL(bottomPrimary.href).searchParams.get("asset") : "",
       bottomWorkspaceAsset: assetForLink(bottomAction, "Open Validation Workspace")
     },
     recommendationText
@@ -327,12 +332,18 @@ const checks = {
     && /required Company Information is complete/i.test(report.completionHandoff.text)
     && /Now the work begins/i.test(report.completionHandoff.text)
     && /Each time you return/i.test(report.completionHandoff.text)
-    && /Plan, Assets, and Tools > This Week/i.test(report.completionHandoff.text)
-    && report.completionHandoff.startAsset === "active"
+    && /open Readiness/i.test(report.completionHandoff.text)
+    && /Readiness changes to This Week/i.test(report.completionHandoff.text)
+    && /Plan, Assets, and Tools > Readiness/i.test(report.completionHandoff.text)
+    && report.completionHandoff.navigationLabels.includes("Readiness")
+    && report.completionHandoff.primaryLabel === "Continue Readiness"
+    && Boolean(report.completionHandoff.primaryAsset)
     && report.completionHandoff.workspaceAsset === "validation-workspace"
     && /Next: Work the Plan/i.test(report.completionHandoff.bottomText)
-    && /current priority/i.test(report.completionHandoff.bottomText)
-    && report.completionHandoff.bottomStartAsset === "active"
+    && /current setup task/i.test(report.completionHandoff.bottomText)
+    && /becomes This Week/i.test(report.completionHandoff.bottomText)
+    && report.completionHandoff.bottomPrimaryLabel === "Continue Readiness"
+    && report.completionHandoff.bottomPrimaryAsset === report.completionHandoff.primaryAsset
     && report.completionHandoff.bottomWorkspaceAsset === "validation-workspace",
   noPageErrors: pageErrors.length === 0
 };
