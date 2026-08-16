@@ -5858,6 +5858,26 @@ function inferredSegmentBuyingPath(data = {}) {
   return "";
 }
 
+const legacyPreRevenueChannelAlternativeMappings = {
+  "Existing assortment, catalog, workflow, vendor list, or solution set": ["Keep the current assortment, workflow, or solution unchanged"],
+  "Current supplier, vendor, partner, platform, or internal team": ["Reorder or expand an existing supplier, vendor, product, or service"],
+  "Private label, in-house, white-label, or custom option": ["Use a private-label, white-label, or custom option"],
+  "Known brand, vendor, product, service, or tool already in use": ["Buy a competing brand, product, service, or tool"],
+  "Comparable marketplace, app-store, platform, or category option": ["Buy a competing brand, product, service, or tool"],
+  "Customer requests only": ["Source something only after receiving a confirmed customer request"],
+  "Manual buying process": ["Handle it internally with the current team, process, or tools"],
+  "Delaying the category, vendor, product, or workflow decision": ["Delay the decision until a future budget, buying, or assortment window"],
+  "Doing nothing": ["Do nothing and continue living with the problem"]
+};
+
+function migratePreRevenueChannelAlternatives(data = {}) {
+  if (!String(data.preCurrentWorkaroundChannel || "").trim()) return;
+  data.preCurrentWorkaroundChannel = [...new Set(
+    uniqueListParts(data.preCurrentWorkaroundChannel)
+      .flatMap((value) => legacyPreRevenueChannelAlternativeMappings[value] || [value])
+  )].join("; ");
+}
+
 function migrateCompanyClassificationData(data = {}) {
   if (legacyBusinessTypeCategory[data.businessTypeId]) {
     data.legacyBusinessTypeId = data.legacyBusinessTypeId || data.businessTypeId;
@@ -5878,6 +5898,8 @@ function migrateCompanyClassificationData(data = {}) {
     const target = key.replace(/__reachability$/, "__firstConversationAccess");
     if (!String(data[target] || "").trim()) data[target] = data[key];
   });
+
+  migratePreRevenueChannelAlternatives(data);
 }
 
 function applyPreRevenueCompanyDefaults(data = {}) {

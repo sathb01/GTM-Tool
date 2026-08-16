@@ -249,7 +249,7 @@ function multiSelectAnswer(definition, profile, rowId = "", contextLabel = "") {
     if (selected.length) return joined(selected);
   }
   if (id === "preCurrentWorkaroundChannel") {
-    const selected = findOptions(definition, [/existing.*workflow/i, /current supplier.*platform.*internal team/i], rowId, 2);
+    const selected = findOptions(definition, [/keep the current.*workflow/i, /reorder or expand an existing supplier/i], rowId, 2);
     if (selected.length) return joined(selected);
   }
   if (id === "preHypothesisReason") {

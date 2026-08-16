@@ -12,6 +12,7 @@ const data = {
   businessTypeId: "dtc_ecommerce_brand",
   hasRecurringRevenue: "Yes",
   routeToMarket: "Retail / wholesale",
+  preCurrentWorkaroundChannel: "Customer requests only; Manual buying process",
   "preRevenueComparables__comparable-1__name": "Example Sock Brand",
   "preRevenueComparables__comparable-1__url": "https://example.com/socks",
   "preRevenueComparables__comparable-1__whyComparable": "Similar product and wholesale route",
@@ -87,6 +88,19 @@ const company = await page.evaluate(() => {
     guidancePresent: /do not guess/i.test(visibleText) && /pre-revenue defaults applied\. Company Stage and Revenue have been set automatically\./i.test(visibleText),
     researchPromptUsesComparables: /https:\/\/example\.com\/socks/.test(buildResearchPrompt(current.companyName, current.website))
       && /hypotheses for the respondent to review/i.test(buildResearchPrompt(current.companyName, current.website))
+  };
+});
+
+await page.evaluate(() => switchActiveSection("preRevenueProblem"));
+await page.waitForSelector("#preRevenueProblem");
+const problemHypothesis = await page.evaluate(() => {
+  const control = document.querySelector('[data-multi-select-dropdown][data-field-name="preCurrentWorkaroundChannel"]');
+  const wrapper = control?.closest('[data-field-label]');
+  return {
+    label: wrapper?.dataset.fieldLabel || "",
+    hint: wrapper?.querySelector(".hint")?.textContent.trim() || "",
+    options: [...(control?.querySelectorAll('input[type="checkbox"]') || [])].map((input) => input.value),
+    selected: [...(control?.querySelectorAll(".multi-select-selected-text") || [])].map((item) => item.textContent.trim()).filter(Boolean)
   };
 });
 
@@ -188,6 +202,25 @@ const checks = {
   expectedRevenueModelQuestion: company.expectedRevenueLabel === "Expected revenue model",
   companyBranchSimplified: company.hiddenFieldsAbsent && company.postRevenueTablesAbsent && company.routeVisible && company.comparablesVisible && company.guidancePresent,
   comparableResearchPromptPreservesReview: company.researchPromptUsesComparables,
+  channelAlternativesAreBuyerChoices: /does not choose your offer/i.test(problemHypothesis.label)
+    && /specific competitor, supplier, product, service, tool, or workaround/i.test(problemHypothesis.hint)
+    && [
+      "Keep the current assortment, workflow, or solution unchanged",
+      "Reorder or expand an existing supplier, vendor, product, or service",
+      "Buy a competing brand, product, service, or tool",
+      "Choose a lower-cost or generic substitute",
+      "Use a private-label, white-label, or custom option",
+      "Handle it internally with the current team, process, or tools",
+      "Combine multiple products, vendors, or manual workarounds",
+      "Source something only after receiving a confirmed customer request",
+      "Delay the decision until a future budget, buying, or assortment window",
+      "Do nothing and continue living with the problem",
+      "I don't know yet",
+      "Other"
+    ].every((option) => problemHypothesis.options.includes(option))
+    && !["Customer requests only", "Manual buying process"].some((option) => problemHypothesis.options.includes(option))
+    && problemHypothesis.selected.includes("Source something only after receiving a confirmed customer request")
+    && problemHypothesis.selected.includes("Handle it internally with the current team, process, or tools"),
   buyingPathPrefilled: hypotheses.buyingPaths.length >= 2 && hypotheses.buyingPaths.every((value) => value === "Retail, wholesale, distributor, or marketplace"),
   selectedAnswersVisible: [hypotheses.buyerRoles, hypotheses.firstAccess, hypotheses.repeatableReach].every((item) => item.exists && item.selected.length),
   selectedAnswersPersist: persistedSelected,
@@ -223,5 +256,5 @@ const checks = {
   noPageErrors: pageErrors.length === 0
 };
 const failures = Object.entries(checks).filter(([, passed]) => !passed).map(([check]) => check);
-console.log(JSON.stringify({ checks: Object.keys(checks).length, passed: Object.keys(checks).length - failures.length, failed: failures.length, failures, company, hypotheses, report, pageErrors }, null, 2));
+console.log(JSON.stringify({ checks: Object.keys(checks).length, passed: Object.keys(checks).length - failures.length, failed: failures.length, failures, company, problemHypothesis, hypotheses, report, pageErrors }, null, 2));
 if (failures.length) process.exitCode = 1;

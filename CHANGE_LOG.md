@@ -20,6 +20,7 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Explained that these details feed the plan's Evidence Available section, the Persona Brief, and evidence-strength assessment; added a concrete retail-buyer example and an explicit blank/skip path.
 - Removed the unused validation-checklist approval dropdown and now show the generated checklist directly in each First-Win Segment card.
 - Replaced the conditional missing-requirement question with one optional field that explains how any addition will be used in the final plan; legacy saved approval values remain untouched but are no longer displayed.
+- Reframed the channel-buyer alternatives question around what the buyer would buy or continue doing instead, replacing overlapping supplier, marketplace, demand-signal, and procurement choices with distinct status-quo, competitor, substitute, internal, workaround, delay, and no-action options.
 
 ## 2026-08-13 Pre-Revenue Intake Simplification
 

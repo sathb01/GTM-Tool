@@ -635,15 +635,16 @@ const PRE_REVENUE_DTC_ALTERNATIVE_OPTIONS = [
 ];
 
 const PRE_REVENUE_CHANNEL_ALTERNATIVE_OPTIONS = [
-  "Existing assortment, catalog, workflow, vendor list, or solution set",
-  "Current supplier, vendor, partner, platform, or internal team",
-  "Private label, in-house, white-label, or custom option",
-  "Known brand, vendor, product, service, or tool already in use",
-  "Comparable marketplace, app-store, platform, or category option",
-  "Customer requests only",
-  "Manual buying process",
-  "Delaying the category, vendor, product, or workflow decision",
-  "Doing nothing",
+  "Keep the current assortment, workflow, or solution unchanged",
+  "Reorder or expand an existing supplier, vendor, product, or service",
+  "Buy a competing brand, product, service, or tool",
+  "Choose a lower-cost or generic substitute",
+  "Use a private-label, white-label, or custom option",
+  "Handle it internally with the current team, process, or tools",
+  "Combine multiple products, vendors, or manual workarounds",
+  "Source something only after receiving a confirmed customer request",
+  "Delay the decision until a future budget, buying, or assortment window",
+  "Do nothing and continue living with the problem",
   "I don't know yet",
   "Other"
 ];
@@ -1267,7 +1268,7 @@ const GTM_INTAKE_SCHEMA = {
             { id: "preProblemHypothesisChannel", label: "For retail, wholesale, marketplace, distributor, or business sales, what buyer problem or buying job might your product help with?", type: "multiSelectDropdown", full: true, showWhen: { field: "preRevenueRouteToMarket", defaultVisible: true, values: ["Retail / wholesale buyer", "Distributor or channel partner", "Marketplace buyer", "Business buyer"] }, otherLabel: "Define other channel problem", requireOther: true, options: PRE_REVENUE_CHANNEL_PROBLEM_OPTIONS },
             { id: "prePainMechanismChannel", label: "For retail, wholesale, marketplace, distributor, or business sales, what would make the buyer care enough to evaluate, carry, or test it?", type: "multiSelectDropdown", full: true, showWhen: { field: "preRevenueRouteToMarket", defaultVisible: true, values: ["Retail / wholesale buyer", "Distributor or channel partner", "Marketplace buyer", "Business buyer"] }, otherLabel: "Define other channel buying motivation", requireOther: true, options: PRE_REVENUE_CHANNEL_PAIN_MECHANISM_OPTIONS },
             { id: "preUrgencyTriggerChannel", label: "For retail, wholesale, marketplace, distributor, or business sales, what might trigger action now?", type: "multiSelectDropdown", full: true, showWhen: { field: "preRevenueRouteToMarket", defaultVisible: true, values: ["Retail / wholesale buyer", "Distributor or channel partner", "Marketplace buyer", "Business buyer"] }, otherLabel: "Define other channel trigger", requireOther: true, options: PRE_REVENUE_CHANNEL_URGENCY_OPTIONS },
-            { id: "preCurrentWorkaroundChannel", label: "For retail, wholesale, marketplace, distributor, or business sales, what alternative might the buyer use or buy today?", type: "multiSelectDropdown", full: true, showWhen: { field: "preRevenueRouteToMarket", defaultVisible: true, values: ["Retail / wholesale buyer", "Distributor or channel partner", "Marketplace buyer", "Business buyer"] }, otherLabel: "Define other channel alternative", requireOther: true, options: PRE_REVENUE_CHANNEL_ALTERNATIVE_OPTIONS },
+            { id: "preCurrentWorkaroundChannel", label: "If the buyer does not choose your offer, what would they most likely buy or continue doing instead?", type: "multiSelectDropdown", full: true, hint: "Select the closest current alternative. Use Other to name a specific competitor, supplier, product, service, tool, or workaround.", showWhen: { field: "preRevenueRouteToMarket", defaultVisible: true, values: ["Retail / wholesale buyer", "Distributor or channel partner", "Marketplace buyer", "Business buyer"] }, otherLabel: "Name the other alternative or competitor", requireOther: true, options: PRE_REVENUE_CHANNEL_ALTERNATIVE_OPTIONS },
             { id: "preProblemEvidenceChannel", label: "For retail, wholesale, marketplace, distributor, or business sales, what buyer or channel evidence do you already have?", type: "multiSelectDropdown", full: true, showWhen: { field: "preRevenueRouteToMarket", defaultVisible: true, values: ["Retail / wholesale buyer", "Distributor or channel partner", "Marketplace buyer", "Business buyer"] }, otherLabel: "Define other channel evidence", requireOther: true, options: PRE_REVENUE_CHANNEL_EVIDENCE_OPTIONS },
             { id: "preMissingEvidenceChannel", label: "For retail, wholesale, marketplace, distributor, or business sales, what buyer or channel evidence is still missing?", type: "multiSelectDropdown", full: true, showWhen: { field: "preRevenueRouteToMarket", defaultVisible: true, values: ["Retail / wholesale buyer", "Distributor or channel partner", "Marketplace buyer", "Business buyer"] }, otherLabel: "Define other missing channel evidence", requireOther: true, options: PRE_REVENUE_MISSING_CHANNEL_EVIDENCE_OPTIONS }
           ]
