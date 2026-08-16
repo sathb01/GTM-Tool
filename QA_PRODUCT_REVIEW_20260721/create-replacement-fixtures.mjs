@@ -788,7 +788,6 @@ function selectAnswerById(definition, profile, rowId, label) {
   if (id === "industryId") return findOption(definition, [new RegExp(profile.company.industry.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), flags.saas ? /software|technology/i : /consumer/i], rowId);
   if (id === "businessTypeId") return findOption(definition, [flags.saas ? /software.*saas/i : flags.dtc ? /physical product|consumer brand/i : /physical product|consumer brand/i], rowId);
   if (id === "validationRecommendationReview") return findOption(definition, [/use the recommended test/i], rowId);
-  if (id === "validationChecklistReview") return findOption(definition, [/use the generated checklist/i], rowId);
   if (id === "mainGrowthConstraint") return findOption(definition, flags.pre ? [/unclear product-market fit/i, /under capitalization/i] : flags.mixed ? [/lack of strategic planning/i, /process scalability/i] : [/unclear product-market fit/i, /intense competition/i], rowId);
   if (id === "prePrimaryHypothesis") return profile.customer.primarySegment;
   if (id === "segmentName") return findOption(definition, rowId.endsWith("2") ? [/problem-aware buyers/i] : flags.dtc ? [/end users with a specific use case/i] : [/small businesses or teams/i], rowId);

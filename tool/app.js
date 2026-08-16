@@ -2140,6 +2140,9 @@ function createCardTable(table) {
     const validationPreview = document.createElement("div");
     const validationPreviewLabel = document.createElement("strong");
     const validationPreviewText = document.createElement("p");
+    const validationChecklistPreview = document.createElement("div");
+    const validationChecklistPreviewLabel = document.createElement("strong");
+    const validationChecklistPreviewGroups = document.createElement("div");
 
     card.className = "repeatable-card";
     card.dataset.cardRow = rowId;
@@ -2168,6 +2171,12 @@ function createCardTable(table) {
     validationPreviewLabel.textContent = "Recommended 30-day test";
     validationPreview.append(validationPreviewLabel, validationPreviewText);
 
+    validationChecklistPreview.className = "full generated-statement validation-checklist-preview";
+    validationChecklistPreview.dataset.validationChecklistPreview = "true";
+    validationChecklistPreviewLabel.textContent = "Generated validation checklist";
+    validationChecklistPreviewGroups.className = "validation-checklist-groups";
+    validationChecklistPreview.append(validationChecklistPreviewLabel, validationChecklistPreviewGroups);
+
     groups.forEach((group) => {
       const isCollapsibleGroup = table.advancedGroups?.includes(group) || table.collapsibleGroups?.includes(group);
       const section = isCollapsibleGroup ? document.createElement("details") : document.createElement("div");
@@ -2194,6 +2203,9 @@ function createCardTable(table) {
           inputs[column.id] = input;
           if (table.id === "preCustomerHypotheses" && column.id === "validationRecommendationReview") {
             grid.appendChild(validationPreview);
+          }
+          if (table.id === "preCustomerHypotheses" && column.id === "validationChecklistMissing") {
+            grid.appendChild(validationChecklistPreview);
           }
           grid.appendChild(fieldWrapper);
         });
@@ -2290,6 +2302,30 @@ function createCardTable(table) {
       validationPreviewText.textContent = preRevenueRecommendedValidationTest(values, getFormData(), rowId, formStateData);
     }
 
+    function updateValidationChecklistPreview() {
+      if (table.id !== "preCustomerHypotheses") return;
+      const values = Object.fromEntries(
+        Object.entries(inputs).map(([key, input]) => [key, String(input.value || "").trim()])
+      );
+      const groups = preRevenueGeneratedValidationChecklist(values, rowId, formStateData);
+      validationChecklistPreviewGroups.replaceChildren();
+      groups.forEach((group) => {
+        const groupEl = document.createElement("div");
+        const headingEl = document.createElement("span");
+        const listEl = document.createElement("ul");
+        groupEl.className = "validation-checklist-group";
+        headingEl.className = "validation-checklist-group-title";
+        headingEl.textContent = group.title;
+        group.items.forEach((item) => {
+          const listItem = document.createElement("li");
+          listItem.textContent = item;
+          listEl.appendChild(listItem);
+        });
+        groupEl.append(headingEl, listEl);
+        validationChecklistPreviewGroups.appendChild(groupEl);
+      });
+    }
+
     Object.values(inputs).forEach((input) => {
       input.addEventListener("change", updateGeneratedSummary);
       input.addEventListener("blur", updateGeneratedSummary);
@@ -2298,6 +2334,8 @@ function createCardTable(table) {
       card.querySelectorAll("input, select, textarea").forEach((input) => {
         input.addEventListener("input", updateValidationTestPreview);
         input.addEventListener("change", updateValidationTestPreview);
+        input.addEventListener("input", updateValidationChecklistPreview);
+        input.addEventListener("change", updateValidationChecklistPreview);
       });
     }
 
@@ -2314,6 +2352,7 @@ function createCardTable(table) {
 
     list.appendChild(card);
     updateValidationTestPreview();
+    updateValidationChecklistPreview();
     if (showGeneratedSummary) {
       updateGeneratedSummary();
     }
@@ -4780,6 +4819,82 @@ function preRevenueRecommendedValidationTest(values = {}, data = {}, rowId = "",
     ? `Build a 25-account sourcing pool for ${target}, complete 5-10 buyer or channel conversations, show a concept, sample, demo, or offer, and ask for a concrete next step such as pricing feedback, a buyer introduction, a sample review, a test order, or a limited pilot.`
     : `Build a 25-person sourcing pool for ${target}, complete 8-10 customer conversations, test the problem and current alternative before presenting the offer, then ask for a concrete next step such as a waitlist signup, preorder, price response, sample review, trial, or referral.`;
   return `${base}${accessClause}`;
+}
+
+function preRevenueGeneratedValidationChecklist(values = {}, rowId = "", storedData = {}) {
+  const storedValue = (fieldId) => rowId
+    ? String(storedData[fieldName("preCustomerHypotheses", rowId, fieldId)] || "").trim()
+    : "";
+  const seen = new Set();
+  const groups = [];
+  const addGroup = (title, candidates) => {
+    const items = [];
+    candidates.flatMap((value) => uniqueListParts(value)).forEach((item) => {
+      const key = item
+        .toLowerCase()
+        .replace(/\bproduct\b/g, "")
+        .replace(/\bconsumer\b/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      items.push(item);
+    });
+    if (items.length) groups.push({ title, items });
+  };
+  const routeToMarket = firstFilledValue(values.likelyBuyerPath, storedValue("likelyBuyerPath"));
+  const directToConsumer = /direct to consumer|end user/i.test(routeToMarket);
+  const decisionRoles = firstFilledValue(
+    storedValue("buyingRequirements"),
+    directToConsumer
+      ? firstFilledValue(values.likelyBuyerDtc, storedValue("likelyBuyerDtc"))
+      : firstFilledValue(values.likelyBuyerChannel, storedValue("likelyBuyerChannel")),
+    values.likelyBuyerUnknown,
+    storedValue("likelyBuyerUnknown")
+  );
+  const buyerRisks = firstFilledValue(
+    directToConsumer
+      ? firstFilledValue(values.riskRequirementsDtc, storedValue("riskRequirementsDtc"), values.riskRequirementsDtcUnknown, storedValue("riskRequirementsDtcUnknown"))
+      : firstFilledValue(values.riskRequirementsChannel, storedValue("riskRequirementsChannel"), values.riskRequirementsChannelUnknown, storedValue("riskRequirementsChannelUnknown")),
+    values.risks,
+    storedValue("risks")
+  );
+
+  addGroup("Route to Market and Decision Path", [routeToMarket, decisionRoles]);
+  addGroup("Operational Requirements", [
+    values.implementationRequirements,
+    storedValue("implementationRequirements"),
+    values.deliveryFit,
+    storedValue("deliveryFit"),
+    directToConsumer
+      ? "A small product, prototype, sample, or manual test can be delivered reliably"
+      : "A concept, sample, demo, pilot, or small order can be reviewed without a full rollout"
+  ]);
+  addGroup("Buyer Risks and Objections", [
+    buyerRisks,
+    directToConsumer
+      ? "Test price, trust, product fit, and delivery concerns"
+      : "Test buyer demand, margin or economics, operating fit, and delivery risk"
+  ]);
+  addGroup("Timing and Buying Window", [
+    values.timingRequirements,
+    storedValue("timingRequirements"),
+    values.whyNow,
+    storedValue("whyNow"),
+    values.whyNowUnknown,
+    storedValue("whyNowUnknown"),
+    "Confirm whether a relevant buying or use window exists during the next 30 days"
+  ]);
+  addGroup("Success Signals", [
+    values.successRequirements,
+    storedValue("successRequirements"),
+    values.successRequirementsUnknown,
+    storedValue("successRequirementsUnknown"),
+    directToConsumer
+      ? "Multiple target users confirm the problem and at least one takes a measurable next step"
+      : "Multiple target buyers confirm the need and at least one requests pricing, a sample, a test order, a pilot, or another measurable next step"
+  ]);
+  return groups;
 }
 
 function updatePreRevenueSegmentBuyingPathDefaults() {

@@ -108,6 +108,9 @@ const hypotheses = await page.evaluate(() => {
   const recommendationPreview = document.querySelector('[data-validation-test-preview="true"]');
   const evidenceNotes = document.querySelector('[name$="__evidenceNotes"]');
   const evidenceNotesWrapper = evidenceNotes?.closest('[data-field-label]');
+  const checklistPreview = document.querySelector('[data-validation-checklist-preview="true"]');
+  const checklistMissing = document.querySelector('[name$="__validationChecklistMissing"]');
+  const checklistMissingWrapper = checklistMissing?.closest('[data-field-label]');
   return {
     buyingPaths,
     buyerRoles: clickFirst("__likelyBuyerChannel"),
@@ -128,7 +131,16 @@ const hypotheses = await page.evaluate(() => {
       hint: evidenceNotesWrapper?.querySelector(".hint")?.textContent.trim() || "",
       placeholder: evidenceNotes?.getAttribute("placeholder") || ""
     },
-    checklistReviewPresent: Boolean(document.querySelector('select[name$="__validationChecklistReview"]'))
+    checklist: {
+      approvalRemoved: !document.querySelector('select[name$="__validationChecklistReview"]'),
+      count: document.querySelectorAll('[data-validation-checklist-preview="true"]').length,
+      text: checklistPreview?.textContent.trim() || "",
+      appearsBeforeMissingField: Boolean(checklistPreview && checklistMissing && (checklistPreview.compareDocumentPosition(checklistMissing) & Node.DOCUMENT_POSITION_FOLLOWING)),
+      missingFieldVisible: Boolean(checklistMissing && !checklistMissing.closest("[hidden]")),
+      missingLabel: checklistMissingWrapper?.dataset.fieldLabel || "",
+      missingHint: checklistMissingWrapper?.querySelector(".hint")?.textContent.trim() || "",
+      missingPlaceholder: checklistMissing?.getAttribute("placeholder") || ""
+    }
   };
 });
 await page.evaluate(() => saveDraft(false));
@@ -179,7 +191,7 @@ const checks = {
   buyingPathPrefilled: hypotheses.buyingPaths.length >= 2 && hypotheses.buyingPaths.every((value) => value === "Retail, wholesale, distributor, or marketplace"),
   selectedAnswersVisible: [hypotheses.buyerRoles, hypotheses.firstAccess, hypotheses.repeatableReach].every((item) => item.exists && item.selected.length),
   selectedAnswersPersist: persistedSelected,
-  firstWinSimplified: hypotheses.oldFieldsAbsent && hypotheses.recommendationReviewPresent && hypotheses.checklistReviewPresent,
+  firstWinSimplified: hypotheses.oldFieldsAbsent && hypotheses.recommendationReviewPresent && hypotheses.checklist.approvalRemoved,
   recommendedTestVisibleBeforeChoice: hypotheses.recommendationPreview.count >= 2
     && hypotheses.recommendationPreview.appearsBeforeChoice
     && /Recommended 30-day test/i.test(hypotheses.recommendationPreview.text)
@@ -193,6 +205,19 @@ const checks = {
     && /evidence-strength assessment/i.test(hypotheses.evidenceNotesGuidance.hint)
     && /leave this blank/i.test(hypotheses.evidenceNotesGuidance.hint)
     && /4 retail buyers/i.test(hypotheses.evidenceNotesGuidance.placeholder),
+  generatedChecklistVisibleBeforeOptionalAddition: hypotheses.checklist.count >= 2
+    && hypotheses.checklist.appearsBeforeMissingField
+    && hypotheses.checklist.missingFieldVisible
+    && /Generated validation checklist/i.test(hypotheses.checklist.text)
+    && /Route to Market and Decision Path/i.test(hypotheses.checklist.text)
+    && /Operational Requirements/i.test(hypotheses.checklist.text)
+    && /Buyer Risks and Objections/i.test(hypotheses.checklist.text)
+    && /Timing and Buying Window/i.test(hypotheses.checklist.text)
+    && /Success Signals/i.test(hypotheses.checklist.text)
+    && /optional/i.test(hypotheses.checklist.missingLabel)
+    && /What to Validate Before Scaling/i.test(hypotheses.checklist.missingHint)
+    && /Leave this blank/i.test(hypotheses.checklist.missingHint)
+    && /retailers require specific packaging/i.test(hypotheses.checklist.missingPlaceholder),
   overrideLeadsAndFlagsConflict: report.overrideLeads && report.conflictFlagged,
   generatedTestPresent: report.generatedTestPresent,
   noPageErrors: pageErrors.length === 0

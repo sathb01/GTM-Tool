@@ -18,6 +18,8 @@ This file records the major actions and changes made during the GTM Tool refinem
 
 - Clarified that First-Win Segment evidence details are optional and should contain factual support such as source, quantity, observed action, and timing.
 - Explained that these details feed the plan's Evidence Available section, the Persona Brief, and evidence-strength assessment; added a concrete retail-buyer example and an explicit blank/skip path.
+- Removed the unused validation-checklist approval dropdown and now show the generated checklist directly in each First-Win Segment card.
+- Replaced the conditional missing-requirement question with one optional field that explains how any addition will be used in the final plan; legacy saved approval values remain untouched but are no longer displayed.
 
 ## 2026-08-13 Pre-Revenue Intake Simplification
 
