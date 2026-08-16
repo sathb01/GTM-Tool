@@ -503,6 +503,8 @@ function createMultiSelectDropdown(field, name = field.id) {
   let currentOptions = fallbackOptions;
   let optionSignature = JSON.stringify(fallbackOptions);
   let recommendedValues = [];
+  let currentRecommendationText = "";
+  let explicitRecommendedValues = [];
 
   control.className = "multi-select-dropdown";
   control.dataset.multiSelectDropdown = "true";
@@ -678,11 +680,16 @@ function createMultiSelectDropdown(field, name = field.id) {
     control.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
-  control.setRecommendedText = (text) => {
-    const items = recommendationListItems(text);
-    recommendedValues = currentOptions
-      .filter((option) => ![USE_OUR_RECOMMENDATIONS_OPTION, ...otherValues, "Not sure yet"].includes(option))
-      .filter((option) => optionMatchesRecommendation(option, text, items));
+  control.setRecommendedText = (text, optionValues = []) => {
+    currentRecommendationText = String(text || "").trim();
+    explicitRecommendedValues = Array.isArray(optionValues) ? optionValues.filter(Boolean) : [];
+    const eligibleOptions = currentOptions
+      .filter((option) => ![USE_OUR_RECOMMENDATIONS_OPTION, ...otherValues, "Not sure yet"].includes(option));
+    const exactValues = explicitRecommendedValues.filter((option) => eligibleOptions.includes(option));
+    const items = recommendationListItems(currentRecommendationText);
+    recommendedValues = exactValues.length
+      ? exactValues
+      : eligibleOptions.filter((option) => optionMatchesRecommendation(option, currentRecommendationText, items));
 
     Array.from(panel.querySelectorAll(".checkbox-option")).forEach((label) => {
       const input = label.querySelector("input");
@@ -738,7 +745,9 @@ function createMultiSelectDropdown(field, name = field.id) {
       optionLabel.appendChild(document.createTextNode(option));
       panel.appendChild(optionLabel);
     });
-    if (recommendationValue.textContent) {
+    if (currentRecommendationText) {
+      control.setRecommendedText(currentRecommendationText, explicitRecommendedValues);
+    } else if (recommendationValue.textContent) {
       control.setRecommendedText(recommendationValue.textContent);
     } else {
       syncRecommendationCheckbox();
@@ -814,13 +823,13 @@ function createMultiSelectDropdown(field, name = field.id) {
     }
   });
 
+  if (field.recommendationKey) {
+    control.appendChild(recommendationWrapper);
+  }
   control.appendChild(trigger);
   control.appendChild(panel);
   control.appendChild(otherWrapper);
   control.appendChild(summary);
-  if (field.recommendationKey) {
-    control.appendChild(recommendationWrapper);
-  }
   renderOptions(fallbackOptions);
   return control;
 }
@@ -3075,6 +3084,61 @@ function preRevenueValidationRecommendationMap(data = getFormData()) {
   };
 }
 
+function preRevenueValidationRecommendationOptionMap(data = getFormData()) {
+  const segment = selectedPreRevenueDiscoverySegment(data);
+  const values = segment?.values || {};
+  const buyingPath = firstFilledValue(data.preDiscoveryBuyingPath, values.likelyBuyerPath, data.preRevenueRouteToMarket);
+  const pathKind = pathKindForBuyingPath(buyingPath || data.preRevenueRouteToMarket);
+  const isChannel = pathKind === "channel" || pathKind === "mixed";
+  const isDtc = pathKind === "dtc" || pathKind === "mixed";
+  const reachPath = meaningfulReadableValue(
+    values.firstConversationAccess,
+    values.firstConversationAccessUnknown,
+    values.reachability,
+    values.reachabilityUnknown,
+    data.preFastestPathToTest,
+    data.preExistingAccess
+  );
+  const evidence = meaningfulReadableValue(
+    isDtc ? firstFilledValue(values.evidenceAvailableDtc, values.evidenceAvailableDtcUnknown, data.preProblemEvidenceDtc) : "",
+    isChannel ? firstFilledValue(values.evidenceAvailableChannel, values.evidenceAvailableChannelUnknown, data.preProblemEvidenceChannel) : "",
+    data.preProblemEvidenceDtc,
+    data.preProblemEvidenceChannel
+  );
+  const credibility = meaningfulReadableValue(values.credibility, values.credibilityUnknown, data.preFounderBackground);
+  const proofContext = `${evidence}; ${credibility}`;
+  const targetListWho = [
+    "People who match the selected first-win segment",
+    "People who have the problem or buying job we are testing",
+    isChannel ? "Retail, wholesale, distributor, marketplace, partner, or business buyers" : "",
+    isDtc ? "People who use or influence the product category" : "",
+    /founder(?:'s)? network/i.test(reachPath) ? "People in the founder's network" : "",
+    /warm|referral|introduction/i.test(reachPath) ? "Warm referral targets" : "",
+    /existing (?:prospect|lead|subscriber|customer|audience|community|list)/i.test(reachPath)
+      ? "Existing prospects, leads, subscribers, or community members"
+      : ""
+  ].filter(Boolean);
+  const messageProofPoint = [
+    /founder|team background|relevant experience|domain experience/i.test(credibility) ? "Founder has relevant experience" : "",
+    /prototype|demo|sample|beta|concept|mockup/i.test(proofContext) ? "Prototype, demo, sample, beta, concept, or mockup exists" : "",
+    /feedback|conversation|interview|survey|review request/i.test(evidence) ? "User, buyer, or channel feedback exists" : "",
+    /comparable|category signal|behavior signal/i.test(proofContext) ? "Comparable product, service, category, or behavior signal exists" : "",
+    /use case|job-to-be-done|job to be done/i.test(credibility) ? "Clear use case or job-to-be-done" : "",
+    /price|pricing|margin|terms|test commitment/i.test(credibility) ? "Clear price, margin, terms, or test commitment" : "",
+    /community|event|channel relationship|buyer access|partner access|warm introduction/i.test(credibility) ? "Relevant community, event, channel, or buyer access" : "",
+    /difference|differentiation|visible|easy to explain/i.test(credibility) ? "Product difference is visible or easy to explain" : ""
+  ].filter(Boolean);
+
+  if (!messageProofPoint.length) {
+    messageProofPoint.push("No proof yet - message should ask for feedback");
+  }
+
+  return {
+    targetListWho: [...new Set(targetListWho)],
+    messageProofPoint: [...new Set(messageProofPoint)]
+  };
+}
+
 function renderPreRevenueValidationMotionContext(sectionEl) {
   const card = document.createElement("div");
   const heading = document.createElement("h3");
@@ -3128,6 +3192,7 @@ function updatePreRevenueValidationMotionRecommendations() {
     ...preRevenueValidationRecommendationMap(),
     ...preRevenueEvidenceTrackerRecommendationMap()
   };
+  const recommendationOptions = preRevenueValidationRecommendationOptionMap();
   const fallback = "No recommendation available yet. Complete the earlier pre-revenue answers to improve this recommendation.";
 
   document.querySelectorAll("[data-field-recommendation-key]").forEach((element) => {
@@ -3160,7 +3225,7 @@ function updatePreRevenueValidationMotionRecommendations() {
     }
     const control = element.closest("[data-multi-select-dropdown]");
     if (control && typeof control.setRecommendedText === "function") {
-      control.setRecommendedText(recommendation);
+      control.setRecommendedText(recommendation, recommendationOptions[element.dataset.dropdownRecommendationKey] || []);
     }
   });
 

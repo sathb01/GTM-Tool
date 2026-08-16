@@ -21,6 +21,8 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Removed the unused validation-checklist approval dropdown and now show the generated checklist directly in each First-Win Segment card.
 - Replaced the conditional missing-requirement question with one optional field that explains how any addition will be used in the final plan; legacy saved approval values remain untouched but are no longer displayed.
 - Reframed the channel-buyer alternatives question around what the buyer would buy or continue doing instead, replacing overlapping supplier, marketplace, demand-signal, and procurement choices with distinct status-quo, competitor, substitute, internal, workaround, delay, and no-action options.
+- Repaired Validation Motions recommendation controls so the first-test audience and proof/credibility dropdowns receive exact recommended choices, enable `Use our recommendations`, and mark each applied choice as Recommended.
+- Moved each dropdown's recommendation explanation above its choices and removed the proof field's isolated guided-question and answer-review panel so it no longer creates an unlabeled generated-answer section.
 
 ## 2026-08-13 Pre-Revenue Intake Simplification
 

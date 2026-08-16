@@ -20,6 +20,9 @@ const data = {
   "preCustomerHypotheses__first-win-segment-1__segmentName": "Small businesses or teams",
   "preCustomerHypotheses__first-win-segment-1__problem": "Current products do not solve the use case well",
   "preCustomerHypotheses__first-win-segment-1__whyNow": "Seasonal need or buying window",
+  "preCustomerHypotheses__first-win-segment-1__evidenceAvailableChannel": "Channel buyer, partner, or account conversation; Distributor, partner, reseller, or marketplace feedback; Founder experience with this channel",
+  "preCustomerHypotheses__first-win-segment-1__credibility": "Founder experience with this channel",
+  "preCustomerHypotheses__first-win-segment-1__risks": "Brand, product, service, or founder story is not strong enough",
   "preCustomerHypotheses__first-win-segment-1__problemIntensity": "5",
   "preCustomerHypotheses__first-win-segment-1__urgencyTrigger": "5",
   "preCustomerHypotheses__first-win-segment-1__reachabilityScore": "5",
@@ -30,6 +33,10 @@ const data = {
   "preCustomerHypotheses__first-win-segment-2__segmentName": "Problem-aware buyers",
   "preCustomerHypotheses__first-win-segment-2__problem": "Current products do not solve the use case well",
   "preCustomerHypotheses__first-win-segment-2__whyNow": "Seasonal need or buying window",
+  "preCustomerHypotheses__first-win-segment-2__firstConversationAccess": "Founder network",
+  "preCustomerHypotheses__first-win-segment-2__evidenceAvailableChannel": "Channel buyer, partner, or account conversation; Distributor, partner, reseller, or marketplace feedback; Founder experience with this channel",
+  "preCustomerHypotheses__first-win-segment-2__credibility": "Founder experience with this channel",
+  "preCustomerHypotheses__first-win-segment-2__risks": "Brand, product, service, or founder story is not strong enough",
   "preCustomerHypotheses__first-win-segment-2__problemIntensity": "2",
   "preCustomerHypotheses__first-win-segment-2__urgencyTrigger": "2",
   "preCustomerHypotheses__first-win-segment-2__reachabilityScore": "2",
@@ -169,6 +176,36 @@ const persistedSelected = await page.evaluate(() => [
   return Boolean(control?.querySelector(".multi-select-selected-text"));
 }));
 
+await page.evaluate(() => switchActiveSection("preRevenueValidationMotion"));
+await page.waitForSelector("#preRevenueValidationMotion");
+await page.waitForTimeout(150);
+const validationRecommendations = await page.evaluate(() => {
+  const inspect = (fieldName) => {
+    const control = document.querySelector(`[data-multi-select-dropdown][data-field-name="${fieldName}"]`);
+    const helper = [...(control?.querySelectorAll('input[type="checkbox"]') || [])].find((input) => input.value === "Use our recommendations");
+    const recommendation = control?.querySelector(".multi-select-recommendation");
+    const trigger = control?.querySelector(".multi-select-trigger");
+    const recommended = [...(control?.querySelectorAll(".checkbox-option.recommended-option") || [])].map((label) => ({
+      value: label.querySelector('input[type="checkbox"]')?.value || "",
+      badge: label.querySelector(".recommended-option-badge")?.textContent.trim() || ""
+    }));
+    const helperEnabled = Boolean(helper && !helper.disabled);
+    if (helperEnabled && !helper.checked) helper.click();
+    return {
+      helperEnabled,
+      helperChecked: Boolean(helper?.checked),
+      recommended,
+      selected: [...(control?.querySelectorAll(".multi-select-selected-text") || [])].map((item) => item.textContent.trim()).filter(Boolean),
+      explanationBeforeDropdown: Boolean(recommendation && trigger && (recommendation.compareDocumentPosition(trigger) & Node.DOCUMENT_POSITION_FOLLOWING)),
+      hasGuidedHelp: Boolean(control?.closest("[data-field-id]")?.querySelector(".ai-field-help"))
+    };
+  };
+  return {
+    audience: inspect("preTargetListWho"),
+    proof: inspect("preMessageProofPoint")
+  };
+});
+
 const reportPage = await context.newPage();
 reportPage.on("pageerror", (error) => pageErrors.push(error.message));
 await reportPage.route("**/api/records**", async (route) => {
@@ -224,6 +261,25 @@ const checks = {
   buyingPathPrefilled: hypotheses.buyingPaths.length >= 2 && hypotheses.buyingPaths.every((value) => value === "Retail, wholesale, distributor, or marketplace"),
   selectedAnswersVisible: [hypotheses.buyerRoles, hypotheses.firstAccess, hypotheses.repeatableReach].every((item) => item.exists && item.selected.length),
   selectedAnswersPersist: persistedSelected,
+  validationRecommendationsApplyExactChoices: validationRecommendations.audience.helperEnabled
+    && validationRecommendations.audience.helperChecked
+    && validationRecommendations.audience.explanationBeforeDropdown
+    && validationRecommendations.audience.recommended.every((item) => item.badge === "Recommended")
+    && [
+      "People who match the selected first-win segment",
+      "People who have the problem or buying job we are testing",
+      "Retail, wholesale, distributor, marketplace, partner, or business buyers",
+      "People in the founder's network"
+    ].every((value) => validationRecommendations.audience.recommended.some((item) => item.value === value) && validationRecommendations.audience.selected.includes(value))
+    && validationRecommendations.proof.helperEnabled
+    && validationRecommendations.proof.helperChecked
+    && validationRecommendations.proof.explanationBeforeDropdown
+    && validationRecommendations.proof.recommended.every((item) => item.badge === "Recommended")
+    && [
+      "Founder has relevant experience",
+      "User, buyer, or channel feedback exists"
+    ].every((value) => validationRecommendations.proof.recommended.some((item) => item.value === value) && validationRecommendations.proof.selected.includes(value))
+    && !validationRecommendations.proof.hasGuidedHelp,
   firstWinSimplified: hypotheses.oldFieldsAbsent && hypotheses.recommendationReviewPresent && hypotheses.checklist.approvalRemoved,
   recommendedTestVisibleBeforeChoice: hypotheses.recommendationPreview.count >= 2
     && hypotheses.recommendationPreview.appearsBeforeChoice
@@ -256,5 +312,5 @@ const checks = {
   noPageErrors: pageErrors.length === 0
 };
 const failures = Object.entries(checks).filter(([, passed]) => !passed).map(([check]) => check);
-console.log(JSON.stringify({ checks: Object.keys(checks).length, passed: Object.keys(checks).length - failures.length, failed: failures.length, failures, company, problemHypothesis, hypotheses, report, pageErrors }, null, 2));
+console.log(JSON.stringify({ checks: Object.keys(checks).length, passed: Object.keys(checks).length - failures.length, failed: failures.length, failures, company, problemHypothesis, hypotheses, validationRecommendations, report, pageErrors }, null, 2));
 if (failures.length) process.exitCode = 1;

@@ -900,16 +900,6 @@ const GTM_INTAKE_SCHEMA = {
       reviewCriteria: ["Explains why this segment is reachable and worth testing.", "Separates assumptions from available evidence.", "Addresses urgency, economic value, and learning value without inventing proof."],
       prompt: "Explain why the selected first-win segment is worth testing before alternatives."
     },
-    preMessageProofPoint: {
-      mode: "adaptive_coaching",
-      contextDependencies: ["customerContextStarter", "preRevenueRouteToMarket", "preValidationFocus", "preFounderBackground", "preProblemEvidenceDtc", "preProblemEvidenceChannel"],
-      answerOptions: ["Founder has relevant experience", "Prototype, demo, sample, beta, concept, or mockup exists", "User, buyer, or channel feedback exists", "Comparable product, service, category, or behavior signal exists", "Clear use case or job-to-be-done", "Clear price, margin, terms, or test commitment", "Relevant community, event, channel, or buyer access", "Product difference is visible or easy to explain", "No proof yet - message should ask for feedback", "Use recommendation as written", "Other"],
-      evidenceRestriction: "Do not invent traction or customer proof. Pre-revenue credibility may come from relevant experience, access, a prototype, a clear use case, or an explicit request for feedback.",
-      followUpRules: ["Recommend the smallest truthful credibility cue that makes the message worth answering.", "Use no-proof-yet language when stronger evidence is not saved."],
-      reviewCriteria: ["Uses a credibility cue that is true for this company.", "Fits the selected customer and validation path.", "Does not imply traction, results, or proof that has not been collected.", "Makes the first outreach more credible without overstating certainty."],
-      coachingQuestions: ["What relevant experience, access, prototype, sample, or insight can you truthfully show?", "What evidence or feedback, if any, already exists?", "If there is no proof yet, what would make a short request for feedback worth answering?"],
-      prompt: "Recommend one truthful proof or credibility cue for the first validation message."
-    },
     preFounderBackground: {
       mode: "ask_directly",
       contextDependencies: [],
