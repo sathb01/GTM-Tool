@@ -2731,6 +2731,73 @@
       font-size: 24px;
     }
 
+    .target-search-brief {
+      align-items: stretch;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .target-search-brief .messaging-result-card {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-width: 0;
+    }
+
+    .target-search-brief .messaging-result-card strong {
+      align-self: start;
+      font-size: 15px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .target-search-brief .messaging-result-card:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
+
+    .target-search-criteria-grid {
+      align-items: start;
+      display: grid;
+      gap: 16px 18px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 16px;
+    }
+
+    .target-search-criteria-grid label {
+      align-content: start;
+      color: var(--text);
+      display: grid;
+      font-size: 13px;
+      font-weight: 800;
+      gap: 7px;
+      grid-template-rows: minmax(38px, auto) auto;
+      line-height: 1.35;
+      min-width: 0;
+    }
+
+    .target-search-criteria-grid label.wide {
+      grid-column: 1 / -1;
+    }
+
+    .target-search-criteria-grid input,
+    .target-search-criteria-grid textarea {
+      background: #ffffff;
+      border: 1px solid #aeb8c6;
+      border-radius: 6px;
+      color: var(--text);
+      font: inherit;
+      line-height: 1.45;
+      padding: 9px 10px;
+      width: 100%;
+    }
+
+    .target-search-criteria-grid input {
+      min-height: 44px;
+    }
+
+    .target-search-criteria-grid textarea {
+      min-height: 104px;
+      resize: vertical;
+    }
+
     .messaging-interaction-list {
       display: grid;
       gap: 12px;
@@ -3342,6 +3409,16 @@
 
       .messaging-results-grid .wide,
       .messaging-interaction-row .wide {
+        grid-column: auto;
+      }
+
+      .target-search-brief,
+      .target-search-criteria-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .target-search-brief .messaging-result-card:last-child:nth-child(odd),
+      .target-search-criteria-grid label.wide {
         grid-column: auto;
       }
 
@@ -19655,16 +19732,16 @@
         </div>
         <details id="targetSearchCriteriaEditor">
           <summary>Search criteria</summary>
-          <div class="grid">
+          <div class="target-search-criteria-grid">
             <label>Industry or company type<textarea id="targetDiscoveryCategories" rows="3">${escapeHtml(discovery.variables.categories.join("\n"))}</textarea></label>
-            <label>Geography<input id="targetDiscoveryGeography" value="${escapeHtml(discovery.variables.geography)}"></label>
+            <label>Geography<textarea id="targetDiscoveryGeography" rows="3">${escapeHtml(discovery.variables.geography)}</textarea></label>
             <label>Minimum employees<input id="targetDiscoveryEmployeeMin" type="number" min="0" value="${escapeHtml(discovery.variables.employeeMin)}"></label>
             <label>Maximum employees<input id="targetDiscoveryEmployeeMax" type="number" min="0" value="${escapeHtml(discovery.variables.employeeMax)}"></label>
             <label>Public technology evidence<textarea id="targetDiscoveryTechnology" rows="3">${escapeHtml(discovery.variables.technologySignals.join("\n"))}</textarea></label>
             <label>Recurring-service evidence<textarea id="targetDiscoveryService" rows="3">${escapeHtml(discovery.variables.serviceSignals.join("\n"))}</textarea></label>
             <label>Team or hiring evidence<textarea id="targetDiscoveryTeam" rows="3">${escapeHtml(discovery.variables.teamSignals.join("\n"))}</textarea></label>
-            <label>Optional referral or access path<textarea id="targetDiscoveryReferralPaths" rows="2">${escapeHtml(discovery.variables.referralPaths.join("\n"))}</textarea></label>
-            <label>Exclude companies when this is publicly verified<textarea id="targetDiscoveryExclusions" rows="3">${escapeHtml(discovery.variables.exclusions.join("\n"))}</textarea></label>
+            <label>Optional referral or access path<textarea id="targetDiscoveryReferralPaths" rows="3">${escapeHtml(discovery.variables.referralPaths.join("\n"))}</textarea></label>
+            <label class="wide">Exclude companies when this is publicly verified<textarea id="targetDiscoveryExclusions" rows="3">${escapeHtml(discovery.variables.exclusions.join("\n"))}</textarea></label>
             <label>Companies per result batch<input id="targetDiscoveryBatchSize" type="number" min="1" max="10" value="${escapeHtml(discovery.variables.batchSize)}"></label>
             <label>Initial qualified-list goal<input id="targetDiscoveryInitialTarget" type="number" min="1" value="${escapeHtml(discovery.variables.initialTarget)}"></label>
           </div>
