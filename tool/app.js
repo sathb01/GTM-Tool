@@ -6091,7 +6091,7 @@ function resultsUrl(version = "20260712-pre-revenue-assets", asset = "") {
   const params = new URLSearchParams({ v: version });
   const assetAnchors = {
     active: "active-plan-objective",
-    validation: "plan-decision",
+    validation: "validation-plan-handoff",
     gtm: "draft-icp",
     icp: "icp-brief",
     personas: "persona-overview",

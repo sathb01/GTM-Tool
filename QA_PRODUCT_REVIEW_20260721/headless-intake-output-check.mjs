@@ -27,7 +27,7 @@ const commonAssets = [
 
 function assetsFor(profile) {
   return profile.mode === "preRevenue"
-    ? [["gtm", "#draft-icp"], ["validation", "#plan-decision"], ["validation-workspace", "#validation-workspace-overview"], ...commonAssets]
+    ? [["gtm", "#draft-icp"], ["validation", "#validation-plan-handoff"], ["validation-workspace", "#validation-workspace-overview"], ...commonAssets]
     : [["gtm", "#decision-summary"], ["health", "#plan-health-dashboard"], ["reconciliation", "#evidence-reconciliation-workspace"], ...commonAssets];
 }
 

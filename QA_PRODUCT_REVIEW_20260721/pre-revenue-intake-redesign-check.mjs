@@ -215,14 +215,28 @@ await reportPage.route("**/api/records**", async (route) => {
 await reportPage.goto(`${baseUrl}/results.html?recordId=${recordId}&asset=validation`, { waitUntil: "networkidle" });
 await reportPage.waitForSelector("#plan-decision");
 const report = await reportPage.evaluate(() => {
-  const decision = document.getElementById("plan-decision")?.innerText || "";
+  const decision = document.getElementById("plan-decision")?.textContent || "";
   const fullText = document.body.textContent || "";
   const recommendationText = document.getElementById("recommendation")?.textContent || "";
+  const handoff = document.getElementById("validation-plan-handoff");
+  const bottomAction = document.getElementById("validation-workspace-action");
+  const assetForLink = (container, label) => {
+    const link = [...(container?.querySelectorAll("a") || [])].find((item) => item.textContent.trim() === label);
+    return link ? new URL(link.href).searchParams.get("asset") : "";
+  };
   return {
     overrideLeads: /First segment to test[\s\S]*Problem-aware buyers/i.test(decision),
     conflictFlagged: /User override/i.test(decision) && /Score conflict/i.test(decision) && /Small businesses or teams/i.test(decision),
     generatedTestPresent: /Recommended 30-day test/i.test(fullText),
     headerFlagsOverride: /User override active/i.test(recommendationText),
+    completionHandoff: {
+      text: handoff?.textContent || "",
+      startAsset: assetForLink(handoff, "Start in This Week"),
+      workspaceAsset: assetForLink(handoff, "Open Validation Workspace"),
+      bottomText: bottomAction?.textContent || "",
+      bottomStartAsset: assetForLink(bottomAction, "Go to This Week"),
+      bottomWorkspaceAsset: assetForLink(bottomAction, "Open Validation Workspace")
+    },
     recommendationText
   };
 });
@@ -309,6 +323,17 @@ const checks = {
     && /retailers require specific packaging/i.test(hypotheses.checklist.missingPlaceholder),
   overrideLeadsAndFlagsConflict: report.overrideLeads && report.conflictFlagged,
   generatedTestPresent: report.generatedTestPresent,
+  validationPlanExplainsWhatHappensNext: /Congratulations/i.test(report.completionHandoff.text)
+    && /required Company Information is complete/i.test(report.completionHandoff.text)
+    && /Now the work begins/i.test(report.completionHandoff.text)
+    && /Each time you return/i.test(report.completionHandoff.text)
+    && /Plan, Assets, and Tools > This Week/i.test(report.completionHandoff.text)
+    && report.completionHandoff.startAsset === "active"
+    && report.completionHandoff.workspaceAsset === "validation-workspace"
+    && /Next: Work the Plan/i.test(report.completionHandoff.bottomText)
+    && /current priority/i.test(report.completionHandoff.bottomText)
+    && report.completionHandoff.bottomStartAsset === "active"
+    && report.completionHandoff.bottomWorkspaceAsset === "validation-workspace",
   noPageErrors: pageErrors.length === 0
 };
 const failures = Object.entries(checks).filter(([, passed]) => !passed).map(([check]) => check);

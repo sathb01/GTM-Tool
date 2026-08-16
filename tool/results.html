@@ -10344,7 +10344,7 @@
       const version = params.get("v") || "20260712-pre-revenue-assets";
       const recordId = activeReportRecordId();
       const query = new URLSearchParams({ v: version, asset });
-      const hashes = { health: "plan-health-dashboard", active: "active-plan-objective", validation: "plan-decision", "validation-workspace": "", gtm: "draft-icp", icp: "icp-brief", personas: "persona-overview", messaging: "messaging-workspace", targets: "target-company-discovery", "proof-assets": "proof-asset-workspace", outreach: "outreach-sequence-workspace", "weekly-review-setup": "weekly-review-setup-workspace", "weekly-review": "weekly-review-workspace", reconciliation: "evidence-reconciliation-workspace" };
+      const hashes = { health: "plan-health-dashboard", active: "active-plan-objective", validation: "validation-plan-handoff", "validation-workspace": "", gtm: "draft-icp", icp: "icp-brief", personas: "persona-overview", messaging: "messaging-workspace", targets: "target-company-discovery", "proof-assets": "proof-asset-workspace", outreach: "outreach-sequence-workspace", "weekly-review-setup": "weekly-review-setup-workspace", "weekly-review": "weekly-review-workspace", reconciliation: "evidence-reconciliation-workspace" };
       const hash = Object.prototype.hasOwnProperty.call(hashes, asset) ? hashes[asset] : "draft-icp";
       if (recordId) {
         query.set("recordId", recordId);
@@ -18127,6 +18127,29 @@
           : "This is a hypothesis to test first, not a proven ICP. Use the plan to create market learning and early revenue evidence.";
       main.querySelectorAll("section").forEach((section) => section.remove());
 
+      if (assetMode === "validation") {
+        const handoff = document.createElement("section");
+        handoff.id = "validation-plan-handoff";
+        handoff.dataset.toc = "Start Here";
+        handoff.className = "no-print";
+        handoff.innerHTML = `
+          <div class="overview-note">
+            <h2>Congratulations — your required Company Information is complete</h2>
+            <p><strong>Now the work begins.</strong> This 30-Day Validation Plan is your reference for what to test and how to decide what happens next.</p>
+            <ol>
+              <li><strong>Start now:</strong> open <strong>This Week</strong> to see the current priority and begin the first assigned action.</li>
+              <li><strong>Do the work:</strong> follow the action into the <strong>Validation Workspace</strong> when you need to add targets, record conversations, capture evidence, or make the continue, revise, or stop decision.</li>
+              <li><strong>Each time you return:</strong> open this company and choose <strong>Plan, Assets, and Tools &gt; This Week</strong>. This Week is the home base for the active plan, status, results, and next action.</li>
+            </ol>
+            <div class="report-bottom-actions">
+              <a href="${escapeHtml(reportAssetUrl("active"))}">Start in This Week</a>
+              <a class="secondary" href="${escapeHtml(reportAssetUrl("validation-workspace"))}">Open Validation Workspace</a>
+            </div>
+          </div>
+        `;
+        main.appendChild(handoff);
+      }
+
       const allSections = [
         {
           asset: "validation",
@@ -18247,9 +18270,9 @@
       if (assetMode === "validation") {
         const workspaceAction = document.createElement("section");
         workspaceAction.id = "validation-workspace-action";
-        workspaceAction.dataset.toc = "Run the Test";
+        workspaceAction.dataset.toc = "Work the Plan";
         workspaceAction.className = "no-print";
-        workspaceAction.innerHTML = `<h2>Run the Test</h2><p>Use the Validation Workspace to manage targets, interviews, weekly work, evidence, and the final decision in one saved company record.</p><div class="report-bottom-actions"><a href="${escapeHtml(reportAssetUrl("validation-workspace"))}">Validation Workspace</a><button type="button" id="downloadValidationWorkbookFromPlan">Download Workbook</button></div>`;
+        workspaceAction.innerHTML = `<h2>Next: Work the Plan</h2><p>Return to <strong>This Week</strong> whenever you work the plan. It shows the current priority and routes you to the right tool. Use the <strong>Validation Workspace</strong> to manage targets, interviews, weekly evidence, and the final decision in this saved company record.</p><div class="report-bottom-actions"><a href="${escapeHtml(reportAssetUrl("active"))}">Go to This Week</a><a class="secondary" href="${escapeHtml(reportAssetUrl("validation-workspace"))}">Open Validation Workspace</a><button type="button" class="secondary" id="downloadValidationWorkbookFromPlan">Download Workbook</button></div>`;
         main.appendChild(workspaceAction);
         workspaceAction.querySelector("#downloadValidationWorkbookFromPlan").addEventListener("click", () => downloadValidationTracker(data, scoreModel));
       }
