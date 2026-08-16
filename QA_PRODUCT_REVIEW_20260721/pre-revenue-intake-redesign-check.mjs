@@ -106,6 +106,8 @@ const hypotheses = await page.evaluate(() => {
   const buyingPaths = [...document.querySelectorAll('select[name$="__likelyBuyerPath"]')].map((select) => select.value);
   const recommendationSelect = document.querySelector('select[name$="__validationRecommendationReview"]');
   const recommendationPreview = document.querySelector('[data-validation-test-preview="true"]');
+  const evidenceNotes = document.querySelector('[name$="__evidenceNotes"]');
+  const evidenceNotesWrapper = evidenceNotes?.closest('[data-field-label]');
   return {
     buyingPaths,
     buyerRoles: clickFirst("__likelyBuyerChannel"),
@@ -120,6 +122,11 @@ const hypotheses = await page.evaluate(() => {
       label: recommendationSelect?.closest("div")?.querySelector("label")?.textContent.trim() || "",
       optionLabels: [...(recommendationSelect?.options || [])].map((option) => option.textContent.trim()),
       savedValue: recommendationSelect?.value || ""
+    },
+    evidenceNotesGuidance: {
+      label: evidenceNotesWrapper?.dataset.fieldLabel || "",
+      hint: evidenceNotesWrapper?.querySelector(".hint")?.textContent.trim() || "",
+      placeholder: evidenceNotes?.getAttribute("placeholder") || ""
     },
     checklistReviewPresent: Boolean(document.querySelector('select[name$="__validationChecklistReview"]'))
   };
@@ -180,6 +187,12 @@ const checks = {
     && /Use this recommended 30-day test\?/i.test(hypotheses.recommendationPreview.label)
     && ["Use this test", "Revise this test", "Not sure yet"].every((label) => hypotheses.recommendationPreview.optionLabels.includes(label))
     && hypotheses.recommendationPreview.savedValue === "Use the recommended test",
+  evidenceNotesExplainsReportUse: /optional/i.test(hypotheses.evidenceNotesGuidance.label)
+    && /Evidence Available section/i.test(hypotheses.evidenceNotesGuidance.hint)
+    && /Persona Brief/i.test(hypotheses.evidenceNotesGuidance.hint)
+    && /evidence-strength assessment/i.test(hypotheses.evidenceNotesGuidance.hint)
+    && /leave this blank/i.test(hypotheses.evidenceNotesGuidance.hint)
+    && /4 retail buyers/i.test(hypotheses.evidenceNotesGuidance.placeholder),
   overrideLeadsAndFlagsConflict: report.overrideLeads && report.conflictFlagged,
   generatedTestPresent: report.generatedTestPresent,
   noPageErrors: pageErrors.length === 0
