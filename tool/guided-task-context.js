@@ -124,11 +124,12 @@
     const currentTool = clean(context.currentTool) || "the current setup task";
     const currentStatus = clean(context.currentStatus) || "Not ready";
     const blocker = clean(context.blocker);
+    const setupLabel = clean(context.setupLabel) || "Readiness";
     if (!context.ready) {
       return {
-        label: "Readiness",
+        label: setupLabel,
         meta: blocker ? `Blocked: ${currentTool}` : `Start here: ${currentTool}`,
-        title: blocker ? `Setup blocked - ${currentTool}` : "Continue Readiness",
+        title: blocker ? `Setup blocked - ${currentTool}` : `Continue ${setupLabel}`,
         copy: blocker
           ? `${blocker} Resolve this before launch, then complete the guided ${currentTool} task or choose Continue later.`
           : /^needs review$/i.test(currentStatus)

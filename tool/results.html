@@ -3711,7 +3711,7 @@
   </script>
   <script src="gtm-taxonomy.js?v=20260815-pre-revenue-redesign-1"></script>
   <script src="intake-schema.js?v=20260723-revenue-motion-buyer-roles-1"></script>
-  <script src="guided-task-context.js?v=20260729-contextual-next-step-1"></script>
+  <script src="guided-task-context.js?v=20260816-pre-revenue-tool-setup-1"></script>
   <script src="target-discovery.js?v=20260730-observable-signals-1"></script>
   <script>
     const schema = window.GTM_INTAKE_SCHEMA;
@@ -16843,7 +16843,7 @@
         || data.revenueTrackingSystem
         || data.revenueTrackingSystemOther
       ) || (plan.type === "validation" ? "the validation tracker" : "the CRM or spreadsheet");
-      const tools = [
+      const allTools = [
         {
           id: "icp",
           label: "ICP Brief",
@@ -16893,6 +16893,15 @@
           done: "The review owner, measures, and continue/revise/pause rule are clear."
         }
       ];
+      const tools = plan.type === "validation"
+        ? allTools.filter((tool) => tool.type === "tool")
+        : allTools;
+      if (plan.type === "validation") {
+        ["icp", "personas"].forEach((toolId) => {
+          saved.statuses[toolId] = "Ready";
+          delete saved.reasons[toolId];
+        });
+      }
       if (!saved.statuses["weekly-review-setup"] && saved.statuses["weekly-review"]) {
         saved.statuses["weekly-review-setup"] = saved.statuses["weekly-review"];
       }
@@ -16944,7 +16953,8 @@
         started: setup.started,
         currentTool: current?.label,
         currentStatus: current ? setup.statuses[current.id] : "",
-        blocker
+        blocker,
+        setupLabel: plan.type === "validation" ? "Tool Setup" : "Readiness"
       });
       const blockers = setup.tools
         .filter((tool) => /Waiting\s*\/\s*Blocked/i.test(setup.statuses[tool.id] || "") && cleanText(setup.reasons[tool.id]))
@@ -17725,11 +17735,13 @@
         persistActivePlanData(data, null);
       }
       document.getElementById("companyName").textContent = data.companyName
-        ? `${data.companyName} ${toolSetup.started ? "This Week" : "Plan Setup"}`
-        : toolSetup.started ? "This Week" : "Plan Setup";
+        ? `${data.companyName} ${toolSetup.started ? "This Week" : plan.type === "validation" ? "Tool Setup" : "Plan Setup"}`
+        : toolSetup.started ? "This Week" : plan.type === "validation" ? "Tool Setup" : "Plan Setup";
       document.getElementById("generatedMeta").textContent = toolSetup.started
         ? "Complete this week's work and record what happened."
-        : "Prepare the reference assets and work tools before Week 1.";
+        : plan.type === "validation"
+          ? "Your ICP Brief and Persona Brief are ready. Prepare the working tools needed for Week 1."
+          : "Prepare the reference assets and work tools before Week 1.";
       const objective = document.createElement("section");
       objective.id = "active-plan-objective";
       objective.dataset.toc = "Tool Setup";
@@ -17767,7 +17779,7 @@
       }).join("");
       objective.innerHTML = toolSetup.started && toolSetup.ready
         ? `<div class="active-plan-tool-ready"><div><strong>Tool Setup is complete.</strong><br><span class="muted">Review or change a tool only when the work has changed.</span></div><button type="button" class="secondary" id="toggleToolSetup">Review Tool Setup</button></div><div class="active-plan-tool-setup" id="activePlanToolSetupDetails" hidden><h2>Tool Setup</h2><p>Before weekly work begins, make sure the reference assets and working tools are usable. Mark a tool Ready or Skip for now.</p><div class="active-plan-tool-grid">${toolCards}</div><div class="active-plan-save-row"><button type="button" id="saveToolSetupButton">Save Tool Setup</button><span class="active-plan-save-status" id="toolSetupStatus"></span></div></div>`
-        : `<div class="active-plan-tool-setup"><div><h2>Tool Setup</h2><p><strong>${completedSetupCount} of ${toolSetup.tools.length} complete.</strong> Work on one current setup task at a time. Completion is recorded by the guided task; use the blocker field only when work cannot continue.</p></div><div class="active-plan-tool-grid">${toolCards}</div><div class="active-plan-save-row"><button type="button" class="secondary" id="saveToolSetupButton">${toolSetup.reasons?.[currentSetupTool?.id] ? "Update blocker" : "Save blocker"}</button>${toolSetup.reasons?.[currentSetupTool?.id] ? '<button type="button" class="secondary" id="clearToolSetupBlockerButton">Clear blocker and continue</button>' : ""}${toolSetup.ready ? '<button type="button" id="startWeekOneButton">Start Week 1</button>' : ""}<span class="active-plan-save-status" id="toolSetupStatus"></span></div></div>`;
+        : `<div class="active-plan-tool-setup"><div><h2>${plan.type === "validation" ? "Prepare the Tools for Week 1" : "Tool Setup"}</h2><p>${plan.type === "validation" ? "Your ICP Brief and Persona Brief were generated from the completed Company Information and are ready to use as references. Now prepare only the working tools needed to run the validation plan." : "Before weekly work begins, make sure the reference assets and working tools are usable."}</p><p><strong>${completedSetupCount} of ${toolSetup.tools.length} complete.</strong> Only the current setup task is shown. Finish it or choose Continue later to move to the next tool.</p></div><div class="active-plan-tool-grid">${toolCards}</div><div class="active-plan-save-row"><button type="button" class="secondary" id="saveToolSetupButton">${toolSetup.reasons?.[currentSetupTool?.id] ? "Update blocker" : "Save blocker"}</button>${toolSetup.reasons?.[currentSetupTool?.id] ? '<button type="button" class="secondary" id="clearToolSetupBlockerButton">Clear blocker and continue</button>' : ""}${toolSetup.ready ? '<button type="button" id="startWeekOneButton">Start Week 1</button>' : ""}<span class="active-plan-save-status" id="toolSetupStatus"></span></div></div>`;
       main.appendChild(objective);
 
       const syncToolSetup = () => {
@@ -18105,6 +18117,7 @@
       const target = preRevenueTargetLabel(data, primary);
       const validationSetupNavigation = assetMode === "validation" ? toolSetupNavigationState(data) : null;
       const validationSetupIncomplete = Boolean(validationSetupNavigation?.current);
+      const validationSetupLabel = validationSetupNavigation?.guidance.label || "Tool Setup";
       const validationPlanHomeUrl = validationSetupIncomplete ? validationSetupNavigation.href : reportAssetUrl("active");
       const reportTitle = assetMode === "validation"
         ? "Validation Plan"
@@ -18141,15 +18154,15 @@
             <p><strong>Now the work begins.</strong> This 30-Day Validation Plan is your reference for what to test and how to decide what happens next.</p>
             <ol>
               ${validationSetupIncomplete
-                ? `<li><strong>Start now:</strong> open <strong>Readiness</strong>, the first item under Plan, and complete the current setup task.</li>
-                   <li><strong>Start Week 1:</strong> after the required setup is complete, <strong>Readiness changes to This Week</strong>. Open it to begin the current priority.</li>
-                   <li><strong>Each time you return:</strong> choose <strong>Plan, Assets, and Tools &gt; Readiness</strong> until setup is complete; after Week 1 starts, return to <strong>This Week</strong>. Use the <strong>Validation Workspace</strong> to add targets, record conversations, capture evidence, and make the continue, revise, or stop decision.</li>`
+                ? `<li><strong>Your plan assets are ready:</strong> the ICP Brief and Persona Brief were generated from the Company Information and are available as references.</li>
+                   <li><strong>Start the next workstream:</strong> open <strong>${escapeHtml(validationSetupLabel)}</strong>, the first item under Plan, and prepare the working tools needed for Week 1. The tool shows one setup task at a time.</li>
+                   <li><strong>Each time you return:</strong> choose <strong>Plan, Assets, and Tools &gt; ${escapeHtml(validationSetupLabel)}</strong> until the tools are ready. It then becomes <strong>This Week</strong>, where you run the plan. Use the <strong>Validation Workspace</strong> to add targets, record conversations, capture evidence, and make the continue, revise, or stop decision.</li>`
                 : `<li><strong>Start now:</strong> open <strong>This Week</strong> to see the current priority and begin the first assigned action.</li>
                    <li><strong>Do the work:</strong> follow the action into the <strong>Validation Workspace</strong> when you need to add targets, record conversations, capture evidence, or make the continue, revise, or stop decision.</li>
                    <li><strong>Each time you return:</strong> open this company and choose <strong>Plan, Assets, and Tools &gt; This Week</strong>. This Week is the home base for the active plan, status, results, and next action.</li>`}
             </ol>
             <div class="report-bottom-actions">
-              <a href="${escapeHtml(validationPlanHomeUrl)}">${validationSetupIncomplete ? "Continue Readiness" : "Start in This Week"}</a>
+              <a href="${escapeHtml(validationPlanHomeUrl)}">${validationSetupIncomplete ? `Continue ${escapeHtml(validationSetupLabel)}` : "Start in This Week"}</a>
               <a class="secondary" href="${escapeHtml(reportAssetUrl("validation-workspace"))}">Open Validation Workspace</a>
             </div>
           </div>
@@ -18280,8 +18293,8 @@
         workspaceAction.dataset.toc = "Work the Plan";
         workspaceAction.className = "no-print";
         workspaceAction.innerHTML = `<h2>Next: Work the Plan</h2><p>${validationSetupIncomplete
-          ? `Go to <strong>Readiness</strong> now and complete the current setup task. When setup is complete, that Plan navigation item becomes <strong>This Week</strong>, which is where you return to see the current priority and continue the plan.`
-          : `Return to <strong>This Week</strong> whenever you work the plan. It shows the current priority and routes you to the right tool.`} Use the <strong>Validation Workspace</strong> to manage targets, interviews, weekly evidence, and the final decision in this saved company record.</p><div class="report-bottom-actions"><a href="${escapeHtml(validationPlanHomeUrl)}">${validationSetupIncomplete ? "Continue Readiness" : "Go to This Week"}</a><a class="secondary" href="${escapeHtml(reportAssetUrl("validation-workspace"))}">Open Validation Workspace</a><button type="button" class="secondary" id="downloadValidationWorkbookFromPlan">Download Workbook</button></div>`;
+          ? `Go to <strong>${escapeHtml(validationSetupLabel)}</strong> now and prepare the working tools needed for Week 1. Your ICP Brief and Persona Brief are already available as reference assets. When tool setup is complete, that Plan navigation item becomes <strong>This Week</strong>, which is where you return to see the current priority and continue the plan.`
+          : `Return to <strong>This Week</strong> whenever you work the plan. It shows the current priority and routes you to the right tool.`} Use the <strong>Validation Workspace</strong> to manage targets, interviews, weekly evidence, and the final decision in this saved company record.</p><div class="report-bottom-actions"><a href="${escapeHtml(validationPlanHomeUrl)}">${validationSetupIncomplete ? `Continue ${escapeHtml(validationSetupLabel)}` : "Go to This Week"}</a><a class="secondary" href="${escapeHtml(reportAssetUrl("validation-workspace"))}">Open Validation Workspace</a><button type="button" class="secondary" id="downloadValidationWorkbookFromPlan">Download Workbook</button></div>`;
         main.appendChild(workspaceAction);
         workspaceAction.querySelector("#downloadValidationWorkbookFromPlan").addEventListener("click", () => downloadValidationTracker(data, scoreModel));
       }
@@ -21357,8 +21370,10 @@
       network.insertAdjacentHTML("beforeend", `<div class="card-actions no-print"><a class="secondary" href="${escapeHtml(guidedToolWorkspaceUrl("targets", "summary"))}">Preview next: Target List Setup</a></div>`);
       main.appendChild(network);
 
-      appendGuidedReferenceCompletion(data, "personas");
-      appendGuidedToolSecondaryControls(data, "personas");
+      if (!isPreRevenueReport(data)) {
+        appendGuidedReferenceCompletion(data, "personas");
+        appendGuidedToolSecondaryControls(data, "personas");
+      }
 
       setupReportNavigation();
       configureAssetPdfExport("personas", data, profile.model);
@@ -21381,8 +21396,9 @@
       const requestedAsset = new URLSearchParams(window.location.search).get("asset") || "";
       const finishAsset = (asset = "gtm") => {
         const guidedTask = guidedToolTask(asset);
-        if (guidedTask?.id === "icp" || guidedTask?.id === "personas") appendGuidedReferenceCompletion(data, guidedTask.id);
-        if (guidedTask) appendGuidedToolSecondaryControls(data, guidedTask.id);
+        const generatedPreRevenueReference = isPreRevenueReport(data) && (guidedTask?.id === "icp" || guidedTask?.id === "personas");
+        if (!generatedPreRevenueReference && (guidedTask?.id === "icp" || guidedTask?.id === "personas")) appendGuidedReferenceCompletion(data, guidedTask.id);
+        if (guidedTask && !generatedPreRevenueReference) appendGuidedToolSecondaryControls(data, guidedTask.id);
         renderWorkflowReturnBar();
         setupReportNavigation();
         applyStandardActionIcons();

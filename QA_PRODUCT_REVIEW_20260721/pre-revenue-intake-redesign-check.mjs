@@ -246,6 +246,25 @@ const report = await reportPage.evaluate(() => {
   };
 });
 
+await reportPage.goto(`${baseUrl}/results.html?recordId=${recordId}&asset=active`, { waitUntil: "networkidle" });
+await reportPage.waitForSelector("#active-plan-objective");
+const toolSetupFlow = await reportPage.evaluate(() => ({
+  title: document.getElementById("companyName")?.textContent || "",
+  meta: document.getElementById("generatedMeta")?.textContent || "",
+  navigationLabels: [...document.querySelectorAll("#reportToc .asset-nav-label")].map((item) => item.textContent.trim()),
+  taskCount: document.querySelectorAll("#active-plan-objective .active-plan-tool-card").length,
+  taskText: document.querySelector("#active-plan-objective .active-plan-tool-card")?.textContent || "",
+  setupText: document.getElementById("active-plan-objective")?.textContent || ""
+}));
+
+await reportPage.goto(`${baseUrl}/results.html?recordId=${recordId}&asset=icp`, { waitUntil: "networkidle" });
+await reportPage.waitForSelector("#draft-icp");
+const icpApprovalControlsAbsent = await reportPage.evaluate(() => !document.getElementById("guidedReferenceCompletion") && !document.getElementById("guidedToolSecondaryControls"));
+
+await reportPage.goto(`${baseUrl}/results.html?recordId=${recordId}&asset=personas`, { waitUntil: "networkidle" });
+await reportPage.waitForSelector("#persona-overview");
+const personaApprovalControlsAbsent = await reportPage.evaluate(() => !document.getElementById("guidedReferenceCompletion") && !document.getElementById("guidedToolSecondaryControls"));
+
 await browser.close();
 const checks = {
   exactlyTwoModes: company.toolModes.filter((item) => item !== "Select one").length === 2 && !company.toolModes.some((item) => /founder/i.test(item)),
@@ -332,21 +351,31 @@ const checks = {
     && /required Company Information is complete/i.test(report.completionHandoff.text)
     && /Now the work begins/i.test(report.completionHandoff.text)
     && /Each time you return/i.test(report.completionHandoff.text)
-    && /open Readiness/i.test(report.completionHandoff.text)
-    && /Readiness changes to This Week/i.test(report.completionHandoff.text)
-    && /Plan, Assets, and Tools > Readiness/i.test(report.completionHandoff.text)
-    && report.completionHandoff.navigationLabels.includes("Readiness")
-    && report.completionHandoff.primaryLabel === "Continue Readiness"
-    && Boolean(report.completionHandoff.primaryAsset)
+    && /ICP Brief and Persona Brief were generated/i.test(report.completionHandoff.text)
+    && /Start the next workstream/i.test(report.completionHandoff.text)
+    && /Plan, Assets, and Tools > Tool Setup/i.test(report.completionHandoff.text)
+    && /It then becomes This Week/i.test(report.completionHandoff.text)
+    && report.completionHandoff.navigationLabels.includes("Tool Setup")
+    && report.completionHandoff.primaryLabel === "Continue Tool Setup"
+    && report.completionHandoff.primaryAsset === "targets"
     && report.completionHandoff.workspaceAsset === "validation-workspace"
     && /Next: Work the Plan/i.test(report.completionHandoff.bottomText)
-    && /current setup task/i.test(report.completionHandoff.bottomText)
+    && /working tools needed for Week 1/i.test(report.completionHandoff.bottomText)
     && /becomes This Week/i.test(report.completionHandoff.bottomText)
-    && report.completionHandoff.bottomPrimaryLabel === "Continue Readiness"
+    && report.completionHandoff.bottomPrimaryLabel === "Continue Tool Setup"
     && report.completionHandoff.bottomPrimaryAsset === report.completionHandoff.primaryAsset
     && report.completionHandoff.bottomWorkspaceAsset === "validation-workspace",
+  generatedBriefsBypassApprovalAndToolSetupStartsNext: /Tool Setup/i.test(toolSetupFlow.title)
+    && /ICP Brief and Persona Brief are ready/i.test(toolSetupFlow.meta)
+    && toolSetupFlow.navigationLabels.includes("Tool Setup")
+    && toolSetupFlow.taskCount === 1
+    && /Target List Setup/i.test(toolSetupFlow.taskText)
+    && /Prepare the Tools for Week 1/i.test(toolSetupFlow.setupText)
+    && /4 complete/i.test(toolSetupFlow.setupText)
+    && icpApprovalControlsAbsent
+    && personaApprovalControlsAbsent,
   noPageErrors: pageErrors.length === 0
 };
 const failures = Object.entries(checks).filter(([, passed]) => !passed).map(([check]) => check);
-console.log(JSON.stringify({ checks: Object.keys(checks).length, passed: Object.keys(checks).length - failures.length, failed: failures.length, failures, company, problemHypothesis, hypotheses, validationRecommendations, report, pageErrors }, null, 2));
+console.log(JSON.stringify({ checks: Object.keys(checks).length, passed: Object.keys(checks).length - failures.length, failed: failures.length, failures, company, problemHypothesis, hypotheses, validationRecommendations, report, toolSetupFlow, icpApprovalControlsAbsent, personaApprovalControlsAbsent, pageErrors }, null, 2));
 if (failures.length) process.exitCode = 1;

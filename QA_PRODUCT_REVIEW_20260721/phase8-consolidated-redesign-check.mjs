@@ -20,7 +20,7 @@ const checks = [
   ["Channel owner is a role select", () => /label:\s*"Owner role",\s*type:\s*"select"/.test(app) && /"VP Sales"/.test(app)],
   ["Pipeline inputs are explicitly a starting baseline", () => /Starting Pipeline Baseline \(pre-launch\)/.test(app)],
   ["CRM routing and stalled-deal tables are not rendered in core planning", () => /\.filter\(\(table\) => table\.id\.endsWith\("__conversionStages"\)\)/.test(app)],
-  ["Tool Setup advances one current task", () => /currentSetupTool/.test(results) && /Work on one current setup task at a time/.test(results)],
+  ["Tool Setup advances one current task", () => /currentSetupTool/.test(results) && /Only the current setup task is shown/.test(results)],
   ["Brief review completion stays in context", () => /appendGuidedReferenceCompletion\(data, "icp"\)/.test(results) && /appendGuidedReferenceCompletion\(data, "personas"\)/.test(results) && /guidedToolNextUrl\(data, task\.id, origin\)/.test(results)],
   ["Weekly review setup is separate and durable", () => /weeklyGtmReviewSetupWorkspace/.test(results) && /Set weekly review ready/.test(results) && /requestedAsset === "weekly-review-setup"/.test(results)],
   ["Weekly evidence forms a controlled next experiment", () => /Form the Next Experiment from Evidence/.test(results) && /weeklyNextHypothesis/.test(results)],

@@ -25,6 +25,7 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Moved each dropdown's recommendation explanation above its choices and removed the proof field's isolated guided-question and answer-review panel so it no longer creates an unlabeled generated-answer section.
 - Added a completion handoff to the 30-Day Validation Plan that congratulates the respondent, explains that intake is complete and execution begins next, sends first-time and returning users to This Week, and clarifies when to use the Validation Workspace. Updated every Validation Plan entry link to land on this Start Here guidance instead of skipping ahead to Plan Decision.
 - Corrected that handoff to follow the actual Plan navigation state: users complete Readiness first, the navigation item then becomes This Week, and both handoff action buttons now open the destination currently shown in navigation.
+- Simplified the pre-revenue post-intake handoff: generated ICP and Persona briefs are now ready reference assets instead of approval gates, the next workstream is explicitly labeled Tool Setup, and setup surfaces only the four working tools needed before This Week begins.
 
 ## 2026-08-13 Pre-Revenue Intake Simplification
 
