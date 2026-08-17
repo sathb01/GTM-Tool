@@ -91,13 +91,27 @@
 
   function deriveSearchVariables(context = {}) {
     const icp = clean(context.icp);
-    const combined = `${icp} ${clean(context.industry)} ${list(context.mustHave).join(" ")}`.toLowerCase();
+    const targetContext = `${icp} ${clean(context.customerGroup)} ${clean(context.customerContext)} ${list(context.mustHave).join(" ")}`.toLowerCase();
+    const combined = `${targetContext} ${clean(context.industry)}`.toLowerCase();
     const employeeRange = parseEmployeeRange(`${icp} ${clean(context.size)}`);
     const categories = [];
-    if (/managed[- ]service|msp\b/.test(combined)) categories.push("managed IT services", "managed service provider");
-    if (/it consulting|technology consulting/.test(combined)) categories.push("IT consulting");
-    if (/professional services/.test(combined)) categories.push("professional services");
+    if (/pilates|reformer/.test(targetContext)) categories.push("Pilates studios", "boutique fitness studios");
+    else if (/yoga studio|fitness studio|boutique fitness|wellness studio|retail studio/.test(targetContext)) categories.push("fitness and wellness studios", "boutique fitness studios");
+    else if (/specialty clinic|medical practice|health clinic|independent clinic/.test(targetContext)) categories.push("independent specialty clinics", "medical practices");
+    else if (/boutique|independent retailer|retail store|store owner/.test(targetContext)) categories.push("independent retailers", "specialty boutiques");
+    else if (/managed[- ]service|msp\b/.test(targetContext)) categories.push("managed IT services", "managed service provider");
+    if (/it consulting|technology consulting/.test(targetContext)) categories.push("IT consulting");
+    if (/professional services/.test(targetContext)) categories.push("professional services");
     if (!categories.length && context.industry) categories.push(clean(context.industry));
+    if (!employeeRange.employeeMin && !employeeRange.employeeMax) {
+      if (/pilates|reformer|yoga studio|fitness studio|boutique fitness|wellness studio|retail studio|specialty clinic|independent clinic|boutique|independent retailer|store owner/.test(targetContext)) {
+        employeeRange.employeeMin = 1;
+        employeeRange.employeeMax = 25;
+      } else if (/small business|owner-operated|owners?, operators?, or founders?/.test(targetContext)) {
+        employeeRange.employeeMin = 1;
+        employeeRange.employeeMax = 50;
+      }
+    }
     const technologySignals = [];
     if (/hubspot/.test(combined)) {
       technologySignals.push(
@@ -107,6 +121,13 @@
       );
     }
     const serviceSignals = [];
+    if (/pilates|reformer|yoga studio|fitness studio|boutique fitness|wellness studio|retail studio/.test(targetContext)) {
+      serviceSignals.push(
+        "Pilates, reformer, barre, yoga, or boutique-fitness classes listed on the website",
+        "Retail, apparel, grip socks, accessories, or a studio shop mentioned publicly",
+        "Memberships, class packages, or recurring class schedules shown publicly"
+      );
+    }
     if (/recurring|managed service|client contract|account management/.test(combined)) {
       serviceSignals.push(
         "managed-services or recurring-services language",
@@ -115,6 +136,12 @@
       );
     }
     const teamSignals = [];
+    if (/pilates|reformer|yoga studio|fitness studio|boutique fitness|wellness studio|retail studio/.test(targetContext)) {
+      teamSignals.push(
+        "An owner, studio manager, general manager, or retail lead is named publicly",
+        "Multiple instructors, locations, or a published class schedule indicate an operating studio"
+      );
+    }
     if (/no dedicated customer[- ]success|without.*customer[- ]success|absence.*customer[- ]success/.test(combined)) {
       teamSignals.push(
         "public team page or job listings show client services/account management but no dedicated customer-success role"

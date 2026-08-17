@@ -49,6 +49,7 @@ const browserSuites = [
   ["Asset contracts and exports", "phase3-asset-contract-export-check.mjs", "assets"],
   ["Experience and accessibility", "phase4-experience-accessibility-check.mjs", "responsive"],
   ["Target criteria layout", "target-criteria-layout-check.mjs", "responsive"],
+  ["Studio messaging and target context", "messaging-target-context-check.mjs", "content"],
   ["Post-revenue section deep links", "post-section-deep-link-check.mjs", "routes"],
   ["Four-company intake and output sweep", "headless-intake-output-check.mjs", "render"]
 ].map(([name, file, category]) => ({

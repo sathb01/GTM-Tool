@@ -16,11 +16,11 @@ const checks = [];
 const check = (name, passed, detail = "") => checks.push({ name, passed: Boolean(passed), ...(detail ? { detail } : {}) });
 
 check("Correct ClientRenew record loaded", /ClientRenew/i.test(record.name || record.data?.companyName), record.name || record.data?.companyName);
-check("Default screen leads with a generated search brief", /target-search-brief/.test(targetSource) && ["Industry / type", "Company size", "Geography", "Observable signals", "Exclusions"].every((label) => targetSource.includes(label)));
+check("Default screen leads with a generated search brief", /target-search-brief/.test(targetSource) && ["Target company type", "Company size", "Geography", "Observable signals", "Exclusions"].every((label) => targetSource.includes(label)));
 check("Primary action is Find target companies and becomes Find more companies", /id="buildTargetSearchPack">\$\{discovery\.candidates\.length \? "Find more companies" : "Find target companies"\}/.test(targetSource));
 check("Edit search criteria is secondary and collapsed by default", /class="secondary" id="editTargetSearchCriteria">Edit search criteria/.test(targetSource) && /<details id="targetSearchCriteriaEditor">/.test(targetSource) && !/<details id="targetSearchCriteriaEditor" open/.test(targetSource));
-check("Criteria use plain labels and line-separated editing", /One criterion per line/.test(targetSource) && !/semicolon-separated|technical-entry/.test(targetSource));
-check("Referral and exclusions are optional plain criteria", /Optional referral or access path/.test(targetSource) && /Exclude companies when this is publicly verified/.test(targetSource));
+check("Criteria separate target company type from product industry", /Target company type/.test(targetSource) && /Employee range/.test(targetSource) && !/Any public company size/.test(targetSource));
+check("Optional search clues are tool-generated and collapsible", /Suggested by GTM Intelligence OS/.test(targetSource) && /Review or revise optional search suggestions/.test(targetSource) && /Warm introduction or access paths \(optional\)/.test(targetSource) && /Exclude companies only when this is publicly verified \(optional\)/.test(targetSource));
 check("Internal contextual scaffolding is absent", ["Applies to:", "Why now:", "What to enter:", "Readiness effect:", "guidedInputMarkup"].every((label) => !targetSource.includes(label)));
 check("No pre-search signal configuration panel is rendered", !/targetObservableSignal|Observable buying signal|Where it can be found:|What it implies:|Source to verify/.test(targetSource));
 check("Observable signal catalog is not in the normal flow", !/Customer-success, account-management|Public HubSpot use, integration/.test(targetSource));

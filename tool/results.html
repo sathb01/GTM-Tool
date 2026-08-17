@@ -2778,7 +2778,8 @@
     }
 
     .target-search-criteria-grid input,
-    .target-search-criteria-grid textarea {
+    .target-search-criteria-grid textarea,
+    .target-search-criteria-grid select {
       background: #ffffff;
       border: 1px solid #aeb8c6;
       border-radius: 6px;
@@ -2789,7 +2790,8 @@
       width: 100%;
     }
 
-    .target-search-criteria-grid input {
+    .target-search-criteria-grid input,
+    .target-search-criteria-grid select {
       min-height: 44px;
     }
 
@@ -3789,7 +3791,7 @@
   <script src="gtm-taxonomy.js?v=20260815-pre-revenue-redesign-1"></script>
   <script src="intake-schema.js?v=20260723-revenue-motion-buyer-roles-1"></script>
   <script src="guided-task-context.js?v=20260816-pre-revenue-tool-setup-1"></script>
-  <script src="target-discovery.js?v=20260730-observable-signals-1"></script>
+  <script src="target-discovery.js?v=20260816-contextual-targets-1"></script>
   <script>
     const schema = window.GTM_INTAKE_SCHEMA;
     const STORAGE_KEY = schema.storageKey;
@@ -18806,6 +18808,23 @@
         || (pathKind === "channel" ? "make a confident buying decision for their customers or business" : "get a better result in the specific use case");
     }
 
+    function preRevenueRecommendedPersonaRole(data, row, pathKind, selectedRoles = []) {
+      const values = row?.values || {};
+      const context = cleanText([
+        preRevenueTargetLabel(data, row),
+        preRevenueSpecificSegmentDefinition(data, row),
+        data.customerContextStarter,
+        values.description
+      ].filter(Boolean).join(" ")).toLowerCase();
+      if (pathKind === "channel") {
+        if (/pilates|reformer|yoga studio|fitness studio|boutique fitness|wellness studio|retail studio/.test(context)) return "Studio owner or manager";
+        if (/specialty clinic|medical practice|health clinic|independent clinic/.test(context)) return "Clinic owner or operations manager";
+        if (/boutique|independent retailer|retail store|store owner/.test(context)) return "Store owner or manager";
+        if (/owners?, operators?, or founders?/.test(context)) return "Owner, operator, or manager";
+      }
+      return selectedRoles[0] || (pathKind === "dtc" ? "End consumer / product user" : pathKind === "channel" ? "Channel or business buyer" : "Primary buyer or user");
+    }
+
     function preRevenuePersonaAssetModel(data) {
       const scoreModel = preRevenueScore(data);
       const row = scoreModel.primary;
@@ -18817,7 +18836,7 @@
         : pathKind === "channel"
           ? personaAssetItems(data.preChannelPrimaryBuyer, values.likelyBuyerChannel, values.likelyBuyer)
           : personaAssetItems(values.likelyBuyerDtc, values.likelyBuyerChannel, values.likelyBuyer, values.likelyBuyerUnknown));
-      const roleName = pathRoles[0] || (pathKind === "dtc" ? "End consumer / product user" : pathKind === "channel" ? "Channel or business buyer" : "Primary buyer or user");
+      const roleName = preRevenueRecommendedPersonaRole(data, row, pathKind, pathRoles);
       const customerGroup = preRevenueTargetLabel(data, row);
       const specificContext = cleanText(preRevenueSpecificSegmentDefinition(data, row) || data.customerContextStarter || values.description);
       const buyerOutcome = preRevenueBuyerOutcome(data, row, pathKind);
@@ -18901,7 +18920,7 @@
         discovery: personaDiscoveryQuestionItems(capturedDiscovery, recommendedDiscovery),
         discoverySource: capturedDiscovery.length ? "Intake answers plus GTM Intelligence OS recommendations" : "GTM Intelligence OS recommendation",
         nextAsk: nextAsk.length ? nextAsk : ["Ask for one measurable next step that fits this buying path."],
-        supportingRoles: pathRoles.slice(1).map((role) => ({
+        supportingRoles: pathRoles.filter((role) => role.toLowerCase() !== roleName.toLowerCase()).map((role) => ({
           role,
           label: /gift/i.test(role) ? "Purchasing role" : /influencer|expert|community/i.test(role) ? "Influence role" : "Supporting buying role",
           relationship: personaAssetRoleRelationship(role),
@@ -18993,9 +19012,31 @@
       return recommendedAsk || "Would a short conversation be a reasonable next step?";
     }
 
-    function messagingSuggestedSubject(problem, outcome) {
+    function messagingRecipientLabel(profile, persona) {
+      const role = cleanText(persona?.role || profile?.roleName || "buyer");
+      if (/studio owner or manager/i.test(role)) return "studio owners and managers";
+      if (/store owner or manager/i.test(role)) return "store owners and managers";
+      if (/clinic owner or operations manager/i.test(role)) return "clinic owners and operations managers";
+      if (/owner, operator, or manager/i.test(role)) return "owners, operators, and managers";
+      if (/retail buyer\s*\/\s*merchant/i.test(role)) return "retail buyers and merchants";
+      return messagingLowerFirst(role);
+    }
+
+    function messagingRecipientProblemContext(problem) {
+      const issue = messagingLowerFirst(problem || "the current problem");
+      if (/^current (?:options|products|services|vendors|tools)\s+(?:lack|do not|don't|fail|are not)/i.test(issue)) return `choose new options when ${issue}`;
+      if (/^(?:a |the )?gap in (?:the )?current/i.test(issue)) return `decide how to fill ${issue.replace(/^(?:a |the )?/i, "the ")}`;
+      if (/^need (?:offerings|products|services|proof)/i.test(issue)) return `evaluate options when they ${issue}`;
+      return `deal with ${issue}`;
+    }
+
+    function messagingSuggestedSubject(problem, outcome, profile = {}, persona = {}) {
       const problemText = cleanText(problem).toLowerCase();
       const outcomeText = cleanText(outcome).replace(/[.!?]+$/, "");
+      const context = `${cleanText(profile.customerGroup)} ${cleanText(profile.specificContext)} ${cleanText(persona.role)} ${problemText} ${outcomeText}`.toLowerCase();
+      if (/studio|pilates|reformer|boutique fitness/.test(context) && /product|retail|assortment|sales/.test(context)) return "How do you choose new products for your studio?";
+      if (/store owner|retail buyer|merchant|boutique/.test(context) && /product|assortment|sell through|retail/.test(context)) return "How do you decide which new products to carry?";
+      if (/clinic/.test(context)) return "A quick question about your clinic's current workflow";
       if (/forecast/.test(`${problemText} ${outcomeText}`)) return "Can you trust your forecast?";
       if (/throughput|bottleneck|backlog/.test(`${problemText} ${outcomeText}`)) return "A quick throughput question";
       if (/margin/.test(`${problemText} ${outcomeText}`)) return "Protect more of your margin";
@@ -19021,8 +19062,13 @@
       const trigger = personaAssetItems(messagingProfileModule(profile, /trigger|urgency/i))[0];
       const need = cleanText(persona.need);
       const audience = messagingLowerFirst(profile.messagingAudience || profile.customerGroup || "the priority customer group");
+      const recipients = messagingRecipientLabel(profile, persona);
       const problemPhrase = messagingLowerFirst(problem || "the current problem");
       const outcomePhrase = messagingLowerFirst(outcome || "a better result");
+      const recipientOutcomePhrase = outcomePhrase
+        .replace(/^(improve|increase|grow|strengthen) their\b/i, "$1")
+        .replace(/^help (?:them|buyers?|customers?)\s+/i, "");
+      const recipientProblemContext = messagingRecipientProblemContext(problem);
       const offer = cleanText(profile.offerName);
       const roleRequirement = !persona.primary && need
         ? `For ${persona.role}, the message should also address ${messagingLowerFirst(need)}.`
@@ -19032,14 +19078,14 @@
         : "I would also value your perspective on what evidence would make a solution credible.";
       const triggerLine = trigger ? `This is most timely when ${messagingLowerFirst(messagingShortPhrase(trigger, trigger, 16))}.` : "Confirm what would make this worth acting on now.";
       const ask = messagingObjectiveAsk(profile, objective);
-      let subject = messagingSuggestedSubject(problem, outcome);
+      let subject = messagingSuggestedSubject(problem, outcome, profile, persona);
       let opening = "Hi [First name],";
       let body = profile.isPreRevenue
-        ? `I am speaking with ${audience} because ${problemPhrase}. We are evaluating ${offer || "a possible solution"} as a way to ${outcomePhrase}, and I want to learn whether this reflects a real priority before making assumptions. ${roleRequirement}`
+        ? `I'm researching how ${recipients} ${recipientProblemContext}. We're exploring ${offer || "a possible solution"} as a possible way to help ${recipients} ${recipientOutcomePhrase}, but we do not want to assume the problem or solution is right. I'd value your perspective on what matters most when deciding whether to test, carry, or recommend a new option. ${roleRequirement}`
         : `${problem.charAt(0).toUpperCase()}${problem.slice(1).replace(/[.!?]+$/, "")} can make it harder for ${audience} to ${outcomePhrase}. ${offer || "Our approach"} is designed to address that problem and help create that outcome. ${proofLine} ${roleRequirement}`;
 
       if (/email/i.test(channel)) {
-        subject = messagingSuggestedSubject(problem, outcome);
+        subject = messagingSuggestedSubject(problem, outcome, profile, persona);
       } else if (/direct message|linkedin/i.test(channel)) {
         opening = "Hi [First name] -";
         body = `${problem.charAt(0).toUpperCase()}${problem.slice(1).replace(/[.!?]+$/, "")} can make it harder for ${audience} to ${outcomePhrase}. ${offer || "This approach"} is intended to help. I would value your perspective.`;
@@ -19071,7 +19117,9 @@
 
     function messagingDraftUsesLegacyRecommendation(draft) {
       return /^A question about\b/i.test(cleanText(draft.subject))
+        || /^Improve their\b/i.test(cleanText(draft.subject))
         || /\bWe are testing whether\b/i.test(cleanText(draft.body))
+        || /^I am speaking with .+ because .+ We are evaluating /i.test(cleanText(draft.body))
         || /^I am reaching out to .+ about this issue:/i.test(cleanText(draft.body));
     }
 
@@ -19127,8 +19175,8 @@
           channels.includes(draft.channel) ? draft.channel : selectedChannel,
           objectives.includes(draft.objective) ? draft.objective : selectedObjective
         );
-        if (/^A question about\b/i.test(cleanText(draft.subject))) draft.subject = recommendation.subject;
-        if (/\bWe are testing whether\b/i.test(cleanText(draft.body)) || /^I am reaching out to .+ about this issue:/i.test(cleanText(draft.body))) draft.body = recommendation.body;
+        if (/^A question about\b/i.test(cleanText(draft.subject)) || /^Improve their\b/i.test(cleanText(draft.subject))) draft.subject = recommendation.subject;
+        if (/\bWe are testing whether\b/i.test(cleanText(draft.body)) || /^I am speaking with .+ because .+ We are evaluating /i.test(cleanText(draft.body)) || /^I am reaching out to .+ about this issue:/i.test(cleanText(draft.body))) draft.body = recommendation.body;
         if (!cleanText(draft.opening)) draft.opening = recommendation.opening;
         if (!cleanText(draft.cta)) draft.cta = recommendation.cta;
       });
@@ -19645,7 +19693,9 @@
         : { targets: [] };
       targetWorkspace.targets = Array.isArray(targetWorkspace.targets) ? targetWorkspace.targets : [];
       const discoveryContext = {
-        icp: cleanText(data.bestFitCustomerGroup || data.quickBestFitCustomer),
+        icp: cleanText(profile.customerGroup || data.bestFitCustomerGroup || data.quickBestFitCustomer),
+        customerGroup: cleanText(profile.customerGroup),
+        customerContext: cleanText(profile.specificContext || data.customerContextStarter),
         industry: cleanText(data.industryLabel || data.industryGroup),
         geography: cleanText(data.geography),
         size: cleanText(data.sizeFit || data.companySize),
@@ -19690,6 +19740,28 @@
         discovery.signalPriority.selectedSignalId = "";
         discovery.signalPriority.pointChange = "";
       }
+      const employeeRanges = [
+        { value: "", label: "Any company size" },
+        { value: "1|5", label: "1–5 employees" },
+        { value: "6|10", label: "6–10 employees" },
+        { value: "11|25", label: "11–25 employees" },
+        { value: "26|50", label: "26–50 employees" },
+        { value: "51|100", label: "51–100 employees" },
+        { value: "101|250", label: "101–250 employees" },
+        { value: "251|500", label: "251–500 employees" },
+        { value: "501|1000", label: "501–1,000 employees" },
+        { value: "1001|5000", label: "1,001–5,000 employees" },
+        { value: "5001|", label: "5,001+ employees" }
+      ];
+      const currentEmployeeRange = [discovery.variables.employeeMin || "", discovery.variables.employeeMax || ""].join("|");
+      if (currentEmployeeRange !== "|" && !employeeRanges.some((range) => range.value === currentEmployeeRange)) {
+        employeeRanges.push({
+          value: currentEmployeeRange,
+          label: `Current saved range: ${discovery.variables.employeeMin || "Any"}–${discovery.variables.employeeMax || "Any"} employees`
+        });
+      }
+      const employeeRangeValue = currentEmployeeRange === "|" ? "" : currentEmployeeRange;
+      const employeeRangeOptions = employeeRanges.map((range) => `<option value="${escapeHtml(range.value)}"${range.value === employeeRangeValue ? " selected" : ""}>${escapeHtml(range.label)}</option>`).join("");
       targetWorkspace.discovery = discovery;
       const main = document.querySelector("main");
       document.body.dataset.hasIcpAsset = "true";
@@ -19709,7 +19781,7 @@
       setup.className = "workspace-section";
       const sizeSummary = discovery.variables.employeeMin || discovery.variables.employeeMax
         ? `${discovery.variables.employeeMin || "Any"}–${discovery.variables.employeeMax || "Any"} employees`
-        : "Any public company size";
+        : "Any company size";
       const observableSummary = [
         ...discovery.variables.technologySignals,
         ...discovery.variables.serviceSignals,
@@ -19720,7 +19792,7 @@
         <h2>Find target companies</h2>
         <p>The tool translated the saved plan into public, observable search criteria. Results remain candidates until their sources are reviewed.</p>
         <div class="messaging-result-summary target-search-brief">
-          ${criteriaRow("Industry / type", discovery.variables.categories)}
+          ${criteriaRow("Target company type", discovery.variables.categories)}
           ${criteriaRow("Company size", sizeSummary)}
           ${criteriaRow("Geography", discovery.variables.geography)}
           ${criteriaRow("Observable signals", observableSummary)}
@@ -19733,19 +19805,24 @@
         <details id="targetSearchCriteriaEditor">
           <summary>Search criteria</summary>
           <div class="target-search-criteria-grid">
-            <label>Industry or company type<textarea id="targetDiscoveryCategories" rows="3">${escapeHtml(discovery.variables.categories.join("\n"))}</textarea></label>
+            <label>Target company type<textarea id="targetDiscoveryCategories" rows="3">${escapeHtml(discovery.variables.categories.join("\n"))}</textarea></label>
             <label>Geography<textarea id="targetDiscoveryGeography" rows="3">${escapeHtml(discovery.variables.geography)}</textarea></label>
-            <label>Minimum employees<input id="targetDiscoveryEmployeeMin" type="number" min="0" value="${escapeHtml(discovery.variables.employeeMin)}"></label>
-            <label>Maximum employees<input id="targetDiscoveryEmployeeMax" type="number" min="0" value="${escapeHtml(discovery.variables.employeeMax)}"></label>
-            <label>Public technology evidence<textarea id="targetDiscoveryTechnology" rows="3">${escapeHtml(discovery.variables.technologySignals.join("\n"))}</textarea></label>
-            <label>Recurring-service evidence<textarea id="targetDiscoveryService" rows="3">${escapeHtml(discovery.variables.serviceSignals.join("\n"))}</textarea></label>
-            <label>Team or hiring evidence<textarea id="targetDiscoveryTeam" rows="3">${escapeHtml(discovery.variables.teamSignals.join("\n"))}</textarea></label>
-            <label>Optional referral or access path<textarea id="targetDiscoveryReferralPaths" rows="3">${escapeHtml(discovery.variables.referralPaths.join("\n"))}</textarea></label>
-            <label class="wide">Exclude companies when this is publicly verified<textarea id="targetDiscoveryExclusions" rows="3">${escapeHtml(discovery.variables.exclusions.join("\n"))}</textarea></label>
-            <label>Companies per result batch<input id="targetDiscoveryBatchSize" type="number" min="1" max="10" value="${escapeHtml(discovery.variables.batchSize)}"></label>
-            <label>Initial qualified-list goal<input id="targetDiscoveryInitialTarget" type="number" min="1" value="${escapeHtml(discovery.variables.initialTarget)}"></label>
+            <label class="wide">Employee range<select id="targetDiscoveryEmployeeRange">${employeeRangeOptions}</select></label>
           </div>
-          <p class="muted">One criterion per line. Team structure and technology use remain hypotheses until a public source confirms them.</p>
+          <div class="messaging-recommendation target-search-suggestion-note"><h3>Suggested by GTM Intelligence OS</h3><p>The tool generated the company types, employee range, and optional public clues from the saved customer context. Review the three primary criteria above. The additional clues below are optional and can be used as suggested.</p></div>
+          <details id="targetSearchOptionalSignals">
+            <summary>Review or revise optional search suggestions</summary>
+            <div class="target-search-criteria-grid">
+              <label>Website or technology clues (optional)<textarea id="targetDiscoveryTechnology" rows="3">${escapeHtml(discovery.variables.technologySignals.join("\n"))}</textarea></label>
+              <label>Products, services, or membership clues (optional)<textarea id="targetDiscoveryService" rows="3">${escapeHtml(discovery.variables.serviceSignals.join("\n"))}</textarea></label>
+              <label>Team or operating clues (optional)<textarea id="targetDiscoveryTeam" rows="3">${escapeHtml(discovery.variables.teamSignals.join("\n"))}</textarea></label>
+              <label>Warm introduction or access paths (optional)<textarea id="targetDiscoveryReferralPaths" rows="3">${escapeHtml(discovery.variables.referralPaths.join("\n"))}</textarea></label>
+              <label class="wide">Exclude companies only when this is publicly verified (optional)<textarea id="targetDiscoveryExclusions" rows="3">${escapeHtml(discovery.variables.exclusions.join("\n"))}</textarea></label>
+              <label>Companies per result batch<select id="targetDiscoveryBatchSize">${[3, 5, 8].map((value) => `<option value="${value}"${Number(discovery.variables.batchSize) === value ? " selected" : ""}>${value}</option>`).join("")}</select></label>
+              <label>Initial qualified-list goal<select id="targetDiscoveryInitialTarget">${[10, 25, 50, 100].map((value) => `<option value="${value}"${Number(discovery.variables.initialTarget) === value ? " selected" : ""}>${value}</option>`).join("")}</select></label>
+            </div>
+            <p class="muted">These are search suggestions, not facts about a company. The research step must confirm them from public sources.</p>
+          </details>
         </details>
         <p class="messaging-save-status" id="targetDiscoverySetupStatus"></p>
       `;
@@ -19898,11 +19975,12 @@
 
       const splitInput = (value) => String(value || "").split(/\s*(?:;|\n)\s*/).map((item) => item.trim()).filter(Boolean);
       const collectVariables = () => {
+        const [employeeMin, employeeMax] = setup.querySelector("#targetDiscoveryEmployeeRange").value.split("|");
         discovery.variables = {
           categories: splitInput(setup.querySelector("#targetDiscoveryCategories").value),
           geography: setup.querySelector("#targetDiscoveryGeography").value.trim(),
-          employeeMin: Math.max(0, Number(setup.querySelector("#targetDiscoveryEmployeeMin").value) || 0) || "",
-          employeeMax: Math.max(0, Number(setup.querySelector("#targetDiscoveryEmployeeMax").value) || 0) || "",
+          employeeMin: Math.max(0, Number(employeeMin) || 0) || "",
+          employeeMax: Math.max(0, Number(employeeMax) || 0) || "",
           technologySignals: splitInput(setup.querySelector("#targetDiscoveryTechnology").value),
           serviceSignals: splitInput(setup.querySelector("#targetDiscoveryService").value),
           teamSignals: splitInput(setup.querySelector("#targetDiscoveryTeam").value),
@@ -21263,7 +21341,7 @@
       editor.id = "message-editor";
       editor.dataset.toc = "Message Editor";
       editor.className = "workspace-section";
-      editor.innerHTML = `<h2>Edit the Message</h2><div class="messaging-editor-layout"><div class="messaging-editor"><label id="messagingSubjectLabel">Subject or message label<input data-message-field="subject" value="${escapeHtml(draft.subject)}"></label><label>Opening<input data-message-field="opening" value="${escapeHtml(draft.opening)}"></label><label>Core message<textarea rows="6" data-message-field="body">${escapeHtml(draft.body)}</textarea></label><label>Next-step ask<textarea rows="3" data-message-field="cta">${escapeHtml(draft.cta)}</textarea></label><div class="messaging-editor-actions no-print"><button type="button" id="saveMessagingDraft">Complete Messaging Kit and continue</button><button type="button" class="secondary" id="createMessagingVersion">Create New Version</button><button type="button" class="secondary" id="copyMessagingDraft">Copy Message</button><span class="messaging-save-status" id="messagingSaveStatus"></span></div></div><aside class="messaging-guidance-panel"><h3>What this persona needs</h3>${personaAssetListMarkup([selectedPersona.need])}<h3>Discovery questions</h3>${personaAssetListMarkup(profile.discovery.slice(0, 5))}<h3>Likely objections</h3>${personaAssetListMarkup(messagingProfileModule(profile, /objections|worries/i).slice(0, 5))}<h3>Proof to use</h3>${personaAssetListMarkup(proof.slice(0, 5), "No buyer-specific proof is confirmed yet.")}</aside></div>`;
+      editor.innerHTML = `<h2>Edit the Message</h2><div class="messaging-editor-layout"><div class="messaging-editor"><label id="messagingSubjectLabel">Subject or message label<input data-message-field="subject" value="${escapeHtml(draft.subject)}"></label><label>Opening<input data-message-field="opening" value="${escapeHtml(draft.opening)}"></label><label id="messagingBodyLabel"><span>${/email/i.test(draft.channel) ? "Email message" : "Message"}</span><textarea rows="6" data-message-field="body">${escapeHtml(draft.body)}</textarea></label><label>Next-step ask<textarea rows="3" data-message-field="cta">${escapeHtml(draft.cta)}</textarea></label><p class="muted" id="messagingAssemblyNote">${/email/i.test(draft.channel) ? "Opening, email message, and next-step ask are copied together as the complete email." : "Opening, message, and next-step ask are copied together as the complete outreach message."}</p><div class="messaging-editor-actions no-print"><button type="button" id="saveMessagingDraft">Complete Messaging Kit and continue</button><button type="button" class="secondary" id="createMessagingVersion">Create New Version</button><button type="button" class="secondary" id="copyMessagingDraft">Copy Message</button><span class="messaging-save-status" id="messagingSaveStatus"></span></div></div><aside class="messaging-guidance-panel"><h3>What this persona needs</h3>${personaAssetListMarkup([selectedPersona.need])}<h3>Discovery questions</h3>${personaAssetListMarkup(profile.discovery.slice(0, 5))}<h3>Likely objections</h3>${personaAssetListMarkup(messagingProfileModule(profile, /objections|worries/i).slice(0, 5))}<h3>Proof to use</h3>${personaAssetListMarkup(proof.slice(0, 5), "No buyer-specific proof is confirmed yet.")}</aside></div>`;
       main.appendChild(editor);
 
       const evidence = document.createElement("section");
@@ -21294,12 +21372,20 @@
       main.appendChild(actions);
 
       const recommendationContainer = context.querySelector("#messagingRecommendation");
+      const updateMessagingEditorLabels = () => {
+        const isEmail = /email/i.test(context.querySelector("#messagingChannelSelect").value);
+        editor.querySelector("#messagingBodyLabel span").textContent = isEmail ? "Email message" : "Message";
+        editor.querySelector("#messagingAssemblyNote").textContent = isEmail
+          ? "Opening, email message, and next-step ask are copied together as the complete email."
+          : "Opening, message, and next-step ask are copied together as the complete outreach message.";
+      };
       const updateRecommendation = () => {
         const persona = personaFor(context.querySelector("#messagingPersonaSelect").value);
         const channel = context.querySelector("#messagingChannelSelect").value;
         const objective = context.querySelector("#messagingObjectiveSelect").value;
         const recommendation = messagingRecommendation(profile, persona, channel, objective);
         recommendationContainer.innerHTML = `<h3>Our recommendation for this message</h3><p><strong>Suggested subject line:</strong> ${escapeHtml(recommendation.subject)}</p><p>${escapeHtml(recommendation.rationale)}</p><p><strong>Recommended next-step ask:</strong> ${escapeHtml(recommendation.cta)}</p>`;
+        updateMessagingEditorLabels();
         return { persona, channel, objective, recommendation };
       };
       updateRecommendation();
