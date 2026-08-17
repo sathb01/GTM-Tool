@@ -28,7 +28,7 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Simplified the pre-revenue post-intake handoff: generated ICP and Persona briefs are now ready reference assets instead of approval gates, the next workstream is explicitly labeled Tool Setup, and setup surfaces only the four working tools needed before This Week begins.
 - Rebuilt the Target List search-criteria layout with balanced summary rows, matched field types and heights, a full-width exclusions field, and a single-column responsive layout so every criteria answer box aligns consistently.
 - Corrected pre-revenue Messaging Kit recommendations for studio-product businesses: the primary persona is now the studio owner or manager, suggested subjects are buyer-specific, and the generated email is grammatical, learning-led, and clearly labeled as an assembled email.
-- Separated target-company context from the seller's product industry, added practical employee-range dropdowns, removed the misleading public-company wording, and moved tool-generated public search clues into an optional review panel.
+- Separated target-company context from the seller's product industry, migrated the old saved product-industry fallback when buyer context supports a better target, added practical employee-range dropdowns, removed the misleading public-company wording, and moved tool-generated public search clues into an optional review panel.
 
 ## 2026-08-13 Pre-Revenue Intake Simplification
 

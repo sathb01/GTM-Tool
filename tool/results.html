@@ -19717,11 +19717,14 @@
       const storedDiscovery = targetWorkspace.discovery && typeof targetWorkspace.discovery === "object"
         ? targetWorkspace.discovery
         : {};
+      const storedVariables = storedDiscovery.variables && typeof storedDiscovery.variables === "object"
+        ? storedDiscovery.variables
+        : {};
       const discovery = {
-        version: 1,
+        version: 2,
         variables: {
           ...derived,
-          ...(storedDiscovery.variables && typeof storedDiscovery.variables === "object" ? storedDiscovery.variables : {})
+          ...storedVariables
         },
         approaches: Array.isArray(storedDiscovery.approaches) && storedDiscovery.approaches.length
           ? storedDiscovery.approaches
@@ -19736,6 +19739,27 @@
           : { selectedSignalId: "", evidenceSource: "", pointChange: "" },
         updatedAt: storedDiscovery.updatedAt || ""
       };
+      const storedCategories = Array.isArray(storedVariables.categories) ? storedVariables.categories.filter(Boolean) : [];
+      const productIndustryFallback = storedCategories.length === 1
+        && cleanText(discoveryContext.industry)
+        && storedCategories[0].toLowerCase() === cleanText(discoveryContext.industry).toLowerCase();
+      const hasContextualCategory = derived.categories.some((category) => !storedCategories.some((stored) => stored.toLowerCase() === category.toLowerCase()));
+      if (productIndustryFallback && hasContextualCategory) {
+        discovery.variables.categories = [...derived.categories];
+        if (!storedVariables.employeeMin && !storedVariables.employeeMax) {
+          discovery.variables.employeeMin = derived.employeeMin;
+          discovery.variables.employeeMax = derived.employeeMax;
+        }
+        if (!Array.isArray(storedVariables.serviceSignals) || !storedVariables.serviceSignals.length) {
+          discovery.variables.serviceSignals = [...derived.serviceSignals];
+        }
+        if (!Array.isArray(storedVariables.teamSignals) || !storedVariables.teamSignals.length) {
+          discovery.variables.teamSignals = [...derived.teamSignals];
+        }
+        if (!discovery.candidates.length) {
+          discovery.approaches = window.GTM_TARGET_DISCOVERY.buildSearchApproaches(discovery.variables);
+        }
+      }
       if (!observableSignals.some((signal) => signal.id === discovery.signalPriority.selectedSignalId)) {
         discovery.signalPriority.selectedSignalId = "";
         discovery.signalPriority.pointChange = "";

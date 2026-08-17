@@ -39,7 +39,27 @@ Object.assign(record.data, {
   "preCustomerHypotheses__first-win-segment-1__deliveryFitScore": "5"
 });
 delete record.data.messagingKitWorkspace;
-delete record.data.targetListWorkspace;
+record.data.targetListWorkspace = {
+  targets: [],
+  discovery: {
+    version: 1,
+    variables: {
+      categories: ["Fashion and Apparel"],
+      geography: "United States",
+      employeeMin: "",
+      employeeMax: "",
+      technologySignals: [],
+      serviceSignals: [],
+      teamSignals: [],
+      referralPaths: [],
+      exclusions: [],
+      batchSize: 5,
+      initialTarget: 25
+    },
+    candidates: [],
+    approaches: []
+  }
+};
 
 const checks = [];
 const check = (name, passed, detail = "") => checks.push({ name, passed: Boolean(passed), ...(detail ? { detail } : {}) });
@@ -83,7 +103,7 @@ try {
     optionalCollapsed: !document.querySelector("#targetSearchOptionalSignals")?.open,
     optionalText: document.querySelector("#targetSearchOptionalSignals")?.innerText || ""
   }));
-  check("Target company type follows the buyer context, not product industry", /Pilates studios/i.test(targets.types) && !/Fashion|Apparel/i.test(targets.types), targets.types);
+  check("Saved product-industry fallback migrates to buyer context", /Pilates studios/i.test(targets.types) && !/Fashion|Apparel/i.test(targets.types), targets.types);
   check("Local studio employee range is suggested", targets.employeeRange === "1|25" && /1.+25 employees/i.test(targets.summary), JSON.stringify(targets));
   check("Technical search clues are optional tool suggestions", targets.optionalCollapsed && /optional search suggestions/i.test(targets.optionalText), JSON.stringify(targets));
   check("No browser errors", errors.length === 0, errors.join(" | "));
