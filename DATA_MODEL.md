@@ -546,6 +546,15 @@ Only one proposal can be pending at a time. Applying a proposal writes the appro
 
 ## Plan Summary and Weekly Operating State
 
+### Simplified proof-asset workspace
+
+`proofAssetWorkspace` remains backward compatible and is now written as version `2`.
+
+- Existing draft fields such as `claim`, `evidenceSource`, `permission`, `cta`, and `uses[]` remain readable and are not deleted.
+- `successOutcome` stores the buyer action that would make the asset useful, such as a pricing request, sample request, test, order, or other specific next step.
+- New active Proof Asset work asks for `type`, `title`, `body`, and `successOutcome`. Contact-level usage remains in the CRM or spreadsheet rather than being duplicated in the tool.
+- Existing Messaging Kit `interactions[]` and Proof Asset `uses[]` remain preserved for saved-record compatibility, but the active workspaces no longer request new contact-level logs. Decision-changing outcomes belong in Weekly GTM Review.
+
 ### Target-company discovery workspace
 
 `targetListWorkspace` remains the canonical Target List workflow object. Discovery state is nested under `targetListWorkspace.discovery` so existing target rows, setup status, and account counts remain compatible.

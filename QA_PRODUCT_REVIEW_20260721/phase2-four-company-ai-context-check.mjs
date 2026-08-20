@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import { qaProfiles } from "./company-profiles.mjs";
 
 const require = createRequire(import.meta.url);
-const { chromium } = require("C:/Users/sathb/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright");
+const { chromium } = require(process.env.GTM_PLAYWRIGHT_PATH || "playwright");
 const baseUrl = String(process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
 const cookie = process.env.GTM_QA_COOKIE || "";
 const browser = await chromium.launch({

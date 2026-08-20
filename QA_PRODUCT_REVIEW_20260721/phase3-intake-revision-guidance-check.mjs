@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const require = createRequire(import.meta.url);
-const { chromium } = require("C:/Users/sathb/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright");
+const { chromium } = require(process.env.GTM_PLAYWRIGHT_PATH || "playwright");
 const baseUrl = String(process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
 const cookie = process.env.GTM_QA_COOKIE || "";
 const captureDirectory = String(process.env.GTM_QA_CAPTURE_DIR || "").trim();

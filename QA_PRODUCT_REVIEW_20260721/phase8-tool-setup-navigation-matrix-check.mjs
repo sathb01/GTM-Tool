@@ -12,8 +12,8 @@ const record = (await response.json()).record;
 const tasks = [
   { id: "icp", label: "ICP Brief", asset: "icp", completion: /appendGuidedReferenceCompletion\(data, "icp"\)/ },
   { id: "personas", label: "Persona Brief", asset: "personas", completion: /appendGuidedReferenceCompletion\(data, "personas"\)/ },
-  { id: "targets", label: "Target List Setup", asset: "targets", completion: /id="confirmTargetReviewList"[\s\S]*?Save review list and continue/ },
-  { id: "messaging", label: "Messaging Kit", asset: "messaging", completion: /id="saveMessagingDraft">Complete Messaging Kit and continue/ },
+  { id: "targets", label: "Target List Setup", asset: "targets", completion: /id="confirmTargetReviewList"[\s\S]*?Save review list and complete Target List Setup/ },
+  { id: "messaging", label: "Messaging Kit", asset: "messaging", completion: /id="saveMessagingDraft">Save Message and continue/ },
   { id: "outreach", label: "Outreach Sequence", asset: "outreach", completion: /id="saveOutreachSequence">Complete Outreach Sequence and continue/ },
   { id: "weekly-review-setup", label: "Weekly GTM Review Setup", asset: "weekly-review-setup", completion: /id="setWeeklyReviewReady">Set weekly review ready and continue/ }
 ];

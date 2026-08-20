@@ -20,7 +20,7 @@ check("Default screen leads with a generated search brief", /target-search-brief
 check("Primary action is Find target companies and becomes Find more companies", /id="buildTargetSearchPack">\$\{discovery\.candidates\.length \? "Find more companies" : "Find target companies"\}/.test(targetSource));
 check("Edit search criteria is secondary and collapsed by default", /class="secondary" id="editTargetSearchCriteria">Edit search criteria/.test(targetSource) && /<details id="targetSearchCriteriaEditor">/.test(targetSource) && !/<details id="targetSearchCriteriaEditor" open/.test(targetSource));
 check("Criteria separate target company type from product industry", /Target company type/.test(targetSource) && /Employee range/.test(targetSource) && !/Any public company size/.test(targetSource));
-check("Optional search clues are tool-generated and collapsible", /Suggested by GTM Intelligence OS/.test(targetSource) && /Review or revise optional search suggestions/.test(targetSource) && /Warm introduction or access paths \(optional\)/.test(targetSource) && /Exclude companies only when this is publicly verified \(optional\)/.test(targetSource));
+check("Optional search clues are tool-generated, plain-language, and collapsible", /Suggested by GTM Intelligence OS/.test(targetSource) && /Review or revise optional search suggestions/.test(targetSource) && /People or places that could introduce you \(optional\)/.test(targetSource) && /Use normal words or short phrases/.test(targetSource) && /Exclude companies only when this is publicly verified \(optional\)/.test(targetSource));
 check("Internal contextual scaffolding is absent", ["Applies to:", "Why now:", "What to enter:", "Readiness effect:", "guidedInputMarkup"].every((label) => !targetSource.includes(label)));
 check("No pre-search signal configuration panel is rendered", !/targetObservableSignal|Observable buying signal|Where it can be found:|What it implies:|Source to verify/.test(targetSource));
 check("Observable signal catalog is not in the normal flow", !/Customer-success, account-management|Public HubSpot use, integration/.test(targetSource));
@@ -31,7 +31,7 @@ check("Candidate decisions stay simple", /Good fit/.test(targetSource) && /Not a
 check("Search method is disclosed only with results", /discovery\.candidates\.length[\s\S]*?<details><summary>How we searched/.test(targetSource));
 check("Post-result tuning is bounded by prior decisions", /Find more companies like/.test(targetSource) && /Avoid companies like/.test(targetSource) && /data-discovery-feedback="preferredSignal"/.test(targetSource));
 check("No pasted JSON or implementation plumbing is exposed", !/targetCandidateResults|Paste the structured|Review a sourced candidate batch|rebuild search pack/.test(targetSource));
-check("Good-fit decisions add only to a review list", /Choose Good fit to add a company to the review list/.test(targetSource) && /Save review list and continue/.test(targetSource));
+check("Good-fit decisions add only to a review list", /Choose Good fit to add a company to the review list/.test(targetSource) && /Save review list and complete Target List Setup/.test(targetSource));
 check("No outreach or CRM write is added", !/send outreach|create contact|Confirm HubSpot additions|copyTargetListFields/.test(targetSource));
 
 const failed = checks.filter((item) => !item.passed);

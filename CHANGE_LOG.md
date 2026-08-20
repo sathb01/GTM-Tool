@@ -4,6 +4,20 @@ Last updated: 2026-08-16
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-08-20 Usable ICP, Messaging, Target List, and Proof Workflows
+
+- Replaced the long, intake-like ICP Draft with a concise working ICP Brief organized around who to target, their situation and problem, urgency, decision roles, observable fit, exclusions, and the evidence still needed.
+- Applied the same usable ICP structure in the Plan output and the standalone ICP Brief, and added explicit Copy, Download / Print, Edit Source Answers, and Target List actions.
+- Added plain-language completion guidance to Target List Setup and renamed its final action so users can see exactly how the tool records completion.
+- Renamed technical target-search inputs: website/software clues now explain that normal words or short phrases are expected, and access paths are now described as people or places that could provide an introduction.
+- Repositioned Messaging Kit as directional guidance plus user-authored message storage. Users can create the final message outside the tool and paste it back; contact-level results remain in the CRM or spreadsheet.
+- Removed the duplicate Messaging response log and generic Proof and Asset Gaps section from the active workflow. Existing saved interaction data remains preserved for compatibility and can still contribute to older evidence history.
+- Simplified Proof Asset Builder to recommend one asset, explain the work to create, accept the completed asset or outline, and define the buyer action that would count as success.
+- Added product-demonstration guidance with a five-benefit exercise and the Why Game. Removed claim/evidence inference and duplicate per-contact usage logging from the active Proof Asset workflow while preserving legacy saved fields.
+- Left Outreach Sequence unchanged.
+- Added a focused nine-check workflow regression and updated the Target Discovery and Tool Setup route contracts.
+- Removed the previous-user hard-coded Playwright package path from the release-gate scripts; QA now uses `GTM_PLAYWRIGHT_PATH` or normal package resolution so the gate works after a clean clone or Windows user change.
+
 ## 2026-08-15 Production Acceptance and Release Gate Repair
 
 - Live-tested the deployed pre-revenue flow with a fresh QA Sock Co record, including locked pre-revenue defaults, hidden post-revenue fields, revenue-model behavior, saved-record persistence, segment scoring, and validation-plan generation.

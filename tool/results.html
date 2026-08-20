@@ -2777,6 +2777,10 @@
       grid-column: 1 / -1;
     }
 
+    .target-search-criteria-grid label > .muted {
+      min-height: 54px;
+    }
+
     .target-search-criteria-grid input,
     .target-search-criteria-grid textarea,
     .target-search-criteria-grid select {
@@ -18280,19 +18284,17 @@
         {
           asset: "gtm icp",
           id: "draft-icp",
-          title: "ICP Draft",
+          title: "ICP Brief",
           rows: [
-            ["Customer Context Starter", preRevenueBulletAnswer(data.customerContextStarter || "Add a detailed customer, user, or buyer description in Company Information. The structured ICP fields below should confirm or refine it.")],
-            ["ICP Hypothesis", preRevenueIcpHypothesis(primary, data)],
-            ["Who They Are", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.segmentType, primary?.values.segmentTypeUnknown, primary?.values.segmentName__other, primary?.values.segmentName), "Define whether this is an end consumer, channel buyer, marketplace buyer, or business buyer.")],
-            ["Specific Use Case or Context", preRevenueListAnswer(primary?.values.specificUseCaseDefinition || primary?.values.description, "Add a plain-language definition of the use case, job, task, or occasion before treating this as an ICP.")],
-            ["Problem to Validate", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.problem, primary?.values.problemUnknown), "Define the problem, buying job, or unmet need this group has.")],
-            ["Likely Buyer, User, or Influencer", preRevenueListAnswer(preRevenueBuyerRoles(primary?.values), "Clarify who would buy, use, influence, approve, recommend, or carry the product.")],
-            ["Timing or Trigger", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.whyNow, primary?.values.whyNowUnknown), "Identify observable timing signals before list building.")],
-            ["First 10 Conversation Sources", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.firstConversationAccess, primary?.values.firstConversationAccessUnknown, primary?.values.reachability, primary?.values.reachabilityUnknown), "Define a reachable source for the first 10 validation conversations.")],
-            ["Repeatable Reach Hypothesis", preRevenueListAnswer(primary?.values.repeatableReach, "Identify the channel or source that could reach similar buyers after the initial test.")],
-            ["Not a Strong ICP Yet Until", preRevenueListAnswer(preRevenueEvidenceGapItems(data, primary), "No critical evidence gaps are currently flagged for this path.")],
-            ["Disqualify for Now If", preRevenueListAnswer(primary?.values.risks, "Avoid segments where reachability, validation speed, or delivery fit is weak.")]
+            ["Who we are targeting", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.segmentName, primary?.values.segmentName__other, primary?.values.segmentType, primary?.values.segmentTypeUnknown), target)],
+            ["Their situation", preRevenueListAnswer(primary?.values.specificUseCaseDefinition || primary?.values.description || data.customerContextStarter, "Describe the situation, job, or occasion that makes this customer relevant.")],
+            ["Problem we believe they have", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.problem, primary?.values.problemUnknown), "Confirm the problem in real buyer conversations.")],
+            ["Why they may act now", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.whyNow, primary?.values.whyNowUnknown), "Confirm the event or condition that creates urgency.")],
+            ["Who makes or influences the decision", preRevenueListAnswer(preRevenueBuyerRoles(primary?.values), "Confirm who buys, uses, recommends, approves, or blocks the decision.")],
+            ["How to recognize a good fit", preRevenueListAnswer(personaAssetItems(primary?.values.observableTraits, primary?.values.fitSignals, primary?.values.evidenceNotes), "Use a small number of visible characteristics that can guide list building.")],
+            ["Who not to pursue yet", preRevenueListAnswer(primary?.values.risks, "Avoid groups that are hard to reach, slow to validate, or poorly matched to delivery.")],
+            ["What we still need to learn", preRevenueListAnswer(preRevenueEvidenceGapItems(data, primary), "Use the first conversations to confirm the problem, buyer, urgency, and willingness to take a next step.")],
+            ["Use this brief", preRevenueBulletAnswer("Use this as the practical filter for Target List Setup, buyer conversations, and the first 30-day validation test. Update the source answers when evidence changes the customer hypothesis.")]
           ]
         },
         {
@@ -18366,6 +18368,25 @@
         main.appendChild(section);
       });
 
+      if (assetMode === "icp") {
+        const icpActions = document.createElement("section");
+        icpActions.id = "icp-brief-actions";
+        icpActions.dataset.toc = "Use This Brief";
+        icpActions.className = "no-print";
+        icpActions.innerHTML = `<h2>Use This Brief</h2><p>This is a working customer hypothesis, not a form-data summary. Use it to decide who belongs on the first Target List and what the first buyer conversations need to confirm.</p><div class="report-bottom-actions"><button type="button" id="copyIcpBrief">Copy ICP Brief</button><button type="button" class="secondary" id="printIcpBrief">Download / Print</button><a class="secondary" href="${escapeHtml(intakeReviewUrl("customer icp priority", { returnToCurrentReport: true, returnSectionId: "draft-icp" }))}">Edit ICP Source Answers</a><a class="secondary" href="${escapeHtml(guidedToolWorkspaceUrl("targets", "summary"))}">Use in Target List Setup</a></div><p class="muted" id="icpBriefActionStatus"></p>`;
+        main.appendChild(icpActions);
+        icpActions.querySelector("#copyIcpBrief").addEventListener("click", async () => {
+          const status = icpActions.querySelector("#icpBriefActionStatus");
+          try {
+            await copyTextToClipboard(document.getElementById("draft-icp")?.innerText || "");
+            status.textContent = "ICP Brief copied.";
+          } catch (error) {
+            status.textContent = "Copy failed. Select and copy the brief above.";
+          }
+        });
+        icpActions.querySelector("#printIcpBrief").addEventListener("click", () => window.print());
+      }
+
       if (assetMode === "validation") {
         const workspaceAction = document.createElement("section");
         workspaceAction.id = "validation-workspace-action";
@@ -18416,21 +18437,15 @@
           ? "ICP candidate with evidence to test"
           : "ICP hypothesis to test";
       return [
-        ["Customer context starter", cleanText(data.customerContextStarter) || "No early customer description was captured. Add one in Customer Priority Framework so the ICP has a clear qualitative source."],
-        ["ICP status", status],
-        ["Priority customer group", values.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer || "Not selected yet"],
-        ["Why this group", icpRationaleItems(model)],
-        ["Companies to include", criteria.bullets],
-        ["Target List filters", criteria.lookForBullets],
-        ["Buyer problem and use case", normalizeList([values.problem || data.bestFitPrimaryPain || data.quickBuyerProblem, values.useCaseDefinition, values.currentWorkaround || data.bestFitCurrentWorkaround])],
-        ["Trigger and urgency", normalizeList([values.whyNow || data.bestFitTrigger || data.quickUrgencyNow, values.triggerEvent])],
-        ["People involved in the decision", buyerRoles.length ? buyerRoles : [model.buyer?.label ? `${model.buyer.label}: clarify what this role needs to believe, the proof required, and its approval role.` : "Buyer roles have not been defined yet."]],
-        ["Signals to look for", normalizeList([...repeatableListItems(data, "icpMustHaveSignals"), values.observableCompanySignals])],
-        ["How to find these accounts", targetSearchInstructions(model)],
-        ["Disqualify or deprioritize", normalizeList([...repeatableListItems(data, "icpDisqualificationRules"), ...avoidAccountBullets(model)])],
-        ["Evidence supporting this ICP", evidence.length ? evidence : ["No direct evidence captured yet. Treat this as a hypothesis, not a proven ICP."]],
-        ["What still needs to be proven", missing.length ? missing : [`Use the 30-day test to confirm that qualified conversations produce a repeated urgent problem and concrete next steps. Apply this rule before adding volume: ${activePlanDecisionRule(data)}`]],
-        ["Start here", `Build the Target List with 25 qualified accounts using these criteria. ${targetList.reason}`]
+        ["Who we are targeting", values.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer || "Not selected yet"],
+        ["Their situation and problem", normalizeList([cleanText(data.customerContextStarter), values.problem || data.bestFitPrimaryPain || data.quickBuyerProblem, values.useCaseDefinition])],
+        ["Why they may act now", normalizeList([values.whyNow || data.bestFitTrigger || data.quickUrgencyNow, values.triggerEvent])],
+        ["Who makes or influences the decision", buyerRoles.length ? buyerRoles : [model.buyer?.label || "The buyer role still needs to be confirmed."]],
+        ["How to recognize a good fit", normalizeList([...criteria.bullets, ...criteria.lookForBullets, ...repeatableListItems(data, "icpMustHaveSignals"), values.observableCompanySignals]).slice(0, 8)],
+        ["Who not to pursue", normalizeList([...repeatableListItems(data, "icpDisqualificationRules"), ...avoidAccountBullets(model)]).slice(0, 6)],
+        ["What supports this hypothesis", [status, ...(evidence.length ? evidence : ["No direct evidence captured yet. Treat this as a hypothesis, not a proven ICP."])]],
+        ["What we still need to learn", (missing.length ? missing : [`Confirm that qualified conversations produce a repeated urgent problem and concrete next steps.`]).slice(0, 6)],
+        ["Use this brief", `Use this as the filter for Target List Setup and buyer conversations. Start with 25 qualified accounts. ${targetList.reason}`]
       ];
     }
 
@@ -18457,7 +18472,7 @@
       renderBlueprintFields(grid, postRevenueIcpAssetRows(model));
       grid.querySelectorAll(".field").forEach((field) => {
         const label = field.querySelector("h3")?.textContent.trim();
-        if (label === "Start here") {
+        if (label === "Use this brief") {
           field.insertAdjacentHTML("beforeend", `<div class="card-actions no-print"><a class="secondary" href="${escapeHtml(guidedToolWorkspaceUrl("targets", "summary"))}">Preview next: Target List Setup</a></div>`);
         }
         if (label === "What still needs to be proven") {
@@ -18474,6 +18489,23 @@
         });
       }
       main.appendChild(section);
+
+      const actions = document.createElement("section");
+      actions.id = "icp-brief-actions";
+      actions.dataset.toc = "Use This Brief";
+      actions.className = "no-print";
+      actions.innerHTML = `<h2>Use This Brief</h2><p>Use this working profile as the filter for list building and buyer conversations. Edit the source answers when real evidence changes the hypothesis.</p><div class="report-bottom-actions"><button type="button" id="copyIcpBrief">Copy ICP Brief</button><button type="button" class="secondary" id="printIcpBrief">Download / Print</button><a class="secondary" href="${escapeHtml(intakeReviewUrl("customer icp priority", { returnToCurrentReport: true, returnSectionId: "icp-brief" }))}">Edit ICP Source Answers</a><a class="secondary" href="${escapeHtml(guidedToolWorkspaceUrl("targets", "summary"))}">Use in Target List Setup</a></div><p class="muted" id="icpBriefActionStatus"></p>`;
+      main.appendChild(actions);
+      actions.querySelector("#copyIcpBrief").addEventListener("click", async () => {
+        const status = actions.querySelector("#icpBriefActionStatus");
+        try {
+          await copyTextToClipboard(section.innerText);
+          status.textContent = "ICP Brief copied.";
+        } catch (error) {
+          status.textContent = "Copy failed. Select and copy the brief above.";
+        }
+      });
+      actions.querySelector("#printIcpBrief").addEventListener("click", () => window.print());
 
       appendGuidedReferenceCompletion(data, "icp");
       appendGuidedToolSecondaryControls(data, "icp");
@@ -19815,6 +19847,7 @@
       setup.innerHTML = `
         <h2>Find target companies</h2>
         <p>The tool translated the saved plan into public, observable search criteria. Results remain candidates until their sources are reviewed.</p>
+        <div class="overview-note"><strong>How to complete Target List Setup</strong><p>Find or add candidate companies, mark the companies you would pursue as <strong>Good fit</strong>, then select <strong>Save review list and complete Target List Setup</strong>. That final action records completion and advances Tool Setup.</p></div>
         <div class="messaging-result-summary target-search-brief">
           ${criteriaRow("Target company type", discovery.variables.categories)}
           ${criteriaRow("Company size", sizeSummary)}
@@ -19833,14 +19866,14 @@
             <label>Geography<textarea id="targetDiscoveryGeography" rows="3">${escapeHtml(discovery.variables.geography)}</textarea></label>
             <label class="wide">Employee range<select id="targetDiscoveryEmployeeRange">${employeeRangeOptions}</select></label>
           </div>
-          <div class="messaging-recommendation target-search-suggestion-note"><h3>Suggested by GTM Intelligence OS</h3><p>The tool generated the company types, employee range, and optional public clues from the saved customer context. Review the three primary criteria above. The additional clues below are optional and can be used as suggested.</p></div>
+          <div class="messaging-recommendation target-search-suggestion-note"><h3>Suggested by GTM Intelligence OS</h3><p>The tool generated the company types, employee range, and optional public clues from the saved customer context. Review the three primary criteria above. The optional clues below are plain-language phrases the research step can look for on company websites and public profiles; you do not need to rewrite them unless they are wrong.</p></div>
           <details id="targetSearchOptionalSignals">
             <summary>Review or revise optional search suggestions</summary>
             <div class="target-search-criteria-grid">
-              <label>Website or technology clues (optional)<textarea id="targetDiscoveryTechnology" rows="3">${escapeHtml(discovery.variables.technologySignals.join("\n"))}</textarea></label>
-              <label>Products, services, or membership clues (optional)<textarea id="targetDiscoveryService" rows="3">${escapeHtml(discovery.variables.serviceSignals.join("\n"))}</textarea></label>
-              <label>Team or operating clues (optional)<textarea id="targetDiscoveryTeam" rows="3">${escapeHtml(discovery.variables.teamSignals.join("\n"))}</textarea></label>
-              <label>Warm introduction or access paths (optional)<textarea id="targetDiscoveryReferralPaths" rows="3">${escapeHtml(discovery.variables.referralPaths.join("\n"))}</textarea></label>
+              <label>Website or software clues to look for (optional)<span class="muted">Use normal words or short phrases, such as “online booking,” “Mindbody,” or “retail products.” The tool suggests these from the saved plan.</span><textarea id="targetDiscoveryTechnology" rows="3">${escapeHtml(discovery.variables.technologySignals.join("\n"))}</textarea></label>
+              <label>Products, services, or membership clues (optional)<span class="muted">Use normal words or short phrases the tool can look for on public pages.</span><textarea id="targetDiscoveryService" rows="3">${escapeHtml(discovery.variables.serviceSignals.join("\n"))}</textarea></label>
+              <label>Team or operating clues (optional)<span class="muted">Use normal words or short phrases the tool can look for on public pages.</span><textarea id="targetDiscoveryTeam" rows="3">${escapeHtml(discovery.variables.teamSignals.join("\n"))}</textarea></label>
+              <label>People or places that could introduce you (optional)<span class="muted">Examples: a studio owner you know, an instructor network, a distributor, an industry group, a trade show, or an existing customer referral.</span><textarea id="targetDiscoveryReferralPaths" rows="3">${escapeHtml(discovery.variables.referralPaths.join("\n"))}</textarea></label>
               <label class="wide">Exclude companies only when this is publicly verified (optional)<textarea id="targetDiscoveryExclusions" rows="3">${escapeHtml(discovery.variables.exclusions.join("\n"))}</textarea></label>
               <label>Companies per result batch<select id="targetDiscoveryBatchSize">${[3, 5, 8].map((value) => `<option value="${value}"${Number(discovery.variables.batchSize) === value ? " selected" : ""}>${value}</option>`).join("")}</select></label>
               <label>Initial qualified-list goal<select id="targetDiscoveryInitialTarget">${[10, 25, 50, 100].map((value) => `<option value="${value}"${Number(discovery.variables.initialTarget) === value ? " selected" : ""}>${value}</option>`).join("")}</select></label>
@@ -19973,7 +20006,7 @@
         handoff.innerHTML = `
           <h2>Review list</h2>
           <p>${accepted.length} good-fit candidate${accepted.length === 1 ? "" : "s"}: ${escapeHtml(accepted.map((item) => item.company).join(", "))}.</p>
-          <div class="card-actions no-print"><button type="button" id="confirmTargetReviewList">Save review list and continue</button></div>
+          <div class="card-actions no-print"><button type="button" id="confirmTargetReviewList">Save review list and complete Target List Setup</button></div>
           <p class="messaging-save-status" id="targetReviewListStatus"></p>
         `;
         handoff.querySelector("#confirmTargetReviewList")?.addEventListener("click", async (event) => {
@@ -20151,6 +20184,25 @@
       const source = evidence[0];
       const safeResult = source?.result || "No verified result is available yet. Use this asset to show the product, process, expertise, or validation evidence without claiming a customer outcome.";
       const title = type === "Customer proof story" && source?.source ? `${source.source}: Proof Story` : type;
+      if (profile.isPreRevenue && /product demonstration|sample guide/i.test(type)) {
+        return {
+          title: "Product Demonstration Guide",
+          claim: "Help the buyer understand why this product may be useful, relevant, and worth a small next step.",
+          evidenceSource: source?.source || "Use product knowledge, the sample or prototype, and clearly labeled buyer hypotheses.",
+          permission: source?.permission || "Internal use only",
+          strength: source?.strength || "Qualitative",
+          body: [
+            "Create a product demonstration asset outside GTM Intelligence OS in the document, slide, video, or format that fits the product.",
+            "Start with this question: Why would the buyer want to use, recommend, carry, or sell this product?",
+            "List at least five practical buyer or customer benefits if you can.",
+            "Use the Why Game to improve each important point: ask Why? Answer it, then ask Why again. Repeat at least five times to get beyond the first obvious answer.",
+            "Include the product details, demonstration points, questions, and next step the buyer needs. Do not present an assumption as a proven customer result.",
+            "Paste the finished asset or a usable text version back into this workspace when it is ready."
+          ].join("\n\n"),
+          cta: "The buyer asks for pricing, requests a sample or demonstration, agrees to a test, places an order, or takes another clearly defined next step.",
+          successOutcome: "The buyer asks for pricing, requests a sample or demonstration, agrees to a test, places an order, or takes another clearly defined next step."
+        };
+      }
       return {
         title,
         claim: source ? safeResult : `Show how the offer addresses ${problem} without presenting assumptions as results.`,
@@ -20164,7 +20216,8 @@
           `What this evidence can safely support\n${source ? `Use the verified or qualitative evidence from ${source.source}. Do not add numbers or claims that are not present in the source.` : "Describe the product, process, expertise, or test plan. Do not imply a customer result until evidence is confirmed."}`,
           `Recommended next step\n${source?.nextAction || "Collect or confirm one credible evidence source before publishing this asset."}`
         ].join("\n\n"),
-        cta: profile.isPreRevenue ? "Invite the buyer to review the product, sample, concept, or evidence and take one measurable next step." : "Invite the buyer to review the relevant proof and compare it with their current situation."
+        cta: profile.isPreRevenue ? "Invite the buyer to review the product, sample, concept, or evidence and take one measurable next step." : "Invite the buyer to review the relevant proof and compare it with their current situation.",
+        successOutcome: profile.isPreRevenue ? "The buyer takes the specific next step this asset was created to support." : "The asset helps the buyer move past the named concern and take a specific next step."
       };
     }
 
@@ -20184,6 +20237,7 @@
         strength: recommendation.strength,
         body: recommendation.body,
         cta: recommendation.cta,
+        successOutcome: recommendation.successOutcome || recommendation.cta,
         status: "Draft",
         uses: [],
         learning: "",
@@ -20194,9 +20248,9 @@
 
     function proofBuilderState(data, profile, evidence, types) {
       const stored = data.proofAssetWorkspace && typeof data.proofAssetWorkspace === "object" ? data.proofAssetWorkspace : {};
-      const drafts = Array.isArray(stored.drafts) ? stored.drafts.filter((draft) => draft?.id).map((draft) => ({ ...draft, uses: Array.isArray(draft.uses) ? draft.uses : [] })) : [];
+      const drafts = Array.isArray(stored.drafts) ? stored.drafts.filter((draft) => draft?.id).map((draft) => ({ ...draft, successOutcome: cleanText(draft.successOutcome || draft.cta), uses: Array.isArray(draft.uses) ? draft.uses : [] })) : [];
       if (!drafts.length) drafts.push(proofBuilderNewDraft(profile, evidence, types[0]));
-      return { version: 1, drafts, selectedDraftId: drafts.some((draft) => draft.id === stored.selectedDraftId) ? stored.selectedDraftId : drafts[0].id, updatedAt: stored.updatedAt || "" };
+      return { version: 2, drafts, selectedDraftId: drafts.some((draft) => draft.id === stored.selectedDraftId) ? stored.selectedDraftId : drafts[0].id, updatedAt: stored.updatedAt || "" };
     }
 
     function proofUsageRowMarkup(item = {}, messages = []) {
@@ -20241,27 +20295,25 @@
       document.body.dataset.hasPersonaAsset = "true";
       document.title = `${data.companyName || "Company"} Proof and Sales Asset Builder`;
       document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} Proof and Sales Asset Builder` : "Proof and Sales Asset Builder";
-      document.getElementById("generatedMeta").textContent = "Create buyer-facing proof from verified evidence, track where it is used, and learn whether it improves execution.";
+      document.getElementById("generatedMeta").textContent = "Create one useful buyer-facing asset, paste the finished work back into the tool, and define the buyer action that would count as success.";
       const companyMeta = document.getElementById("companyMeta");
       companyMeta.hidden = false;
       companyMeta.textContent = [profile.customerGroup, profile.offerName, profile.path].filter(Boolean).join(" | ");
-      document.getElementById("metadataPills").innerHTML = [`${evidence.length} evidence source${evidence.length === 1 ? "" : "s"}`, `${workspace.drafts.length} saved asset${workspace.drafts.length === 1 ? "" : "s"}`, evidence.length ? "Evidence available" : "Evidence gap"].map((item) => `<span class="metadata-pill">${escapeHtml(item)}</span>`).join("");
+      document.getElementById("metadataPills").innerHTML = [`${workspace.drafts.length} saved asset${workspace.drafts.length === 1 ? "" : "s"}`].map((item) => `<span class="metadata-pill">${escapeHtml(item)}</span>`).join("");
       main.querySelectorAll("section").forEach((section) => section.remove());
 
       const recommendation = document.createElement("section");
       recommendation.id = "proof-asset-workspace";
       recommendation.dataset.toc = "Recommendation";
       recommendation.className = "workspace-section";
-      recommendation.innerHTML = `<h2>Recommended Proof Asset</h2><p class="muted">Build the one asset most likely to help the buyer trust the claim or move past a concern.</p><div class="messaging-kit-context"><div class="messaging-context-item"><span>Create this</span><strong>${escapeHtml(types[0])}</strong></div><div class="messaging-context-item"><span>Use this evidence</span><strong>${escapeHtml(evidence[0]?.source || "Evidence still needs to be collected")}</strong></div><div class="messaging-context-item"><span>What it supports</span><strong>${escapeHtml(evidence[0]?.result || "A buyer-relevant claim still needs support")}</strong></div><div class="messaging-context-item"><span>Before sharing publicly</span><strong>${escapeHtml(evidence[0]?.permission || "Confirm the evidence and permission")}</strong></div></div>${evidence.length ? `<div class="persona-guide-grid">${evidence.slice(0, 4).map((item) => `<div class="persona-guide-block"><h3>${escapeHtml(item.source)}</h3>${personaAssetListMarkup([item.result, `Available evidence: ${item.type}`, `Can it be shared: ${item.permission}`, `Next action: ${item.nextAction}`])}</div>`).join("")}</div>` : '<div class="messaging-recommendation"><h3>Collect evidence before making a customer-result claim</h3><p>You can still create a product demonstration, founder credibility brief, interview summary, or proof-collection brief without implying an unverified result.</p></div>'}`;
+      recommendation.innerHTML = `<h2>Build This Asset First</h2><div class="messaging-recommendation"><h3>${escapeHtml(types[0])}</h3><p>${escapeHtml(profile.isPreRevenue && /product demonstration|sample guide/i.test(types[0]) ? "Create a practical product demonstration guide that explains why the buyer may want to use, recommend, carry, or sell the product. Build it outside the tool in the format that works best, then paste the finished content back below." : "Create the one asset most likely to help the buyer make the next decision. Use only claims and evidence you can support.")}</p></div>`;
       main.appendChild(recommendation);
 
       const editor = document.createElement("section");
       editor.id = "proof-asset-editor";
       editor.dataset.toc = "Asset Editor";
       editor.className = "workspace-section";
-      const personaOptions = [`<option value="">Choose persona</option>`, ...personas.map((persona) => `<option value="${escapeHtml(persona.id)}"${persona.id === draft.personaId ? " selected" : ""}>${escapeHtml(persona.role)}</option>`)].join("");
-      const messageOptions = [`<option value="">Choose message</option>`, ...messages.map((message) => `<option value="${escapeHtml(message.id)}"${message.id === draft.messageId ? " selected" : ""}>${escapeHtml(message.name)}</option>`)].join("");
-      editor.innerHTML = `<h2>Build the Asset</h2><p class="muted">Choose the buyer and claim, identify the real evidence behind it, then revise the recommended draft into something the buyer can use.</p><div class="messaging-kit-controls no-print"><label>What are you creating?<select data-proof-field="type">${messagingOptions(types, draft.type)}</select></label><label>Who needs this proof?<select data-proof-field="personaId">${personaOptions}</select></label><label>Which saved message could use it?<select data-proof-field="messageId">${messageOptions}</select></label><button type="button" id="applyProofRecommendation">Use GTM Intelligence OS Recommendation</button></div><div class="messaging-editor"><label>Asset title<input data-proof-field="title" value="${escapeHtml(draft.title)}"></label><label>What claim or buyer concern must this support?<textarea rows="3" data-proof-field="claim">${escapeHtml(draft.claim)}</textarea></label><label>What real evidence is behind this asset?<span class="muted">Name the customer, test, product demonstration, measured result, interview finding, or other source a reviewer could verify.</span><textarea rows="4" data-proof-field="evidenceSource">${escapeHtml(draft.evidenceSource)}</textarea></label><label>Can this evidence be shared publicly?<select data-proof-field="permission">${messagingOptions(["Not confirmed", "Confirm before public use", "Internal use only", "Confirmed for public use", "Cannot use publicly"], draft.permission)}</select></label><label>Draft the buyer-facing asset<span class="muted">Turn the evidence into a clear story, comparison, proof sheet, or guide. Remove anything the evidence cannot support.</span><textarea rows="14" data-proof-field="body">${escapeHtml(draft.body)}</textarea></label><label>What should the buyer do after reviewing it?<input data-proof-field="cta" value="${escapeHtml(draft.cta)}"></label><div class="messaging-recommendation"><h3>Before using the asset</h3><p>Verify every number, outcome, logo, and quote. Confirm permission before external use. GTM Intelligence OS will keep evidence strength and draft status behind the scenes.</p></div><div class="messaging-editor-actions no-print"><button type="button" id="saveProofAsset">Save Asset</button><button type="button" class="secondary" id="createProofAsset">Create Another Asset</button><span class="messaging-save-status" id="proofAssetSaveStatus"></span></div></div>`;
+      editor.innerHTML = `<h2>Create the Asset</h2><p class="muted">Use the instructions below, create the asset in any document or media format you prefer, then paste a usable text version or outline back into GTM Intelligence OS.</p><div class="messaging-kit-controls no-print"><label>What are you creating?<select data-proof-field="type">${messagingOptions(types, draft.type)}</select></label><button type="button" id="applyProofRecommendation">Refresh Instructions</button></div><div class="messaging-editor"><label>Asset title<input data-proof-field="title" value="${escapeHtml(draft.title)}"></label><label>Instructions and finished asset<span class="muted">For a product demonstration, explain why the buyer would want the product, list at least five benefits, and use the Why Game: ask and answer “Why?” at least five times to reach the underlying reason. Replace or extend these instructions with the finished asset when it is ready.</span><textarea rows="18" data-proof-field="body">${escapeHtml(draft.body)}</textarea></label><label>What buyer action would count as a successful outcome?<span class="muted">Examples: asks for pricing, requests a sample, agrees to a demonstration or test, places an order, or introduces the next decision-maker.</span><textarea rows="3" data-proof-field="successOutcome">${escapeHtml(draft.successOutcome || draft.cta)}</textarea></label><div class="messaging-editor-actions no-print"><button type="button" id="saveProofAsset">Save Asset</button><button type="button" class="secondary" id="createProofAsset">Create Another Asset</button><span class="messaging-save-status" id="proofAssetSaveStatus"></span></div></div>`;
       main.appendChild(editor);
 
       const usage = document.createElement("section");
@@ -20269,17 +20321,18 @@
       usage.dataset.toc = "Usage and Results";
       usage.className = "workspace-section";
       usage.innerHTML = `<h2>Usage and Results</h2><p class="muted">The CRM remains the activity source of truth. Record only the result and learning needed to improve this asset.</p><div class="messaging-result-summary"><div class="messaging-result-card"><span>Times used</span><strong>${draft.uses.length}</strong></div><div class="messaging-result-card"><span>Buyer reviews</span><strong>${draft.uses.filter((item) => /reviewed|objection|conversation|next step/i.test(item.result)).length}</strong></div><div class="messaging-result-card"><span>Conversations</span><strong>${draft.uses.filter((item) => /conversation|next step/i.test(item.result)).length}</strong></div><div class="messaging-result-card"><span>Meaningful next steps</span><strong>${draft.uses.filter((item) => /meaningful next step/i.test(item.result)).length}</strong></div></div><div class="messaging-interaction-list" id="proofUsageList">${draft.uses.map((item) => proofUsageRowMarkup(item, messages)).join("")}</div><div class="messaging-editor-actions no-print"><button type="button" class="secondary" id="addProofUse">Add Usage Result</button></div><label class="messaging-editor">Patterns across uses<textarea rows="4" data-proof-field="learning">${escapeHtml(draft.learning || "")}</textarea></label>`;
-      main.appendChild(usage);
+      // Contact-level asset usage stays in the CRM or spreadsheet. Existing saved
+      // usage data remains readable for backward compatibility but is not requested here.
 
       const versions = document.createElement("section");
       versions.id = "saved-proof-assets";
       versions.dataset.toc = "Saved Assets";
-      versions.innerHTML = `<h2>Saved Proof Assets</h2><div class="messaging-version-list">${workspace.drafts.map((item) => `<div class="messaging-version-row"><div><strong>${escapeHtml(item.name || item.title)}</strong><span>${escapeHtml(item.type)}</span></div><div><strong>${escapeHtml(item.permission || "Sharing permission not confirmed")}</strong><span>${escapeHtml(messagingShortPhrase(item.claim, "Claim still needs to be defined", 10))}</span></div><div><strong>${item.uses.length} uses</strong><span>${item.uses.filter((use) => /meaningful next step/i.test(use.result)).length} next steps</span></div><div class="messaging-version-actions no-print"><button type="button" class="secondary" data-open-proof-asset="${escapeHtml(item.id)}"${item.id === draft.id ? " disabled" : ""}>View</button></div></div>`).join("")}</div>`;
+      versions.innerHTML = `<h2>Saved Proof Assets</h2><div class="messaging-version-list">${workspace.drafts.map((item) => `<div class="messaging-version-row"><div><strong>${escapeHtml(item.name || item.title)}</strong><span>${escapeHtml(item.type)}</span></div><div><strong>Successful outcome</strong><span>${escapeHtml(messagingShortPhrase(item.successOutcome || item.cta, "Not defined yet", 16))}</span></div><div class="messaging-version-actions no-print"><button type="button" class="secondary" data-open-proof-asset="${escapeHtml(item.id)}"${item.id === draft.id ? " disabled" : ""}>View</button></div></div>`).join("")}</div>`;
       main.appendChild(versions);
 
       const collect = () => {
         editor.querySelectorAll("[data-proof-field]").forEach((control) => { draft[control.dataset.proofField] = control.value; });
-        usage.querySelectorAll("[data-proof-field]").forEach((control) => { draft[control.dataset.proofField] = control.value; });
+        draft.cta = cleanText(draft.successOutcome || draft.cta);
         const evidenceText = cleanText(draft.evidenceSource);
         draft.strength = !evidenceText || /still needs|not confirmed|no verified/i.test(evidenceText)
           ? "Missing"
@@ -20293,11 +20346,7 @@
             : cleanText(draft.body)
               ? "Ready for review"
               : "Draft";
-        draft.uses = Array.from(usage.querySelectorAll("[data-proof-use-id]")).map((row) => {
-          const item = { id: row.dataset.proofUseId };
-          row.querySelectorAll("[data-proof-use-field]").forEach((control) => { item[control.dataset.proofUseField] = control.value; });
-          return item;
-        });
+        draft.uses = Array.isArray(draft.uses) ? draft.uses : [];
         draft.name = `${draft.type} - v${draft.version || 1}`;
         draft.updatedAt = new Date().toISOString();
       };
@@ -20318,8 +20367,6 @@
         await saveProofBuilderWorkspace(data, workspace, editor.querySelector("#proofAssetSaveStatus"));
         renderProofAssetWorkspace(data);
       });
-      usage.querySelector("#addProofUse").addEventListener("click", () => usage.querySelector("#proofUsageList").insertAdjacentHTML("beforeend", proofUsageRowMarkup({}, messages)));
-      usage.querySelector("#proofUsageList").addEventListener("click", (event) => { const button = event.target.closest("[data-remove-proof-use]"); if (button) button.closest("[data-proof-use-id]")?.remove(); });
       versions.querySelectorAll("[data-open-proof-asset]").forEach((button) => button.addEventListener("click", () => { workspace.selectedDraftId = button.dataset.openProofAsset; data.proofAssetWorkspace = workspace; updateActivePlanLocalCache(data); renderProofAssetWorkspace(data); }));
       setupReportNavigation();
       configureAssetPdfExport("proof-assets", data, profile.model);
@@ -21344,7 +21391,7 @@
       document.body.dataset.hasPersonaAsset = "true";
       document.title = `${data.companyName || "Company"} Buyer Conversation and Messaging Kit`;
       document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} Buyer Conversation and Messaging Kit` : "Buyer Conversation and Messaging Kit";
-      document.getElementById("generatedMeta").textContent = "Build, save, test, and improve messages using the current ICP, persona, offer, proof, and buying-path evidence.";
+      document.getElementById("generatedMeta").textContent = "Use the saved ICP, persona, offer, and buying path to shape one focused message, then save the message you create.";
       const companyMeta = document.getElementById("companyMeta");
       companyMeta.hidden = false;
       companyMeta.textContent = [profile.customerGroup, profile.offerName, profile.path].filter(Boolean).join(" | ");
@@ -21358,14 +21405,14 @@
       context.className = "workspace-section";
       const problems = personaAssetItems(messagingProfileModule(profile, /problem to solve|biggest challenges/i));
       const proof = personaAssetItems(messagingProfileModule(profile, /proof/i));
-      context.innerHTML = `<h2>Build One Focused Message</h2><p class="muted">Choose who the message is for, where it will be used, and what decision or action it should create. Then use or revise the recommendation below.</p><div class="messaging-kit-context"><div class="messaging-context-item"><span>Customer group</span><strong>${escapeHtml(profile.customerGroup)}</strong></div><div class="messaging-context-item"><span>Offer</span><strong>${escapeHtml(profile.offerName)}</strong></div><div class="messaging-context-item"><span>Primary problem</span><strong>${escapeHtml(problems[0] || "Needs confirmation")}</strong></div><div class="messaging-context-item"><span>Best available proof</span><strong>${escapeHtml(proof[0] || "Needs confirmation")}</strong></div></div><div class="messaging-kit-controls no-print"><label>Persona<select id="messagingPersonaSelect">${personas.map((persona) => `<option value="${escapeHtml(persona.id)}"${persona.id === selectedPersona.id ? " selected" : ""}>${escapeHtml(`${persona.role} - ${persona.label}`)}</option>`).join("")}</select></label><label>Channel<select id="messagingChannelSelect">${messagingOptions(channels, workspace.selectedChannel)}</select></label><label>Conversation objective<select id="messagingObjectiveSelect">${messagingOptions(objectives, workspace.selectedObjective)}</select></label><button type="button" id="useMessagingRecommendation">Use GTM Intelligence OS Recommendation</button></div><div class="messaging-recommendation" id="messagingRecommendation"></div>`;
+      context.innerHTML = `<h2>Build One Focused Message</h2><p class="muted">Choose who the message is for, where it will be used, and what decision or action it should create. GTM Intelligence OS provides direction—not a finished message. Create the final wording in the writing tool you prefer, then paste it back below so the plan retains the version you intend to use.</p><div class="messaging-kit-context"><div class="messaging-context-item"><span>Customer group</span><strong>${escapeHtml(profile.customerGroup)}</strong></div><div class="messaging-context-item"><span>Offer</span><strong>${escapeHtml(profile.offerName)}</strong></div><div class="messaging-context-item"><span>Primary problem</span><strong>${escapeHtml(problems[0] || "Needs confirmation")}</strong></div><div class="messaging-context-item"><span>Best available proof</span><strong>${escapeHtml(proof[0] || "Needs confirmation")}</strong></div></div><div class="messaging-kit-controls no-print"><label>Persona<select id="messagingPersonaSelect">${personas.map((persona) => `<option value="${escapeHtml(persona.id)}"${persona.id === selectedPersona.id ? " selected" : ""}>${escapeHtml(`${persona.role} - ${persona.label}`)}</option>`).join("")}</select></label><label>Channel<select id="messagingChannelSelect">${messagingOptions(channels, workspace.selectedChannel)}</select></label><label>Conversation objective<select id="messagingObjectiveSelect">${messagingOptions(objectives, workspace.selectedObjective)}</select></label><button type="button" id="useMessagingRecommendation">Copy Directional Guidance</button></div><div class="messaging-recommendation" id="messagingRecommendation"></div>`;
       main.appendChild(context);
 
       const editor = document.createElement("section");
       editor.id = "message-editor";
       editor.dataset.toc = "Message Editor";
       editor.className = "workspace-section";
-      editor.innerHTML = `<h2>Edit the Message</h2><div class="messaging-editor-layout"><div class="messaging-editor"><label id="messagingSubjectLabel">Subject or message label<input data-message-field="subject" value="${escapeHtml(draft.subject)}"></label><label>Opening<input data-message-field="opening" value="${escapeHtml(draft.opening)}"></label><label id="messagingBodyLabel"><span>${/email/i.test(draft.channel) ? "Email message" : "Message"}</span><textarea rows="6" data-message-field="body">${escapeHtml(draft.body)}</textarea></label><label>Next-step ask<textarea rows="3" data-message-field="cta">${escapeHtml(draft.cta)}</textarea></label><p class="muted" id="messagingAssemblyNote">${/email/i.test(draft.channel) ? "Opening, email message, and next-step ask are copied together as the complete email." : "Opening, message, and next-step ask are copied together as the complete outreach message."}</p><div class="messaging-editor-actions no-print"><button type="button" id="saveMessagingDraft">Complete Messaging Kit and continue</button><button type="button" class="secondary" id="createMessagingVersion">Create New Version</button><button type="button" class="secondary" id="copyMessagingDraft">Copy Message</button><span class="messaging-save-status" id="messagingSaveStatus"></span></div></div><aside class="messaging-guidance-panel"><h3>What this persona needs</h3>${personaAssetListMarkup([selectedPersona.need])}<h3>Discovery questions</h3>${personaAssetListMarkup(profile.discovery.slice(0, 5))}<h3>Likely objections</h3>${personaAssetListMarkup(messagingProfileModule(profile, /objections|worries/i).slice(0, 5))}<h3>Proof to use</h3>${personaAssetListMarkup(proof.slice(0, 5), "No buyer-specific proof is confirmed yet.")}</aside></div>`;
+      editor.innerHTML = `<h2>Save the Message You Will Use</h2><p class="muted">Write the message outside the tool if that is easier, then paste the finished version here. GTM Intelligence OS stores the chosen message; your CRM or spreadsheet remains the source of truth for outreach activity and contact-level results.</p><div class="messaging-editor-layout"><div class="messaging-editor"><label id="messagingSubjectLabel">Subject or message label<input data-message-field="subject" value="${escapeHtml(draft.subject)}"></label><label>Opening<input data-message-field="opening" value="${escapeHtml(draft.opening)}"></label><label id="messagingBodyLabel"><span>${/email/i.test(draft.channel) ? "Email message" : "Message"}</span><textarea rows="8" data-message-field="body">${escapeHtml(draft.body)}</textarea></label><label>Next-step ask<textarea rows="3" data-message-field="cta">${escapeHtml(draft.cta)}</textarea></label><p class="muted" id="messagingAssemblyNote">${/email/i.test(draft.channel) ? "Opening, email message, and next-step ask are saved together as the complete email." : "Opening, message, and next-step ask are saved together as the complete outreach message."}</p><div class="messaging-editor-actions no-print"><button type="button" id="saveMessagingDraft">Save Message and continue</button><button type="button" class="secondary" id="createMessagingVersion">Create New Version</button><button type="button" class="secondary" id="copyMessagingDraft">Copy Message</button><span class="messaging-save-status" id="messagingSaveStatus"></span></div></div><aside class="messaging-guidance-panel"><h3>What this persona needs</h3>${personaAssetListMarkup([selectedPersona.need])}<h3>Discovery questions</h3>${personaAssetListMarkup(profile.discovery.slice(0, 5))}<h3>Likely objections</h3>${personaAssetListMarkup(messagingProfileModule(profile, /objections|worries/i).slice(0, 5))}</aside></div>`;
       main.appendChild(editor);
 
       const evidence = document.createElement("section");
@@ -21374,18 +21421,21 @@
       evidence.className = "workspace-section";
       const totals = messagingResultTotals(workspace.drafts);
       evidence.innerHTML = `<h2>Results and Decision</h2><p class="muted">Record each contact separately. The tool calculates results for the selected message version from the response log.</p><div class="messaging-result-summary"><div class="messaging-result-card"><span>Total attempts</span><strong>${totals.attempts}</strong></div><div class="messaging-result-card"><span>Replies</span><strong>${totals.replies}</strong></div><div class="messaging-result-card"><span>Conversations</span><strong>${totals.conversations}</strong></div><div class="messaging-result-card"><span>Meaningful next steps</span><strong>${totals.nextSteps}</strong></div></div><h3>Contact Response Log</h3><p class="muted">Add one entry each time a contact is reached. Keep exact buyer language and learning attached to that interaction.</p><div class="messaging-interaction-list" id="messagingInteractionList">${draft.interactions.map((interaction) => messagingInteractionRowMarkup(interaction, draft.channel)).join("")}</div><div class="messaging-editor-actions no-print"><button type="button" class="secondary" id="addMessagingInteraction">Add Contact Response</button></div><div class="messaging-results-grid"><label>Message status<select data-message-field="status">${messagingOptions(["Draft", "Ready to test", "In use", "Paused", "Winning message", "Retired"], draft.status || "Draft")}</select></label><label>Attempts<input type="number" min="0" data-message-field="attempts" value="${Number(draft.attempts) || 0}" readonly></label><label>Replies<input type="number" min="0" data-message-field="replies" value="${Number(draft.replies) || 0}" readonly></label><label>Conversations<input type="number" min="0" data-message-field="conversations" value="${Number(draft.conversations) || 0}" readonly></label><label>Meaningful next steps<input type="number" min="0" data-message-field="nextSteps" value="${Number(draft.nextSteps) || 0}" readonly></label><label class="wide">Patterns across responses<textarea rows="4" data-message-field="learning" placeholder="Summarize only the repeated patterns that should influence the next decision.">${escapeHtml(draft.learning || "")}</textarea></label><label class="wide">Decision<select data-message-field="decision">${messagingOptions(["Need more evidence", "Continue", "Revise persona", "Revise message", "Revise proof", "Revise channel", "Retire message"], draft.decision || "Need more evidence")}</select></label></div><div class="messaging-editor-actions no-print"><button type="button" id="saveMessagingResults">Save Results and Decision</button><span class="messaging-save-status" id="messagingResultsStatus"></span></div>`;
-      main.appendChild(evidence);
+      // Contact-level results stay in the user's CRM or spreadsheet. Existing saved
+      // interaction data remains readable for backward compatibility but is no longer
+      // requested in the Messaging Kit.
 
       const assets = document.createElement("section");
       assets.id = "messaging-proof-gaps";
       assets.dataset.toc = "Proof and Asset Gaps";
       assets.innerHTML = `<h2>Proof and Asset Gaps</h2><div class="persona-guide-grid"><div class="persona-guide-block"><h3>Proof currently available</h3>${personaAssetListMarkup(proof, "No buyer-specific proof is confirmed yet.")}</div><div class="persona-guide-block"><h3>What may be missing</h3>${personaAssetListMarkup(messagingMissingAssets(profile), "No immediate message or proof gap is currently flagged.")}</div></div>`;
-      main.appendChild(assets);
+      // Proof gaps belong in the Proof Asset Builder only when they drive a specific
+      // recommendation. Do not duplicate a generic gap inventory in Messaging Kit.
 
       const versions = document.createElement("section");
       versions.id = "saved-message-versions";
       versions.dataset.toc = "Saved Versions";
-      versions.innerHTML = `<h2>Saved Message Versions</h2><p class="muted">Keep distinct tests as separate versions so their results and learning do not get mixed together.</p><div class="messaging-version-list">${workspace.drafts.map((item) => `<div class="messaging-version-row"><div><strong>${escapeHtml(item.name || `${item.personaRole} - ${item.channel} - v${item.version || 1}`)}</strong><span>${escapeHtml(item.objective || "Start a conversation")}</span></div><div><strong>${escapeHtml(item.status || "Draft")}</strong><span>${Number(item.attempts) || 0} attempts</span></div><div><strong>${escapeHtml(item.decision || "Need more evidence")}</strong><span>${Number(item.nextSteps) || 0} next steps</span></div><div class="messaging-version-actions no-print"><button type="button" class="secondary" data-open-message-version="${escapeHtml(item.id)}"${item.id === draft.id ? " disabled" : ""}>View</button></div></div>`).join("")}</div>`;
+      versions.innerHTML = `<h2>Saved Message Versions</h2><p class="muted">Keep a new version only when the persona, message angle, offer, or next-step ask changes.</p><div class="messaging-version-list">${workspace.drafts.map((item) => `<div class="messaging-version-row"><div><strong>${escapeHtml(item.name || `${item.personaRole} - ${item.channel} - v${item.version || 1}`)}</strong><span>${escapeHtml(item.objective || "Start a conversation")}</span></div><div><strong>${escapeHtml(item.status || "Draft")}</strong><span>${escapeHtml(messagingShortPhrase(item.subject, "No subject saved", 10))}</span></div><div class="messaging-version-actions no-print"><button type="button" class="secondary" data-open-message-version="${escapeHtml(item.id)}"${item.id === draft.id ? " disabled" : ""}>View</button></div></div>`).join("")}</div>`;
       main.appendChild(versions);
 
       const actions = document.createElement("section");
@@ -21414,16 +21464,18 @@
       };
       updateRecommendation();
       context.querySelectorAll("#messagingPersonaSelect, #messagingChannelSelect, #messagingObjectiveSelect").forEach((control) => control.addEventListener("change", updateRecommendation));
-      context.querySelector("#useMessagingRecommendation").addEventListener("click", () => {
+      context.querySelector("#useMessagingRecommendation").addEventListener("click", async () => {
         const selection = updateRecommendation();
         workspace.selectedPersonaId = selection.persona.id;
         workspace.selectedChannel = selection.channel;
         workspace.selectedObjective = selection.objective;
-        editor.querySelector("[data-message-field='subject']").value = selection.recommendation.subject;
-        editor.querySelector("[data-message-field='opening']").value = selection.recommendation.opening;
-        editor.querySelector("[data-message-field='body']").value = selection.recommendation.body;
-        editor.querySelector("[data-message-field='cta']").value = selection.recommendation.cta;
-        editor.querySelector("#messagingSaveStatus").textContent = "Recommendation added. Save the message when ready.";
+        const guidance = [`Message direction for ${selection.persona.role}`, `Suggested subject: ${selection.recommendation.subject}`, `Message angle: ${selection.recommendation.rationale}`, `Next-step ask: ${selection.recommendation.cta}`].join("\n");
+        try {
+          await copyTextToClipboard(guidance);
+          editor.querySelector("#messagingSaveStatus").textContent = "Directional guidance copied. Create the final message, then paste it into the editor.";
+        } catch (error) {
+          editor.querySelector("#messagingSaveStatus").textContent = "Copy failed. Use the guidance shown above to create the final message.";
+        }
       });
       const interactionList = evidence.querySelector("#messagingInteractionList");
       evidence.querySelector("#addMessagingInteraction").addEventListener("click", () => {

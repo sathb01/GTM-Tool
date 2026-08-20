@@ -1,7 +1,7 @@
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { chromium } = require("C:/Users/sathb/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright");
+const { chromium } = require(process.env.GTM_PLAYWRIGHT_PATH || "playwright");
 const baseUrl = String(process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
 const cookie = String(process.env.GTM_QA_COOKIE || "").trim();
 const headers = cookie ? { Cookie: cookie } : {};
@@ -159,11 +159,11 @@ try {
             labels,
             status: Array.from(document.querySelectorAll("#icp-brief .field")).find((field) => field.querySelector("h3")?.textContent.trim() === "ICP status")?.innerText || "",
             brokenCurrency: /\$24\s*\n\s*000|\$60\s*\n\s*000/.test(text),
-            hasSearchInstructions: /Create one saved list named|Use these title filters|Source the first 25 accounts/.test(text)
+            hasSearchInstructions: /Use this as the filter for Target List Setup|Start with 25 qualified accounts/.test(text)
           };
         });
         checks.icpDoesNotClaimValidationWithoutResults = !/Validated ICP/i.test(icp.status);
-        checks.icpUsesPlainSectionNames = ["Companies to include", "Target List filters", "People involved in the decision", "How to find these accounts", "Start here"].every((label) => icp.labels.includes(label));
+        checks.icpUsesPlainSectionNames = ["Who we are targeting", "Their situation and problem", "How to recognize a good fit", "Who not to pursue", "What we still need to learn", "Use this brief"].every((label) => icp.labels.includes(label));
         checks.icpBulletsKeepNumbersIntact = !icp.brokenCurrency;
         checks.icpMakesAccountFindingActionable = icp.hasSearchInstructions;
       }

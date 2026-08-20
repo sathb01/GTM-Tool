@@ -3,7 +3,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { chromium } = require("C:/Users/sathb/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/.pnpm/playwright@1.60.0/node_modules/playwright");
+const { chromium } = require(process.env.GTM_PLAYWRIGHT_PATH || "playwright");
 const baseUrl = String(process.env.GTM_QA_BASE_URL || "http://127.0.0.1:8787").replace(/\/$/, "");
 const recordId = "qa3-post-saas-clientrenew-20260724";
 const outputDir = path.resolve("QA_PRODUCT_REVIEW_20260721", "screenshots", "action-first");
