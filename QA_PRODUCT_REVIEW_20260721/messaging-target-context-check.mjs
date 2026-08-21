@@ -106,6 +106,20 @@ try {
   check("Saved product-industry fallback migrates to buyer context", /Pilates studios/i.test(targets.types) && !/Fashion|Apparel/i.test(targets.types), targets.types);
   check("Local studio employee range is suggested", targets.employeeRange === "1|25" && /1.+25 employees/i.test(targets.summary), JSON.stringify(targets));
   check("Technical search clues are optional tool suggestions", targets.optionalCollapsed && /optional search suggestions/i.test(targets.optionalText), JSON.stringify(targets));
+
+  await page.goto(`${baseUrl}/results.html?v=messaging-target-context&asset=icp&recordId=${recordId}`, { waitUntil: "load" });
+  await page.waitForSelector("#draft-icp .field", { timeout: 20000 });
+  const icp = await page.evaluate(() => Object.fromEntries(
+    [...document.querySelectorAll("#draft-icp .field")].map((field) => [
+      field.querySelector("h3")?.textContent || "",
+      field.innerText || ""
+    ])
+  ));
+  check("B2B ICP targets the buying account", /Pilates studio owners and managers/i.test(icp["Who we are targeting"] || ""), icp["Who we are targeting"] || "");
+  check("B2B ICP does not use trait categories as the target", !/Specific lifestyle|Specific buying window/i.test(icp["Who we are targeting"] || ""), icp["Who we are targeting"] || "");
+  check("ICP explains dropdown answers in natural language", /They may be dissatisfied because current options lack/i.test(icp["Problem we believe they have"] || "") && /may create a reason to act now|may give them a reason to evaluate or buy now/i.test(icp["Why they may act now"] || ""), JSON.stringify(icp));
+  check("Channel ICP separates buyer from end user", /Retail buyer or merchant is likely/i.test(icp["Who makes or influences the decision"] || "") && !/End consumer/i.test(icp["Who makes or influences the decision"] || "") && /End consumer or product user would use or benefit/i.test(icp["Who uses or benefits from the product"] || ""), JSON.stringify(icp));
+  check("Evidence is not presented as a fit criterion", !/interviews|prototype reactions|evidence/i.test(icp["How to recognize a good fit"] || ""), icp["How to recognize a good fit"] || "");
   check("No browser errors", errors.length === 0, errors.join(" | "));
 } finally {
   await context.close();

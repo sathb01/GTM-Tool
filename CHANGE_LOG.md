@@ -1,8 +1,16 @@
 # GTM Tool Change Log
 
-Last updated: 2026-08-16
+Last updated: 2026-08-21
 
 This file records the major actions and changes made during the GTM Tool refinement work.
+
+## 2026-08-21 — Keep B2B buying accounts separate from end users in the ICP Brief
+
+- Corrected the pre-revenue ICP Brief so `Who we are targeting` is derived from the selected buying path and the paying customer or buying account, rather than from generic lifestyle, workflow, or timing trait categories.
+- Channel and wholesale paths now prefer a named business segment, business-like account definition, or channel buyer role; end-user use cases remain contextual information rather than replacing the B2B target.
+- Clarified the first-customer and candidate-segment intake questions so users name the party that buys, approves, carries, or resells the offer. Existing field IDs and saved-record compatibility are preserved.
+- Added an ICP presentation layer that turns structured dropdown selections into short, normal-language statements instead of displaying form-option labels verbatim.
+- Added QA coverage for the buying-account rule and for preventing legacy segment-type values from appearing as the ICP target.
 
 ## 2026-08-20 Usable ICP, Messaging, Target List, and Proof Workflows
 

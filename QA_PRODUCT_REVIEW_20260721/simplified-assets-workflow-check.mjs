@@ -7,6 +7,9 @@ const results = [];
 const check = (name, passed) => results.push({ name, passed: Boolean(passed) });
 
 check("ICP is presented as a usable brief", /title: "ICP Brief"/.test(source) && /Who we are targeting/.test(source) && /How to recognize a good fit/.test(source) && /What we still need to learn/.test(source));
+check("B2B ICP target follows the buying account", /function preRevenueLooksLikeBuyingAccount/.test(source) && /pathKind === "channel"/.test(source) && /preRevenueListAnswer\(target, "Name the paying customer or buying account/.test(source));
+check("ICP does not put segment trait categories in the target name", !/\["Who we are targeting", preRevenueListAnswer\(preRevenueKnownOrClue\([^\n]*segmentType/.test(source));
+check("ICP translates dropdown selections into natural language", /function preRevenueIcpNaturalLanguage/.test(source) && /preRevenueIcpAnswer\([^\n]+"problem"/.test(source) && /preRevenueIcpAnswer\([^\n]+"urgency"/.test(source));
 check("ICP can be copied, printed, or edited", /id="copyIcpBrief"/.test(source) && /Download \/ Print/.test(source) && /Edit ICP Source Answers/.test(source));
 check("Target List explains how completion is recorded", /How to complete Target List Setup/.test(source) && /Save review list and complete Target List Setup/.test(source));
 check("Target-search clues use plain language", /Website or software clues to look for/.test(source) && /People or places that could introduce you/.test(source));

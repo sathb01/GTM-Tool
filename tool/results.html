@@ -15385,6 +15385,49 @@
       return values.length ? values : preRevenueBulletAnswer(fallback);
     }
 
+    function preRevenueIcpNaturalLanguage(item, context = "") {
+      const text = cleanText(item).replace(/[.]+$/, "");
+      if (!text) return "";
+      const lower = text.charAt(0).toLowerCase() + text.slice(1);
+      const specificTrait = text.match(/^Specific (.+)$/i)?.[1];
+      if (specificTrait) {
+        const trait = specificTrait
+          .replace(/buying window, season, deadline, or trigger/i, "buying window or trigger")
+          .replace(/buyer type, account type, or channel type/i, "buyer or account type");
+        return `Look for a clearly identifiable ${trait}.`;
+      }
+      if (context === "problem") {
+        if (/^Current options /i.test(text)) return `They may be dissatisfied because ${lower}.`;
+        if (/^The problem /i.test(text)) return `${text}.`;
+        return `The working hypothesis is that they are dealing with ${lower}.`;
+      }
+      if (context === "urgency") {
+        const urgencyMap = {
+          "Seasonal buying window": "A seasonal buying or assortment-planning window may create a reason to act now.",
+          "Category reset or assortment planning": "An upcoming category reset or assortment-planning decision may create urgency.",
+          "New product launch": "A new product launch may create a timely reason to evaluate the offer.",
+          "Problem with current product": "A problem with the product they use today may prompt them to consider an alternative.",
+          "Founder has access to buyers now": "The team can reach relevant buyers now, making this a practical time to test the hypothesis."
+        };
+        return urgencyMap[text] || `${text} may give them a reason to evaluate or buy now.`;
+      }
+      if (context === "role") return `${text.replace(/\s*\/\s*/g, " or ")} is likely to participate in, influence, or approve the buying decision.`;
+      if (context === "user") return `${text.replace(/\s*\/\s*/g, " or ")} would use or benefit from the product, but is not necessarily the buying account.`;
+      if (context === "fit") return `Look for accounts or buyers that show ${lower}.`;
+      if (context === "exclude") {
+        if (/^Hard to reach buyers$/i.test(text)) return "Deprioritize accounts when the relevant buyer cannot be reached through a practical channel.";
+        if (/^Crowded category$/i.test(text)) return "Deprioritize accounts where the category is too crowded to earn attention or differentiate the offer.";
+        return `Deprioritize accounts or buyers where ${lower}.`;
+      }
+      return `${text}.`;
+    }
+
+    function preRevenueIcpAnswer(value, context, fallback = missingText) {
+      const values = Array.isArray(value) ? preRevenueUniqueItems(value) : preRevenueListParts(value);
+      const sentences = values.map((item) => preRevenueIcpNaturalLanguage(item, context)).filter(Boolean);
+      return sentences.length ? sentences : preRevenueBulletAnswer(fallback);
+    }
+
     function preRevenueSentenceAnswer(value, fallback = missingText) {
       return cleanText(value) || fallback;
     }
@@ -15394,10 +15437,10 @@
       return text ? [text] : fallback;
     }
 
-    function preRevenueBuyerRoles(values = {}) {
+    function preRevenueBuyerRoles(values = {}, pathKind = "mixed") {
       return preRevenueUniqueItems([
-        ...preRevenueListParts(values.likelyBuyerDtc),
-        ...preRevenueListParts(values.likelyBuyerChannel),
+        ...(pathKind !== "channel" ? preRevenueListParts(values.likelyBuyerDtc) : []),
+        ...(pathKind !== "dtc" ? preRevenueListParts(values.likelyBuyerChannel) : []),
         ...preRevenueListParts(values.likelyBuyer),
         ...preRevenueListParts(values.likelyBuyerUnknown)
       ]).join("; ");
@@ -15437,11 +15480,28 @@
       );
     }
 
+    function preRevenueLooksLikeBuyingAccount(value) {
+      return /\b(company|companies|business|businesses|studio|studios|store|stores|retailer|retailers|shop|shops|practice|practices|clinic|clinics|agency|agencies|firm|firms|team|teams|school|schools|organization|organizations|operator|operators|owner|owners|distributor|distributors|reseller|resellers|partner|partners|marketplace|merchant|merchants|buyer|buyers)\b/i.test(cleanText(value));
+    }
+
+    function preRevenueIsGenericSegmentName(value) {
+      return /^(?:channel buyers or partners|small businesses or teams|marketplace participants|problem-aware buyers|owners,? operators,? or founders|candidate segment|other)$/i.test(cleanText(value));
+    }
+
     function preRevenueTargetLabel(data, row) {
       const specific = preRevenueSpecificSegmentDefinition(data, row)
         .replace(/^(?:start with|the first-win segment is)\s+/i, "")
         .replace(/[.!?]+$/, "");
-      return specific || preRevenueSegmentName(row);
+      const segment = preRevenueSegmentName(row);
+      const pathKind = preRevenuePathKindForRow(row);
+      if (pathKind === "channel") {
+        if (specific && preRevenueLooksLikeBuyingAccount(specific) && preRevenueIsGenericSegmentName(segment)) return specific;
+        if (segment && !/^end users?\b/i.test(segment)) return segment;
+        const accountContext = cleanText(data?.customerContextStarter);
+        if (accountContext && preRevenueLooksLikeBuyingAccount(accountContext)) return accountContext;
+        return preRevenueFirstListItem(row?.values?.likelyBuyerChannel, "Channel buyer or business account");
+      }
+      return specific || segment;
     }
 
     function preRevenueIcpHypothesis(row, data = {}) {
@@ -18286,13 +18346,16 @@
           id: "draft-icp",
           title: "ICP Brief",
           rows: [
-            ["Who we are targeting", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.segmentName, primary?.values.segmentName__other, primary?.values.segmentType, primary?.values.segmentTypeUnknown), target)],
-            ["Their situation", preRevenueListAnswer(primary?.values.specificUseCaseDefinition || primary?.values.description || data.customerContextStarter, "Describe the situation, job, or occasion that makes this customer relevant.")],
-            ["Problem we believe they have", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.problem, primary?.values.problemUnknown), "Confirm the problem in real buyer conversations.")],
-            ["Why they may act now", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.whyNow, primary?.values.whyNowUnknown), "Confirm the event or condition that creates urgency.")],
-            ["Who makes or influences the decision", preRevenueListAnswer(preRevenueBuyerRoles(primary?.values), "Confirm who buys, uses, recommends, approves, or blocks the decision.")],
-            ["How to recognize a good fit", preRevenueListAnswer(personaAssetItems(primary?.values.observableTraits, primary?.values.fitSignals, primary?.values.evidenceNotes), "Use a small number of visible characteristics that can guide list building.")],
-            ["Who not to pursue yet", preRevenueListAnswer(primary?.values.risks, "Avoid groups that are hard to reach, slow to validate, or poorly matched to delivery.")],
+            ["Who we are targeting", preRevenueListAnswer(target, "Name the paying customer or buying account this plan will pursue first.")],
+            ["Their situation", preRevenueListAnswer(primary?.values.specificUseCaseDefinition || data.customerContextStarter, "Describe the situation, job, or occasion that makes this customer relevant.")],
+            ["Problem we believe they have", preRevenueIcpAnswer(preRevenueKnownOrClue(primary?.values.problem, primary?.values.problemUnknown), "problem", "Confirm the problem in real buyer conversations.")],
+            ["Why they may act now", preRevenueIcpAnswer(preRevenueKnownOrClue(primary?.values.whyNow, primary?.values.whyNowUnknown), "urgency", "Confirm the event or condition that creates urgency.")],
+            ["Who makes or influences the decision", preRevenueIcpAnswer(preRevenueBuyerRoles(primary?.values, preRevenuePathKindForRow(primary)), "role", "Confirm who buys, recommends, approves, or blocks the decision.")],
+            ...(preRevenuePathKindForRow(primary) === "channel" && cleanText(primary?.values.likelyBuyerDtc)
+              ? [["Who uses or benefits from the product", preRevenueIcpAnswer(primary.values.likelyBuyerDtc, "user")]]
+              : []),
+            ["How to recognize a good fit", preRevenueIcpAnswer(personaAssetItems(primary?.values.observableTraits, primary?.values.fitSignals), "fit", "Add a small number of visible account characteristics that can guide list building.")],
+            ["Who not to pursue yet", preRevenueIcpAnswer(primary?.values.risks, "exclude", "Avoid groups that are hard to reach, slow to validate, or poorly matched to delivery.")],
             ["What we still need to learn", preRevenueListAnswer(preRevenueEvidenceGapItems(data, primary), "Use the first conversations to confirm the problem, buyer, urgency, and willingness to take a next step.")],
             ["Use this brief", preRevenueBulletAnswer("Use this as the practical filter for Target List Setup, buyer conversations, and the first 30-day validation test. Update the source answers when evidence changes the customer hypothesis.")]
           ]
