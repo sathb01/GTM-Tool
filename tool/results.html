@@ -15491,6 +15491,30 @@
       );
     }
 
+    function preRevenueIsFrameworkTraitList(value) {
+      const frameworkTraits = new Set([
+        "specific use case, job, task, or occasion",
+        "specific product, service, software, or solution category",
+        "specific lifestyle, workflow, identity, or goal",
+        "specific geography",
+        "specific price point or budget range",
+        "specific age, life stage, company stage, or maturity level",
+        "specific community, industry, role, or interest group",
+        "specific buyer type, account type, or channel type",
+        "specific buying window, season, deadline, or trigger",
+        "specific channel, marketplace, platform, or source"
+      ]);
+      const parts = preRevenueListParts(value).map((item) => cleanText(item).toLowerCase());
+      return parts.length > 0 && parts.every((item) => frameworkTraits.has(item));
+    }
+
+    function preRevenuePlainLanguageSegmentContext(data, row) {
+      const specific = preRevenueSpecificSegmentDefinition(data, row);
+      const savedContext = cleanText(data?.customerContextStarter);
+      if (!specific || preRevenueIsFrameworkTraitList(specific)) return savedContext;
+      return specific || savedContext;
+    }
+
     function preRevenueLooksLikeBuyingAccount(value) {
       return /\b(company|companies|business|businesses|studio|studios|store|stores|retailer|retailers|shop|shops|practice|practices|clinic|clinics|agency|agencies|firm|firms|team|teams|school|schools|organization|organizations|operator|operators|owner|owners|distributor|distributors|reseller|resellers|partner|partners|marketplace|merchant|merchants|buyer|buyers)\b/i.test(cleanText(value));
     }
@@ -15500,10 +15524,11 @@
     }
 
     function preRevenueTargetLabel(data, row) {
-      const specific = preRevenueSpecificSegmentDefinition(data, row)
+      const specific = preRevenuePlainLanguageSegmentContext(data, row)
         .replace(/^(?:start with|the first-win segment is)\s+/i, "")
         .replace(/[.!?]+$/, "");
-      const segment = preRevenueSegmentName(row);
+      const segmentValue = preRevenueSegmentName(row);
+      const segment = preRevenueIsFrameworkTraitList(segmentValue) ? "Customer segment not described yet" : segmentValue;
       const pathKind = preRevenuePathKindForRow(row);
       if (pathKind === "channel") {
         if (specific && preRevenueLooksLikeBuyingAccount(specific) && preRevenueIsGenericSegmentName(segment)) return specific;
@@ -15521,7 +15546,7 @@
       const values = row.values || {};
       const type = preRevenueFirstListItem(preRevenueKnownOrClue(values.segmentType, values.segmentTypeUnknown, values.segmentName__other, values.segmentName), "a reachable buyer or user group");
       const problem = preRevenueFirstListItem(preRevenueKnownOrClue(values.problem, values.problemUnknown), "a problem worth validating");
-      const specificDefinition = preRevenueSpecificSegmentDefinition(data, row);
+      const specificDefinition = preRevenuePlainLanguageSegmentContext(data, row);
       return [
         `Draft ICP: ${name}.`,
         specificDefinition ? `Plain-English profile: ${specificDefinition.replace(/[.]+$/, "")}.` : `Plain-English profile: ${type}.`,
@@ -15842,20 +15867,21 @@
     function preRevenuePlanDecisionRows(data, model) {
       const row = model.primary;
       const targetCategory = preRevenueSegmentName(row);
+      const savedCustomerDescription = cleanText(data.customerContextStarter);
       const target = preRevenueTargetLabel(data, row);
       const problem = preRevenuePrimaryProblem(row);
       const primaryRoute = cleanText(row?.values.likelyBuyerPath) || data.preRevenueRouteToMarket;
-      const specificDefinition = preRevenueSpecificSegmentDefinition(data, row);
+      const specificDefinition = preRevenuePlainLanguageSegmentContext(data, row);
       const recommendedTarget = preRevenueTargetLabel(data, model.recommended);
       const conflictRows = model.overrideConflict ? [
         ["Override status", preRevenueBulletAnswer(`User override: the plan leads with ${target}, even though the scoring model ranks ${recommendedTarget} first.`)],
         ["Score conflict", preRevenueBulletAnswer(`${target} has a recommendation score of ${row?.recommendationScore || 0}/100 versus ${model.recommended?.recommendationScore || 0}/100 for ${recommendedTarget}. Preserve the override, but validate the reason for choosing it before scaling.`)]
       ] : [];
       return [
-        ["Decision this plan should make", preRevenueBulletAnswer(`Decide whether the selected first-win segment (${target}) should be validated further, revised, or replaced.`)],
+        ["Decision this plan should make", preRevenueBulletAnswer(`Decide whether this is the right first customer segment to validate: ${target.replace(/[.!?]+$/, "")}. If the evidence does not support it, revise or replace it.`)],
         ["First segment to test", preRevenueBulletAnswer(target)],
         ...conflictRows,
-        ...(specificDefinition && targetCategory.toLowerCase() !== target.toLowerCase() ? [["Segment category", preRevenueBulletAnswer(targetCategory)]] : []),
+        ...(!savedCustomerDescription && specificDefinition && targetCategory.toLowerCase() !== target.toLowerCase() ? [["Segment category", preRevenueBulletAnswer(targetCategory)]] : []),
         ["Primary route being tested", preRevenueBulletAnswer(primaryRoute)],
         ["Core validation thesis", preRevenueBulletAnswer(`Continue with this segment if qualified targets clearly recognize that ${problem.toLowerCase()} and take a measurable next step. If not, revise the segment, message, offer, or route before scaling.`)],
         ["What not to do yet", preRevenueBulletAnswer("Do not treat this as a full GTM rollout yet. The job of this plan is to create enough evidence to decide what to continue, revise, or stop.")]
@@ -18359,7 +18385,7 @@
           rows: [
             ["Target account or paying customer", preRevenueListAnswer(target, "Name the company, account, channel, or paying customer this plan will pursue first.")],
             ["Firmographic and geographic fit", preRevenueListAnswer(preRevenueUniqueItems([industryDisplay(data) ? `Industry or category: ${industryDisplay(data)}.` : "", businessModelDisplay(data) ? `Business model: ${businessModelDisplay(data)}.` : "", data.geography ? `Geography: ${data.geography}.` : "", preRevenueKnownOrClue(primary?.values.segmentType, primary?.values.segmentTypeUnknown) ? `Customer or account type: ${preRevenueKnownOrClue(primary?.values.segmentType, primary?.values.segmentTypeUnknown)}.` : ""]), "Define the relevant industry or category, geography, size, stage, or other measurable account characteristics.")],
-            ["Operating context", preRevenueListAnswer(preRevenueUniqueItems([primary?.values.specificUseCaseDefinition, data.customerContextStarter]), "Describe what is happening inside the account and why this type of account is relevant.")],
+            ["Operating context", preRevenueListAnswer(preRevenuePlainLanguageSegmentContext(data, primary), "Describe what is happening inside the account and why this type of account is relevant.")],
             ["Account-level need", preRevenueIcpAnswer(preRevenueKnownOrClue(primary?.values.problem, primary?.values.problemUnknown), "problem", "Confirm the business need in real account conversations.")],
             ["Commercial and delivery fit", preRevenueListAnswer(preRevenueUniqueItems([primary?.values.revenuePotentialContext ? `Revenue potential: ${primary.values.revenuePotentialContext}.` : "", primary?.values.deliveryFit ? `Delivery fit: ${primary.values.deliveryFit}.` : "", data.prePriceTest ? `Commercial test: ${data.prePriceTest}.` : ""]), "Confirm that the account can buy at workable economics and can be served successfully.")],
             ["Buying pattern and timing", preRevenueListAnswer(preRevenueUniqueItems([primary?.values.likelyBuyerPath ? `Expected buying path: ${primary.values.likelyBuyerPath}.` : "", primary?.values.timingRequirements ? `Buying conditions: ${primary.values.timingRequirements}.` : "", ...preRevenueIcpAnswer(preRevenueKnownOrClue(primary?.values.whyNow, primary?.values.whyNowUnknown), "urgency", "Define the season, planning cycle, event, or trigger that creates a buying window.")]), "Define how accounts like this buy and which season, planning cycle, event, or trigger creates a buying window.")],
@@ -18895,7 +18921,7 @@
 
     function preRevenueBuyerOutcome(data, row, pathKind) {
       const values = row?.values || {};
-      const useCase = cleanText(values.specificUseCaseDefinition || preRevenueSpecificSegmentDefinition(data, row) || data.customerContextStarter);
+      const useCase = preRevenuePlainLanguageSegmentContext(data, row);
       const accessibleGoal = useCase.match(/\bwant(?:s)?\s+(.+?)\s+within easy reach(.+?)(?:[.!?]|$)/i);
       if (accessibleGoal) return `keep ${accessibleGoal[1]} within easy reach${accessibleGoal[2]}`;
       const statedGoal = useCase.match(/\b(?:want|wants|need|needs|are trying)\s+to\s+(.+?)(?:[.!?]|$)/i)?.[1];
@@ -18947,9 +18973,9 @@
           : personaAssetItems(values.likelyBuyerDtc, values.likelyBuyerChannel, values.likelyBuyer, values.likelyBuyerUnknown));
       const roleName = preRevenueRecommendedPersonaRole(data, row, pathKind, pathRoles);
       const customerGroup = preRevenueTargetLabel(data, row);
-      const specificContext = cleanText(preRevenueSpecificSegmentDefinition(data, row) || data.customerContextStarter || values.description);
+      const specificContext = cleanText(preRevenuePlainLanguageSegmentContext(data, row) || values.description);
       const buyerOutcome = preRevenueBuyerOutcome(data, row, pathKind);
-      const detailedAudience = cleanText(data.customerContextStarter || values.specificUseCaseDefinition);
+      const detailedAudience = preRevenuePlainLanguageSegmentContext(data, row);
       const messagingAudience = detailedAudience.match(/^(.+?)\s+(?:and\s+)?(?:want|wants|need|needs|are trying)\b/i)?.[1] || customerGroup;
       const problemValues = pathKind === "dtc"
         ? [values.problem, data.preProblemHypothesisDtc]

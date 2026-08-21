@@ -4,6 +4,14 @@ Last updated: 2026-08-21
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-08-21 — Plain-language validation plan summary
+
+- Updated the pre-revenue Plan Summary to use the saved plain-language customer description for the decision and first-segment fields when it is available.
+- Reworded the plan decision as a familiar customer-segment choice and suppressed the redundant structured segment category when the plain-language description is shown.
+- Audited the remaining pre-revenue plan surfaces and centralized their customer-label presentation so framework trait prompts no longer appear as if they were a usable customer description.
+- The validation plan, ICP Brief, Persona Brief, validation workspace, Target List, Messaging Kit, and weekly execution views now prefer the saved plain-language customer context while retaining the structured traits as internal qualification criteria.
+- Removed the newly introduced automatic opening of the Saved Brands grid on the intake page. Saved records remain available through search and the explicit Browse action without exposing every company at the top of the tool.
+
 ## 2026-08-21 — Clear ICP Brief next step
 
 - Replaced the equal-weight action area at the bottom of both ICP Brief variants with a clear primary `Build Your Target List` CTA.

@@ -6217,7 +6217,6 @@ function renderBrandPicker() {
   const search = document.getElementById("brandSearch");
   const options = document.getElementById("savedBrandOptions");
   const list = document.getElementById("brandList");
-  const browser = document.getElementById("brandBrowser");
   const status = document.getElementById("savedBrandStatus");
   const active = currentRecord();
   const records = sortedRecords();
@@ -6235,10 +6234,6 @@ function renderBrandPicker() {
       : records.length
         ? `${records.length} saved ${records.length === 1 ? "company" : "companies"} — choose one below`
         : "No saved companies yet";
-  }
-
-  if (browser && records.length && !active) {
-    browser.classList.add("open");
   }
 
   records.forEach((record) => {
