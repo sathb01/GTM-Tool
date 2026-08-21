@@ -1,6 +1,16 @@
 # Agent Instructions for GTM-Tool
 
-Last recovered: 2026-06-22
+Last updated: 2026-08-21
+
+## Authoritative workspace
+
+The only active local development checkout is:
+
+```text
+C:\Users\USER\source\GTM-Tool
+```
+
+Do not develop, test, commit, launch, or serve the application from the former OneDrive checkout. If a Codex task opens with the OneDrive copy as its workspace, stop before making changes and ask the user to reopen the task from the authoritative path above. The former checkout is retained temporarily only so an already-open task can finish its handoff.
 
 ## Read first
 
@@ -152,7 +162,7 @@ So syntax checks, local HTTP checks, and generated export artifacts have been us
 
 ## Git and deployment warnings
 
-As of the recovery on 2026-06-22, Git reports the project files as untracked and `origin/main` as gone from this local checkout. Do not assume normal tracked diffs are available until Git is repaired.
+Git was repaired and consolidated on 2026-08-21. The authoritative checkout must remain on `main`, synchronized with `origin/main`, and free of local changes before new product work begins.
 
 Remote configured in `.git/config`:
 
