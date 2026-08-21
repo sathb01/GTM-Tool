@@ -3825,8 +3825,8 @@
       },
       icp: {
         label: "ICP Brief",
-        purpose: "Define a measurable, reachable customer hypothesis that can guide research, targeting, and validation.",
-        requiredContent: ["customer definition", "problem or use case", "observable fit", "timing or trigger", "buyer roles", "evidence and gaps"]
+        purpose: "Define the measurable company, account, channel, or paying-customer profile that should guide targeting and qualification.",
+        requiredContent: ["account definition", "firmographic and geographic fit", "operating context", "commercial fit", "buying patterns", "observable signals", "disqualifiers", "evidence and gaps"]
       },
       personas: {
         label: "Persona Brief",
@@ -15428,6 +15428,17 @@
       return sentences.length ? sentences : preRevenueBulletAnswer(fallback);
     }
 
+    function appendIcpPersonaBoundary(container, activeAsset) {
+      container.querySelectorAll("[data-asset-boundary]").forEach((item) => item.remove());
+      const section = document.createElement("div");
+      section.id = `${activeAsset}-asset-boundary`;
+      section.dataset.assetBoundary = activeAsset;
+      section.className = "overview-note no-print";
+      section.innerHTML = `<h2>Know Which Brief to Use</h2><div class="persona-guide-grid"><div class="persona-guide-block"><h3>ICP Brief: qualify the account</h3><p>Use the ICP to decide which company, account, channel, or paying customer belongs on the Target List. It covers firmographic and geographic fit, operating context, economics, buying patterns, observable signals, and disqualifiers.</p>${activeAsset === "icp" ? "<p><strong>You are here.</strong></p>" : `<div class="card-actions"><a class="secondary" href="${escapeHtml(reportAssetUrl("icp"))}">Open ICP Brief</a></div>`}</div><div class="persona-guide-block"><h3>Persona Brief: understand the people</h3><p>Use the Persona Brief after an account qualifies. It explains the individual roles involved in the decision, their responsibilities, goals, authority, objections, proof needs, and preferred conversation approach.</p>${activeAsset === "personas" ? "<p><strong>You are here.</strong></p>" : `<div class="card-actions"><a class="secondary" href="${escapeHtml(reportAssetUrl("personas"))}">Open Persona Brief</a></div>`}</div></div>`;
+      container.appendChild(section);
+      return section;
+    }
+
     function preRevenueSentenceAnswer(value, fallback = missingText) {
       return cleanText(value) || fallback;
     }
@@ -16992,16 +17003,16 @@
           label: "ICP Brief",
           asset: "icp",
           type: "reference",
-          purpose: "Use the customer definition and fit rules when choosing targets.",
-          done: "You can explain who belongs on the Target List and who does not."
+          purpose: "Use the company or account profile and qualification rules when choosing targets.",
+          done: "You can explain which accounts belong on the Target List and which do not."
         },
         {
           id: "personas",
           label: "Persona Brief",
           asset: "personas",
           type: "reference",
-          purpose: "Use the buyer roles, concerns, and discovery questions during outreach.",
-          done: "The first buyer role and the questions to ask are clear."
+          purpose: "After an account qualifies, use the individual buyer roles, concerns, and discovery questions during outreach.",
+          done: "The first individual to contact, their role in the decision, and the questions to ask are clear."
         },
         {
           id: "targets",
@@ -18346,18 +18357,17 @@
           id: "draft-icp",
           title: "ICP Brief",
           rows: [
-            ["Who we are targeting", preRevenueListAnswer(target, "Name the paying customer or buying account this plan will pursue first.")],
-            ["Their situation", preRevenueListAnswer(primary?.values.specificUseCaseDefinition || data.customerContextStarter, "Describe the situation, job, or occasion that makes this customer relevant.")],
-            ["Problem we believe they have", preRevenueIcpAnswer(preRevenueKnownOrClue(primary?.values.problem, primary?.values.problemUnknown), "problem", "Confirm the problem in real buyer conversations.")],
-            ["Why they may act now", preRevenueIcpAnswer(preRevenueKnownOrClue(primary?.values.whyNow, primary?.values.whyNowUnknown), "urgency", "Confirm the event or condition that creates urgency.")],
-            ["Who makes or influences the decision", preRevenueIcpAnswer(preRevenueBuyerRoles(primary?.values, preRevenuePathKindForRow(primary)), "role", "Confirm who buys, recommends, approves, or blocks the decision.")],
-            ...(preRevenuePathKindForRow(primary) === "channel" && cleanText(primary?.values.likelyBuyerDtc)
-              ? [["Who uses or benefits from the product", preRevenueIcpAnswer(primary.values.likelyBuyerDtc, "user")]]
-              : []),
-            ["How to recognize a good fit", preRevenueIcpAnswer(personaAssetItems(primary?.values.observableTraits, primary?.values.fitSignals), "fit", "Add a small number of visible account characteristics that can guide list building.")],
-            ["Who not to pursue yet", preRevenueIcpAnswer(primary?.values.risks, "exclude", "Avoid groups that are hard to reach, slow to validate, or poorly matched to delivery.")],
-            ["What we still need to learn", preRevenueListAnswer(preRevenueEvidenceGapItems(data, primary), "Use the first conversations to confirm the problem, buyer, urgency, and willingness to take a next step.")],
-            ["Use this brief", preRevenueBulletAnswer("Use this as the practical filter for Target List Setup, buyer conversations, and the first 30-day validation test. Update the source answers when evidence changes the customer hypothesis.")]
+            ["Target account or paying customer", preRevenueListAnswer(target, "Name the company, account, channel, or paying customer this plan will pursue first.")],
+            ["Firmographic and geographic fit", preRevenueListAnswer(preRevenueUniqueItems([industryDisplay(data) ? `Industry or category: ${industryDisplay(data)}.` : "", businessModelDisplay(data) ? `Business model: ${businessModelDisplay(data)}.` : "", data.geography ? `Geography: ${data.geography}.` : "", preRevenueKnownOrClue(primary?.values.segmentType, primary?.values.segmentTypeUnknown) ? `Customer or account type: ${preRevenueKnownOrClue(primary?.values.segmentType, primary?.values.segmentTypeUnknown)}.` : ""]), "Define the relevant industry or category, geography, size, stage, or other measurable account characteristics.")],
+            ["Operating context", preRevenueListAnswer(preRevenueUniqueItems([primary?.values.specificUseCaseDefinition, data.customerContextStarter]), "Describe what is happening inside the account and why this type of account is relevant.")],
+            ["Account-level need", preRevenueIcpAnswer(preRevenueKnownOrClue(primary?.values.problem, primary?.values.problemUnknown), "problem", "Confirm the business need in real account conversations.")],
+            ["Commercial and delivery fit", preRevenueListAnswer(preRevenueUniqueItems([primary?.values.revenuePotentialContext ? `Revenue potential: ${primary.values.revenuePotentialContext}.` : "", primary?.values.deliveryFit ? `Delivery fit: ${primary.values.deliveryFit}.` : "", data.prePriceTest ? `Commercial test: ${data.prePriceTest}.` : ""]), "Confirm that the account can buy at workable economics and can be served successfully.")],
+            ["Buying pattern and timing", preRevenueListAnswer(preRevenueUniqueItems([primary?.values.likelyBuyerPath ? `Expected buying path: ${primary.values.likelyBuyerPath}.` : "", primary?.values.timingRequirements ? `Buying conditions: ${primary.values.timingRequirements}.` : "", ...preRevenueIcpAnswer(preRevenueKnownOrClue(primary?.values.whyNow, primary?.values.whyNowUnknown), "urgency", "Define the season, planning cycle, event, or trigger that creates a buying window.")]), "Define how accounts like this buy and which season, planning cycle, event, or trigger creates a buying window.")],
+            ["Observable account signals", preRevenueIcpAnswer(personaAssetItems(primary?.values.observableTraits, primary?.values.fitSignals), "fit", "Add visible account characteristics or behaviors that can be used to find and qualify targets. Do not use generic trait categories as a substitute for actual signals.")],
+            ["Disqualifiers", preRevenueIcpAnswer(primary?.values.risks, "exclude", "Identify accounts that are inaccessible, economically unattractive, operationally mismatched, or outside the current focus.")],
+            ["Evidence and confidence", preRevenueListAnswer(preRevenueUniqueItems([`Hypothesis confidence: ${primary?.confidence || "Low"}`, `Evidence strength: ${primary?.evidenceStrength || "Low"}`, ...preRevenueEvidenceItems(primary, data)]), "No direct evidence has been captured yet. Treat this as an account hypothesis.")],
+            ["What still needs to be proven", preRevenueListAnswer(preRevenueEvidenceGapItems(data, primary), "Confirm account fit, economics, buying pattern, urgency, and repeatability before scaling.")],
+            ["Use this brief", preRevenueBulletAnswer("Use this profile to decide which accounts belong on the Target List. After an account qualifies, use the Persona Brief to decide which individual to contact and how to approach the conversation.")]
           ]
         },
         {
@@ -18373,7 +18383,7 @@
           ]
         },
         {
-          asset: "gtm icp",
+          asset: "gtm",
           id: "discovery-questions",
           title: "Discovery Questions to Ask",
           rows: preRevenueDiscoveryQuestions(primary).map((question, index) => [`Question ${index + 1}`, preRevenueBulletAnswer(question)])
@@ -18432,11 +18442,17 @@
       });
 
       if (assetMode === "icp") {
+        const icpSection = document.getElementById("draft-icp");
+        const boundary = icpSection ? appendIcpPersonaBoundary(icpSection, "icp") : null;
+        if (boundary) icpSection.insertBefore(boundary, icpSection.firstChild);
+      }
+
+      if (assetMode === "icp") {
         const icpActions = document.createElement("section");
         icpActions.id = "icp-brief-actions";
         icpActions.dataset.toc = "Use This Brief";
         icpActions.className = "no-print";
-        icpActions.innerHTML = `<h2>Use This Brief</h2><p>This is a working customer hypothesis, not a form-data summary. Use it to decide who belongs on the first Target List and what the first buyer conversations need to confirm.</p><div class="report-bottom-actions"><button type="button" id="copyIcpBrief">Copy ICP Brief</button><button type="button" class="secondary" id="printIcpBrief">Download / Print</button><a class="secondary" href="${escapeHtml(intakeReviewUrl("customer icp priority", { returnToCurrentReport: true, returnSectionId: "draft-icp" }))}">Edit ICP Source Answers</a><a class="secondary" href="${escapeHtml(guidedToolWorkspaceUrl("targets", "summary"))}">Use in Target List Setup</a></div><p class="muted" id="icpBriefActionStatus"></p>`;
+        icpActions.innerHTML = `<h2>Use This Brief</h2><p>This is a working account hypothesis, not a form-data summary. Use it to decide which companies, accounts, channels, or paying customers belong on the first Target List. After an account qualifies, use the Persona Brief to identify the right individual and plan the conversation.</p><div class="report-bottom-actions"><button type="button" id="copyIcpBrief">Copy ICP Brief</button><button type="button" class="secondary" id="printIcpBrief">Download / Print</button><a class="secondary" href="${escapeHtml(intakeReviewUrl("customer icp priority", { returnToCurrentReport: true, returnSectionId: "draft-icp" }))}">Edit ICP Source Answers</a><a class="secondary" href="${escapeHtml(guidedToolWorkspaceUrl("targets", "summary"))}">Use in Target List Setup</a></div><p class="muted" id="icpBriefActionStatus"></p>`;
         main.appendChild(icpActions);
         icpActions.querySelector("#copyIcpBrief").addEventListener("click", async () => {
           const status = icpActions.querySelector("#icpBriefActionStatus");
@@ -18472,9 +18488,6 @@
       const values = group?.values || {};
       const criteria = targetListCriteria(model);
       const targetList = targetListGuidance(model);
-      const buyerRoles = personaRowsForPlan(model)
-        .slice(0, 5)
-        .map((row) => `${row.label}: ${cleanText(row.titles).replace(/;\s*/g, ", ")}. Needs: ${cleanText(row.concern).replace(/;\s*/g, ", ")}. Proof: ${cleanText(row.proof).replace(/;\s*/g, ", ")}`);
       const evidence = normalizeList([
         values.notesEvidence,
         values.evidenceSource,
@@ -18500,15 +18513,16 @@
           ? "ICP candidate with evidence to test"
           : "ICP hypothesis to test";
       return [
-        ["Who we are targeting", values.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer || "Not selected yet"],
-        ["Their situation and problem", normalizeList([cleanText(data.customerContextStarter), values.problem || data.bestFitPrimaryPain || data.quickBuyerProblem, values.useCaseDefinition])],
-        ["Why they may act now", normalizeList([values.whyNow || data.bestFitTrigger || data.quickUrgencyNow, values.triggerEvent])],
-        ["Who makes or influences the decision", buyerRoles.length ? buyerRoles : [model.buyer?.label || "The buyer role still needs to be confirmed."]],
-        ["How to recognize a good fit", normalizeList([...criteria.bullets, ...criteria.lookForBullets, ...repeatableListItems(data, "icpMustHaveSignals"), values.observableCompanySignals]).slice(0, 8)],
-        ["Who not to pursue", normalizeList([...repeatableListItems(data, "icpDisqualificationRules"), ...avoidAccountBullets(model)]).slice(0, 6)],
-        ["What supports this hypothesis", [status, ...(evidence.length ? evidence : ["No direct evidence captured yet. Treat this as a hypothesis, not a proven ICP."])]],
-        ["What we still need to learn", (missing.length ? missing : [`Confirm that qualified conversations produce a repeated urgent problem and concrete next steps.`]).slice(0, 6)],
-        ["Use this brief", `Use this as the filter for Target List Setup and buyer conversations. Start with 25 qualified accounts. ${targetList.reason}`]
+        ["Target account", values.groupName || data.bestFitCustomerGroup || data.quickBestFitCustomer || "Not selected yet"],
+        ["Firmographic and geographic fit", normalizeList([values.whoTheyAre, values.segmentIdentityDetails, values.sizeDefinition, data.bestFitRevenueRange, data.bestFitHeadcountRange, data.bestFitSizeScaleRange, data.bestFitMaturityStage, data.geography, industryDisplay(data), businessModelDisplay(data)])],
+        ["Operating context and need", normalizeList([cleanText(data.customerContextStarter), values.useCaseDefinition, values.problem || data.bestFitPrimaryPain || data.quickBuyerProblem, values.resourceConstraintDefinition, values.expertiseGap, values.competitiveContext, repeatableListText(data, "bestFitCurrentWorkaround")])],
+        ["Commercial and delivery fit", normalizeList([values.economicFitDefinition, data.bestFitBudgetCategory, repeatableListText(data, "bestFitBudgetAbility"), data.bestFitImplementationRequirements, repeatableListText(data, "bestFitExpansionValue")])],
+        ["Buying patterns and timing", normalizeList([values.routeToMarketLens, data.bestFitLikelySalesMotion, data.bestFitExpectedSalesCycle, data.bestFitBuyingStages, values.whyNow || data.bestFitTrigger || data.quickUrgencyNow, values.triggerEvent, values.channelBuyingCriteria])],
+        ["Observable account signals", normalizeList([...criteria.bullets, ...criteria.lookForBullets, ...repeatableListItems(data, "icpMustHaveSignals"), values.observableCompanySignals]).slice(0, 8)],
+        ["Disqualifiers", normalizeList([...repeatableListItems(data, "icpDisqualificationRules"), ...repeatableListItems(data, "bestFitDisqualificationSignals"), ...avoidAccountBullets(model)]).slice(0, 8)],
+        ["Evidence and confidence", [status, ...(evidence.length ? evidence : ["No direct evidence captured yet. Treat this as an account hypothesis, not a proven ICP."])]],
+        ["What still needs to be proven", (missing.length ? missing : [`Confirm that qualified accounts show repeatable fit, viable economics, a recognizable buying pattern, and concrete next steps.`]).slice(0, 6)],
+        ["Use this brief", `Use this profile to decide which accounts belong on the Target List. After an account qualifies, use the Persona Brief to identify the right individual and shape the conversation. Start with 25 qualified accounts. ${targetList.reason}`]
       ];
     }
 
@@ -18523,7 +18537,6 @@
       document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} ICP Brief` : "ICP Brief";
       document.getElementById("companyMeta").textContent = [data.website, industryDisplay(data), businessModelDisplay(data), data.companyStage].filter(Boolean).join(" | ");
       main.querySelectorAll("section").forEach((section) => section.remove());
-
       const section = document.createElement("section");
       const heading = document.createElement("h2");
       const grid = document.createElement("div");
@@ -18531,6 +18544,7 @@
       section.dataset.toc = "ICP Brief";
       heading.textContent = "Ideal Customer Profile";
       grid.className = "grid";
+      appendIcpPersonaBoundary(section, "icp");
       section.append(heading, grid);
       renderBlueprintFields(grid, postRevenueIcpAssetRows(model));
       grid.querySelectorAll(".field").forEach((field) => {
@@ -18557,7 +18571,7 @@
       actions.id = "icp-brief-actions";
       actions.dataset.toc = "Use This Brief";
       actions.className = "no-print";
-      actions.innerHTML = `<h2>Use This Brief</h2><p>Use this working profile as the filter for list building and buyer conversations. Edit the source answers when real evidence changes the hypothesis.</p><div class="report-bottom-actions"><button type="button" id="copyIcpBrief">Copy ICP Brief</button><button type="button" class="secondary" id="printIcpBrief">Download / Print</button><a class="secondary" href="${escapeHtml(intakeReviewUrl("customer icp priority", { returnToCurrentReport: true, returnSectionId: "icp-brief" }))}">Edit ICP Source Answers</a><a class="secondary" href="${escapeHtml(guidedToolWorkspaceUrl("targets", "summary"))}">Use in Target List Setup</a></div><p class="muted" id="icpBriefActionStatus"></p>`;
+      actions.innerHTML = `<h2>Use This Brief</h2><p>Use the ICP as the account filter for list building and qualification. Once an account fits, open the Persona Brief to identify the right person and plan the conversation. Edit the ICP source answers when account-level evidence changes the hypothesis.</p><div class="report-bottom-actions"><button type="button" id="copyIcpBrief">Copy ICP Brief</button><button type="button" class="secondary" id="printIcpBrief">Download / Print</button><a class="secondary" href="${escapeHtml(intakeReviewUrl("customer icp priority", { returnToCurrentReport: true, returnSectionId: "icp-brief" }))}">Edit ICP Source Answers</a><a class="secondary" href="${escapeHtml(guidedToolWorkspaceUrl("targets", "summary"))}">Use in Target List Setup</a></div><p class="muted" id="icpBriefActionStatus"></p>`;
       main.appendChild(actions);
       actions.querySelector("#copyIcpBrief").addEventListener("click", async () => {
         const status = actions.querySelector("#icpBriefActionStatus");
@@ -18797,9 +18811,9 @@
         personaAssetModule("Role in the decision", [values.roleInDecision, data.conversationStarter === roleName ? "Often starts the conversation" : "", values.decisionPower ? `Decision power: ${values.decisionPower}` : ""], "Clarify whether this persona starts, evaluates, approves, uses, or can block the decision."),
         personaAssetModule("Goals or objectives", [values.caresAbout, data.quickPrimaryOutcome], "Define the outcome this persona is personally accountable for improving."),
         personaAssetModule("How success is measured", [valueClaim.successMetric, valueClaim.measurementMethod, valueClaim.measureMethod, valueClaim.outcome, valueClaim.improvement, data.quickSuccessMeasure], "Choose one observable business or operating result this persona would use to judge success."),
-        personaAssetModule("Biggest challenges", [values.painPriority, group.problem, data.bestFitPrimaryPain, data.quickBuyerProblem], "Capture the job-level problem, its consequence, and why the current approach is not good enough."),
-        personaAssetModule("Trigger or urgency", [group.whyNow, data.bestFitTrigger, data.quickUrgencyNow], "Identify the event, pressure, deadline, or change that makes this worth acting on now."),
-        personaAssetModule("Current alternatives", [group.currentWorkaround, repeatableListText(data, "bestFitCurrentWorkaround"), data.quickCurrentAlternative], "Document what this persona uses, buys, or does today instead."),
+        personaAssetModule("How the account problem affects this role", [values.painPriority, group.problem, data.bestFitPrimaryPain, data.quickBuyerProblem], "Explain the role's job-level consequence, responsibility, or frustration created by the account problem defined in the ICP."),
+        personaAssetModule("Why this role cares now", [group.whyNow, data.bestFitTrigger, data.quickUrgencyNow], "Explain how the account trigger changes this person's priorities, pressure, risk, or willingness to act."),
+        personaAssetModule("Current approach this role manages", [group.currentWorkaround, repeatableListText(data, "bestFitCurrentWorkaround"), data.quickCurrentAlternative], "Document what this person currently uses, buys, oversees, or asks others to do instead."),
         personaAssetModule("Decision criteria", [values.needsToBelieve, data.reviewRequirements], "Clarify the business, implementation, adoption, and risk conditions that must be true before approval."),
         personaAssetModule("Likely objections", [values.likelyObjection, values.objectionDetail, data.dealBlocker, data.dealStallRisks], "Test for delay, budget, adoption, implementation, proof, security, or competing-priority concerns."),
         personaAssetModule("Proof and assets needed", [values.proofNeeded, values.salesAssetsNeeded], "Provide a relevant customer example, measurable result, implementation path, and risk-reduction proof."),
@@ -18955,15 +18969,14 @@
       const modules = [
         personaAssetModule("Buying job or use context", [specificContext, values.description], "Define the real situation, task, occasion, or buying job in which this persona needs a better option."),
         personaAssetModule("Goals or desired outcome", buyerOutcome, "Define what would have to happen for this persona to say the product or solution worked."),
-        personaAssetModule("Problem to solve", problemValues, "Confirm the unmet need in the persona's own words before presenting the product."),
-        personaAssetModule("Trigger or timing", [values.whyNow, urgency, values.timingRequirements], "Identify the season, event, frustration, deadline, or change that creates a reason to act now."),
-        personaAssetModule("Current alternatives", alternatives, "Ask what this persona currently uses, buys, does, or avoids instead."),
+        personaAssetModule("How the account problem affects this role", problemValues, "Confirm how the account-level need affects this person's work, goals, risk, or responsibilities in their own words."),
+        personaAssetModule("Why this role cares now", [values.whyNow, urgency, values.timingRequirements], "Explain how the account's season, event, frustration, deadline, or change affects this person's priorities now."),
+        personaAssetModule("Current approach this role manages", alternatives, "Ask what this person currently uses, buys, oversees, does, or avoids instead."),
         personaAssetModule("Decision criteria", [values.buyingRequirements, trust, pathKind === "dtc" ? data.preDtcBuyerMoment : ""], "Confirm the product, price, trust, convenience, margin, terms, or adoption criteria that shape the decision."),
         personaAssetModule("Likely worries or objections", [preRevenueBuyerWorries(values), blocker, values.risks], "Test the highest-risk reason this persona might wait, reject, return, avoid, or decline to carry the product."),
         personaAssetModule("Proof needed", [trust, values.credibility, evidenceInputs], "Use a sample, demonstration, product evidence, customer reaction, guarantee, comparison, or commercial proof that matches the buying path."),
         personaAssetModule("Where to reach them", [values.reachability, data.preValidationChannel], "Confirm the first reachable source, list, community, relationship, event, or channel to use."),
-        personaAssetModule("How they find or evaluate options", [], personaAssetRecommendedSources(pathKind, roleName)),
-        personaAssetModule("Operational requirements", values.implementationRequirements, "Confirm that quality, packaging, delivery, onboarding, fulfillment, support, and returns can meet this persona's expectations.")
+        personaAssetModule("How they find or evaluate options", [], personaAssetRecommendedSources(pathKind, roleName))
       ];
       const directMessage = preRevenueMessageToTest(data, "");
       const discoveryInput = pathKind === "dtc" ? data.preDtcDiscoveryQuestions : pathKind === "channel" ? data.preChannelDiscoveryQuestions : [data.preDtcDiscoveryQuestions, data.preChannelDiscoveryQuestions, data.preDiscoveryQuestions];
@@ -21639,12 +21652,13 @@
       document.getElementById("metadataPills").innerHTML = [profile.personaLabel, `${profile.supportingRoles.length + 1} role${profile.supportingRoles.length ? "s" : ""} mapped`]
         .map((item) => `<span class="metadata-pill">${escapeHtml(item)}</span>`).join("");
       main.querySelectorAll("section").forEach((section) => section.remove());
-
       const overview = document.createElement("section");
       overview.id = "persona-overview";
       overview.dataset.toc = "Persona Overview";
       overview.className = "persona-asset-section workspace-section";
-      overview.innerHTML = `<div class="persona-asset-layout"><aside class="persona-identity-rail"><div class="persona-monogram" aria-hidden="true">${escapeHtml(personaAssetMonogram(profile.roleName))}</div><h2>${escapeHtml(profile.roleName)}</h2><p>${escapeHtml(profile.personaLabel)}</p><dl class="persona-quick-facts">${profile.quickFacts.map(([label, value]) => `<div class="persona-quick-fact"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl></aside><div class="persona-detail-panel"><div class="persona-detail-intro"><h2>What This Persona Needs to Decide</h2><p>${escapeHtml(profile.specificContext || `Use this profile to guide how ${profile.customerGroup} is researched, reached, interviewed, and moved toward a meaningful next step.`)}</p></div><div class="persona-module-grid">${profile.modules.map((module) => `<article class="persona-module"><div class="persona-module-header"><h3>${escapeHtml(module.title)}</h3><span class="persona-source-label ${escapeHtml(module.sourceType)}">${escapeHtml(module.source)}</span></div>${personaAssetListMarkup(module.items)}</article>`).join("")}</div></div></div>`;
+      overview.innerHTML = `<div class="persona-asset-layout"><aside class="persona-identity-rail"><div class="persona-monogram" aria-hidden="true">${escapeHtml(personaAssetMonogram(profile.roleName))}</div><h2>${escapeHtml(profile.roleName)}</h2><p>${escapeHtml(profile.personaLabel)}</p><dl class="persona-quick-facts">${profile.quickFacts.map(([label, value]) => `<div class="persona-quick-fact"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl></aside><div class="persona-detail-panel"><div class="persona-detail-intro"><h2>What This Individual Needs to Decide</h2><p>This brief describes the person involved in the purchase, not the company profile. The related ICP determines whether ${escapeHtml(profile.customerGroup)} is a qualified account; this Persona explains this individual's responsibilities, influence, concerns, and decision needs.</p></div><div class="persona-module-grid">${profile.modules.map((module) => `<article class="persona-module"><div class="persona-module-header"><h3>${escapeHtml(module.title)}</h3><span class="persona-source-label ${escapeHtml(module.sourceType)}">${escapeHtml(module.source)}</span></div>${personaAssetListMarkup(module.items)}</article>`).join("")}</div></div></div>`;
+      const personaBoundary = appendIcpPersonaBoundary(overview, "personas");
+      overview.insertBefore(personaBoundary, overview.firstChild);
       main.appendChild(overview);
 
       const guide = document.createElement("section");

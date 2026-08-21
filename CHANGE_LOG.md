@@ -4,6 +4,15 @@ Last updated: 2026-08-21
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-08-21 — Separate the account ICP from individual buyer Personas
+
+- Rebuilt the ICP Brief around company/account qualification: account definition, firmographic and geographic fit, operating context, commercial fit, buying patterns, observable signals, disqualifiers, and evidence confidence.
+- Removed detailed buyer roles, end-user traits, individual objections, and conversation guidance from the ICP. The ICP now directs users to the Persona Brief only after an account qualifies.
+- Refocused the Persona Brief on individual decision-makers: responsibilities, goals, authority, role-level consequences, objections, proof needs, information sources, and conversation guidance.
+- Removed company-level operational requirements from Persona content and reframed shared problem/trigger context around how it affects the individual role.
+- Added an always-visible `ICP versus Persona` explanation to both assets, clearer plan/setup guidance, and intake instructions that tell users which information belongs in each brief.
+- Added browser and source-level regression coverage for the account/persona boundary.
+
 ## 2026-08-21 — Keep B2B buying accounts separate from end users in the ICP Brief
 
 - Corrected the pre-revenue ICP Brief so `Who we are targeting` is derived from the selected buying path and the paying customer or buying account, rather than from generic lifestyle, workflow, or timing trait categories.

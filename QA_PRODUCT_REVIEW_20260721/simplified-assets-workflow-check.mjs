@@ -6,10 +6,14 @@ inlineScripts.forEach((script) => new Function(script));
 const results = [];
 const check = (name, passed) => results.push({ name, passed: Boolean(passed) });
 
-check("ICP is presented as a usable brief", /title: "ICP Brief"/.test(source) && /Who we are targeting/.test(source) && /How to recognize a good fit/.test(source) && /What we still need to learn/.test(source));
-check("B2B ICP target follows the buying account", /function preRevenueLooksLikeBuyingAccount/.test(source) && /pathKind === "channel"/.test(source) && /preRevenueListAnswer\(target, "Name the paying customer or buying account/.test(source));
-check("ICP does not put segment trait categories in the target name", !/\["Who we are targeting", preRevenueListAnswer\(preRevenueKnownOrClue\([^\n]*segmentType/.test(source));
+check("ICP is presented as a usable account brief", /title: "ICP Brief"/.test(source) && /Target account or paying customer/.test(source) && /Firmographic and geographic fit/.test(source) && /Commercial and delivery fit/.test(source) && /Observable account signals/.test(source) && /What still needs to be proven/.test(source));
+check("B2B ICP target follows the buying account", /function preRevenueLooksLikeBuyingAccount/.test(source) && /pathKind === "channel"/.test(source) && /preRevenueListAnswer\(target, "Name the company, account, channel, or paying customer/.test(source));
+check("ICP does not put segment trait categories in the target name", !/\["Target account or paying customer", preRevenueListAnswer\(preRevenueKnownOrClue\([^\n]*segmentType/.test(source));
 check("ICP translates dropdown selections into natural language", /function preRevenueIcpNaturalLanguage/.test(source) && /preRevenueIcpAnswer\([^\n]+"problem"/.test(source) && /preRevenueIcpAnswer\([^\n]+"urgency"/.test(source));
+check("ICP and Persona purposes are explained to the user", /function appendIcpPersonaBoundary/.test(source) && /ICP Brief: qualify the account/.test(source) && /Persona Brief: understand the people/.test(source));
+check("ICP excludes detailed buyer-role content", !/\["Who makes or influences the decision"/.test(source) && !/\["Who uses or benefits from the product"/.test(source));
+check("Persona stays focused on individual decision makers", /What This Individual Needs to Decide/.test(source) && /How the account problem affects this role/.test(source) && /Why this role cares now/.test(source) && !/personaAssetModule\("Operational requirements"/.test(source));
+check("Both intake paths teach the ICP Persona boundary", (source.match(/ICP Brief: qualify the account/g) || []).length >= 1 && /After an account qualifies/.test(source));
 check("ICP can be copied, printed, or edited", /id="copyIcpBrief"/.test(source) && /Download \/ Print/.test(source) && /Edit ICP Source Answers/.test(source));
 check("Target List explains how completion is recorded", /How to complete Target List Setup/.test(source) && /Save review list and complete Target List Setup/.test(source));
 check("Target-search clues use plain language", /Website or software clues to look for/.test(source) && /People or places that could introduce you/.test(source));

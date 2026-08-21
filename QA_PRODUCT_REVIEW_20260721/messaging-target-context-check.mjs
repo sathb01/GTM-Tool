@@ -90,7 +90,7 @@ try {
   }));
   check("Studio context recommends the operating buyer", /Studio owner or manager/i.test(messaging.persona), messaging.persona);
   check("Studio product subject asks a useful buyer question", messaging.subject === "How do you choose new products for your studio?", messaging.subject);
-  check("Pre-revenue email is grammatical and learning-led", /I'm researching how studio owners and managers choose new options when current options lack/i.test(messaging.body) && /We're exploring Limited Launch/i.test(messaging.body) && !/I am speaking with|who because/i.test(messaging.body), messaging.body);
+  check("Pre-revenue email is grammatical and learning-led", /I'm researching how studio owners and managers/i.test(messaging.body) && /We're exploring Limited Launch/i.test(messaging.body) && /do not want to assume/i.test(messaging.body) && !/I am speaking with|who because/i.test(messaging.body), messaging.body);
   check("Editor identifies the complete email parts", messaging.bodyLabel === "Email message" && /complete email/i.test(messaging.assemblyNote), JSON.stringify(messaging));
 
   await page.goto(`${baseUrl}/results.html?v=messaging-target-context&asset=targets&recordId=${recordId}`, { waitUntil: "load" });
@@ -115,11 +115,11 @@ try {
       field.innerText || ""
     ])
   ));
-  check("B2B ICP targets the buying account", /Pilates studio owners and managers/i.test(icp["Who we are targeting"] || ""), icp["Who we are targeting"] || "");
-  check("B2B ICP does not use trait categories as the target", !/Specific lifestyle|Specific buying window/i.test(icp["Who we are targeting"] || ""), icp["Who we are targeting"] || "");
-  check("ICP explains dropdown answers in natural language", /They may be dissatisfied because current options lack/i.test(icp["Problem we believe they have"] || "") && /may create a reason to act now|may give them a reason to evaluate or buy now/i.test(icp["Why they may act now"] || ""), JSON.stringify(icp));
-  check("Channel ICP separates buyer from end user", /Retail buyer or merchant is likely/i.test(icp["Who makes or influences the decision"] || "") && !/End consumer/i.test(icp["Who makes or influences the decision"] || "") && /End consumer or product user would use or benefit/i.test(icp["Who uses or benefits from the product"] || ""), JSON.stringify(icp));
-  check("Evidence is not presented as a fit criterion", !/interviews|prototype reactions|evidence/i.test(icp["How to recognize a good fit"] || ""), icp["How to recognize a good fit"] || "");
+  check("B2B ICP targets the buying account", /Pilates studio owners and managers/i.test(icp["Target account or paying customer"] || ""), icp["Target account or paying customer"] || "");
+  check("B2B ICP does not use trait categories as the target", !/Specific lifestyle|Specific buying window/i.test(icp["Target account or paying customer"] || ""), icp["Target account or paying customer"] || "");
+  check("ICP explains dropdown answers in natural language", /They may be dissatisfied because current options lack/i.test(icp["Account-level need"] || "") && /may create a reason to act now|may give them a reason to evaluate or buy now/i.test(icp["Buying pattern and timing"] || ""), JSON.stringify(icp));
+  check("ICP excludes individual persona content", !Object.keys(icp).some((label) => /who makes|decision maker|individual|persona|end user/i.test(label)), JSON.stringify(Object.keys(icp)));
+  check("Evidence is not presented as a fit criterion", !/interviews|prototype reactions|evidence/i.test(icp["Observable account signals"] || ""), icp["Observable account signals"] || "");
   check("No browser errors", errors.length === 0, errors.join(" | "));
 } finally {
   await context.close();

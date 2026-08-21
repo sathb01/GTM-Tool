@@ -163,7 +163,7 @@ try {
           };
         });
         checks.icpDoesNotClaimValidationWithoutResults = !/Validated ICP/i.test(icp.status);
-        checks.icpUsesPlainSectionNames = ["Who we are targeting", "Their situation and problem", "How to recognize a good fit", "Who not to pursue", "What we still need to learn", "Use this brief"].every((label) => icp.labels.includes(label));
+        checks.icpUsesPlainSectionNames = ["Target account", "Firmographic and geographic fit", "Operating context and need", "Commercial and delivery fit", "Buying patterns and timing", "Observable account signals", "Disqualifiers", "What still needs to be proven", "Use this brief"].every((label) => icp.labels.includes(label));
         checks.icpBulletsKeepNumbersIntact = !icp.brokenCurrency;
         checks.icpMakesAccountFindingActionable = icp.hasSearchInstructions;
       }

@@ -1127,6 +1127,10 @@ const GTM_INTAKE_SCHEMA = {
       preRevenue: true,
       introBlocks: [
         {
+          title: "ICP versus Persona",
+          body: "The ICP identifies the type of company, account, channel, or paying customer worth pursuing. It covers account fit, economics, buying patterns, triggers, and disqualifiers. The Persona is built separately and describes the individual people who evaluate, influence, approve, use, or block the purchase."
+        },
+        {
           title: "Do not start by declaring an ICP",
           body: "Start with the broad market or product category this could fit into, then break it into candidate first-win customer segments. The ICP draft is an output of this narrowing process, not the starting answer."
         },
@@ -1396,6 +1400,10 @@ const GTM_INTAKE_SCHEMA = {
       description: "Define customer groups as hypotheses, score them against five ICP dimensions, and choose the group most worth validating or pursuing now.",
       introBlocks: [
         {
+          title: "ICP versus Persona",
+          body: "Use the ICP to define and qualify the company or account. Use Buyer Personas to describe the individual decision-makers inside that account. Company size, geography, economics, buying patterns, triggers, and disqualifiers belong here; personal goals, authority, objections, and proof needs belong in the Persona Brief."
+        },
+        {
           title: "What makes a good customer group?",
           body: "A customer group should be measurable, reachable, meaningfully different, actionable, and valuable enough to prioritize. Good: Multi-location franchise systems with 50-250 locations. Poor: Businesses."
         },
@@ -1418,7 +1426,7 @@ const GTM_INTAKE_SCHEMA = {
           title: "Start With the Customer Context",
           hint: "Describe the customer in plain language before scoring customer-group hypotheses. The ICP Brief uses this as qualitative source context.",
           fields: [
-            { id: "customerContextStarter", label: "Describe the customer, user, or buyer you most want to reach", type: "textarea", full: true, hint: "Include who they are, the situation they are in, what they are trying to accomplish, what is difficult today, and details that would help find more of them.", placeholder: "Add a detailed customer description or generate a company-specific example below." }
+            { id: "customerContextStarter", label: "Describe the company, account, channel, or paying customer you most want to reach", type: "textarea", full: true, hint: "Describe the account itself: business or customer type, size or stage, geography, operating situation, buying pattern, and details that would help find more accounts like it. Describe individual decision-makers later in Buyer Personas.", placeholder: "Example: Independent Pilates studios in the United States with a retail area, premium positioning, and regular seasonal assortment decisions." }
           ]
         },
         {
@@ -1865,12 +1873,12 @@ const GTM_INTAKE_SCHEMA = {
     {
       id: "personas",
       title: "Buyer Personas and Buying Committee",
-      description: "Map the people involved in the buying decision, what each one cares about, and what they need to believe before the deal can move forward.",
+      description: "The ICP identifies which companies or accounts to pursue. This section maps the individual people inside those accounts: their roles, responsibilities, goals, decision influence, concerns, and proof needs.",
       helpBlocks: HELP_BLOCKS.personas,
       content: [
         {
           title: "Buying Decision Overview",
-          hint: "Start with how the buying decision usually happens before defining each persona.",
+          hint: "Answer about people, not company-fit criteria. Start with how individuals inside the ICP account participate in the buying decision before defining each persona.",
           fields: [
             { id: "buyingSituation", label: "Buying situation", type: "select", options: ["", "Founder / owner decision", "Department-led purchase", "Executive-sponsored initiative", "Cross-functional buying committee", "Procurement-led purchase", "Technical / security review required", "User-led adoption before purchase", "Not sure yet"] },
             { id: "conversationStarter", label: "Who usually starts the conversation?", type: "text", placeholder: "Example: Founder, VP Sales, Operations Lead, end user, referral partner" },
