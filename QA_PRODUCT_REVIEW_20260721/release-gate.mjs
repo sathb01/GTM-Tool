@@ -23,6 +23,7 @@ const syntaxSuites = [
 ].map(([name, file]) => ({ name, command: node, args: ["--check", file], category: "syntax" }));
 
 const browserSuites = [
+  ["Login deep-link preservation", "login-deep-link-preservation-check.mjs", "persistence"],
   ["Synthetic profile quality", "profile-quality-check.mjs", "content"],
   ["Semantic answer quality", "semantic-record-check.mjs", "content"],
   ["Intake startup and section persistence", "intake-startup-navigation-check.mjs", "persistence"],

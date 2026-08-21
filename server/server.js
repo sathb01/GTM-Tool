@@ -119,12 +119,30 @@ function isAuthenticated(request) {
   return isValidSessionToken(parseCookies(request).gtm_session);
 }
 
-function redirectToLogin(response) {
-  response.writeHead(302, { Location: "/login" });
+function safeReturnTo(value) {
+  const returnTo = String(value || "").trim();
+  if (!returnTo.startsWith("/") || returnTo.startsWith("//") || returnTo.startsWith("/login")) {
+    return "/";
+  }
+  return returnTo;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function redirectToLogin(response, url) {
+  const returnTo = safeReturnTo(`${url.pathname}${url.search}`);
+  response.writeHead(302, { Location: `/login?returnTo=${encodeURIComponent(returnTo)}` });
   response.end();
 }
 
-function sendLoginPage(response, message = "") {
+function sendLoginPage(response, message = "", returnTo = "/") {
   response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
   response.end(`<!doctype html>
 <html lang="en">
@@ -152,6 +170,7 @@ function sendLoginPage(response, message = "") {
     <p>Enter the access password to continue.</p>
     ${message ? `<p class="error">${message}</p>` : ""}
     <form method="post" action="/login">
+      <input name="returnTo" type="hidden" value="${escapeHtml(safeReturnTo(returnTo))}">
       <label for="password">Password</label>
       <input id="password" name="password" type="password" autocomplete="current-password" autofocus>
       <button type="submit">Open Tool</button>
@@ -167,23 +186,24 @@ async function handleAuth(request, response, url) {
   }
 
   if (request.method === "GET") {
-    sendLoginPage(response);
+    sendLoginPage(response, "", url.searchParams.get("returnTo"));
     return true;
   }
 
   if (request.method === "POST") {
     const body = new URLSearchParams(await readRawBody(request));
     const password = String(body.get("password") || "");
+    const returnTo = safeReturnTo(body.get("returnTo"));
 
     if (password !== toolPassword) {
-      sendLoginPage(response, "Incorrect password.");
+      sendLoginPage(response, "Incorrect password.", returnTo);
       return true;
     }
 
     const secure = String(request.headers["x-forwarded-proto"] || "").includes("https") ? "; Secure" : "";
     response.writeHead(302, {
       "Set-Cookie": `gtm_session=${encodeURIComponent(createSessionToken())}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${sessionMaxAgeSeconds}${secure}`,
-      Location: "/"
+      Location: returnTo
     });
     response.end();
     return true;
@@ -900,7 +920,7 @@ const server = createServer(async (request, response) => {
       if (url.pathname.startsWith("/api/")) {
         sendJson(response, 401, { error: "Authentication required." });
       } else {
-        redirectToLogin(response);
+        redirectToLogin(response, url);
       }
       return;
     }

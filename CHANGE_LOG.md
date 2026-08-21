@@ -4,6 +4,12 @@ Last updated: 2026-08-21
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-08-21 — Preserve company links through login
+
+- Fixed authenticated hosted links so login preserves the complete company-specific destination instead of discarding it and opening a generic tool page.
+- Record ID, report asset, intake section, and release query parameters now survive an expired or new login session.
+- Rejects unsafe external return destinations and includes permanent login-flow regression coverage.
+
 ## 2026-08-21 — Separate the account ICP from individual buyer Personas
 
 - Rebuilt the ICP Brief around company/account qualification: account definition, firmographic and geographic fit, operating context, commercial fit, buying patterns, observable signals, disqualifiers, and evidence confidence.
