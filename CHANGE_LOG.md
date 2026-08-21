@@ -4,6 +4,12 @@ Last updated: 2026-08-21
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-08-21 — Clear ICP Brief next step
+
+- Replaced the equal-weight action area at the bottom of both ICP Brief variants with a clear primary `Build Your Target List` CTA.
+- Explains how to apply ICP fit criteria, observable signals, and disqualifiers when taking the next step.
+- Keeps copy, download, and source-answer editing available as secondary actions.
+
 ## 2026-08-21 — Preserve company links through login
 
 - Fixed authenticated hosted links so login preserves the complete company-specific destination instead of discarding it and opening a generic tool page.
