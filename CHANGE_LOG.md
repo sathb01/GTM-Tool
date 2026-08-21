@@ -901,3 +901,10 @@ https://gtm-tool-1mib.onrender.com/login
 - Corrected setup navigation grammar so a task reads, for example, `ICP Brief needs review.`
 - Added `SECURITY_AND_COMPATIBILITY_STANDARD.md` as the required product rule for backward-compatible changes, data protection, AI/agent controls, and the production release gate.
 - Added `NEXT_CHAT_BRIEF.md` so future work can resume from durable project context rather than a long chat transcript.
+
+# 2026-08-21 — Saved company visibility safeguard
+
+- Automatically opens the saved-company browser when records exist but no company is selected.
+- Shows the number of saved companies beside the Brand field and in its search prompt.
+- Redirects obsolete direct-file launches to the local server so the shared company database remains available.
+- Added release checks that verify company records cannot be silently hidden on startup.

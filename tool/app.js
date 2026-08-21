@@ -1,3 +1,10 @@
+if (window.location.protocol === "file:") {
+  const localServerUrl = new URL("http://127.0.0.1:8787/");
+  localServerUrl.search = window.location.search;
+  localServerUrl.hash = window.location.hash;
+  window.location.replace(localServerUrl.toString());
+}
+
 const schema = window.GTM_INTAKE_SCHEMA;
 const STORAGE_KEY = schema.storageKey;
 const RECORDS_KEY = `${STORAGE_KEY}:records`;
@@ -6210,12 +6217,29 @@ function renderBrandPicker() {
   const search = document.getElementById("brandSearch");
   const options = document.getElementById("savedBrandOptions");
   const list = document.getElementById("brandList");
+  const browser = document.getElementById("brandBrowser");
+  const status = document.getElementById("savedBrandStatus");
   const active = currentRecord();
   const records = sortedRecords();
 
   search.value = active ? active.name || "Untitled company" : "";
+  search.placeholder = records.length
+    ? `Search ${records.length} saved ${records.length === 1 ? "company" : "companies"}`
+    : "Search saved companies";
   options.innerHTML = "";
   list.innerHTML = "";
+
+  if (status) {
+    status.textContent = active
+      ? `${records.length} saved ${records.length === 1 ? "company" : "companies"}`
+      : records.length
+        ? `${records.length} saved ${records.length === 1 ? "company" : "companies"} — choose one below`
+        : "No saved companies yet";
+  }
+
+  if (browser && records.length && !active) {
+    browser.classList.add("open");
+  }
 
   records.forEach((record) => {
     const option = document.createElement("option");

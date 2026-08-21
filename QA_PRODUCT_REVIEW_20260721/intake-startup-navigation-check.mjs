@@ -31,6 +31,22 @@ try {
   await page.reload({ waitUntil: "load" });
   await waitForSection("quickIcp");
   results.push({ check: "refresh preserves the current section", expected: "quickIcp", actual: await activeSection() });
+
+  await page.evaluate(() => {
+    localStorage.removeItem("gtmReadinessIntake:activeRecordId");
+  });
+  await page.goto(`${baseUrl}/index.html`, { waitUntil: "load" });
+  await page.waitForFunction(() => document.querySelectorAll("#brandList button").length > 0, null, { timeout: 15000 });
+  results.push({
+    check: "saved companies are exposed when none is selected",
+    expected: true,
+    actual: await page.locator("#brandBrowser").evaluate((element) => element.classList.contains("open"))
+  });
+  results.push({
+    check: "saved company count is visible",
+    expected: true,
+    actual: await page.locator("#savedBrandStatus").evaluate((element) => /saved compan(?:y|ies)/i.test(element.textContent || ""))
+  });
   await context.close();
 } finally {
   await browser.close();
