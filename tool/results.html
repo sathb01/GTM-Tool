@@ -20989,6 +20989,12 @@
         ["Set up a recurring meeting", reviewDay ? `${cadence} on ${reviewDay}` : `${cadence}; select the meeting day below.`, dayInput],
         ["Define Go / No-Go criteria", goRule && noGoRule ? `Go: ${goRule} No-Go: ${noGoRule}` : "Add only the missing Go and No-Go rules below.", criteriaInput]
       ];
+      const savedMissingItems = [
+        !owner ? "management owner" : "",
+        !crm ? "CRM source of truth" : "",
+        !reviewDay ? "recurring review day" : "",
+        !(goRule && noGoRule) ? "Go and No-Go decision rules" : ""
+      ].filter(Boolean);
       main.querySelectorAll("section").forEach((section) => section.remove());
       document.title = `${data.companyName || "Company"} Weekly GTM Review Setup`;
       document.getElementById("companyName").textContent = data.companyName ? `${data.companyName} Weekly GTM Review Setup` : "Weekly GTM Review Setup";
@@ -21000,23 +21006,50 @@
       section.innerHTML = `
         <h2>Recommended Steps for GTM Review</h2>
         <p>These are concise setup recommendations, not a separate review form. Reuse the saved plan and keep the CRM as the single source of truth.</p>
+        <div class="overview-note" id="weeklySetupNextStep"><strong>${savedMissingItems.length ? `Next: complete ${savedMissingItems.length} setup ${savedMissingItems.length === 1 ? "item" : "items"}` : "Ready to finish setup"}</strong><p>${savedMissingItems.length ? `Complete the fields below for: ${escapeHtml(savedMissingItems.join(", "))}. The ready button will become available when nothing is missing.` : "Everything required is present. Mark the weekly review ready and continue."}</p></div>
         <ol class="weekly-review-setup-steps">${steps.map(([title, value, input]) => `<li><strong>${escapeHtml(title)}</strong><p>${escapeHtml(value)}</p>${input}</li>`).join("")}</ol>
         <div class="overview-note"><strong>At review time</strong><p>Open Evidence This Week to use the activity, responses, conversations, qualified opportunities, and learning-signal scorecard, then choose Continue, Revise, Pause, or Stop.</p></div>
         <div class="card-actions no-print"><button type="button" id="setWeeklyReviewReady">Set weekly review ready and continue</button><button type="button" class="secondary" id="saveWeeklyReviewSetup">Continue later</button></div>
-        <p class="muted" id="weeklyReviewSetupStatus">${state.status === "ready" ? "Weekly review setup is ready. Continue to the current Tool Setup or This Week task." : "Address only the missing recommendation, then confirm readiness."}</p>
+        <p class="muted" id="weeklyReviewSetupStatus">${state.status === "ready" ? "Weekly review setup is ready. Continue to the current Tool Setup or This Week task." : "Complete the setup items identified above."}</p>
       `;
       main.appendChild(section);
-      const save = async (complete) => {
+      const currentSetupValues = () => {
         const selectedOwner = section.querySelector("#weeklySetupOwner")?.value || owner;
         const selectedCrm = section.querySelector("#weeklySetupCrm")?.value.trim() || crm;
         const selectedDay = section.querySelector("#weeklySetupDay")?.value || reviewDay;
         const criteria = section.querySelector("#weeklySetupGoNoGo")?.value.trim() || criteriaValue;
         const goMatch = criteria.match(/(?:^|\n)\s*Go:\s*(.+)/i);
         const noGoMatch = criteria.match(/(?:^|\n)\s*No-Go:\s*(.+)/i);
-        const selectedGo = goRule || cleanText(goMatch?.[1]);
-        const selectedNoGo = noGoRule || cleanText(noGoMatch?.[1]);
+        return {
+          selectedOwner,
+          selectedCrm,
+          selectedDay,
+          criteria,
+          selectedGo: goRule || cleanText(goMatch?.[1]),
+          selectedNoGo: noGoRule || cleanText(noGoMatch?.[1])
+        };
+      };
+      const refreshWeeklySetupReadiness = () => {
+        const values = currentSetupValues();
+        const missingItems = [
+          !cleanText(values.selectedOwner) ? "management owner" : "",
+          !cleanText(values.selectedCrm) ? "CRM source of truth" : "",
+          !cleanText(values.selectedDay) ? "recurring review day" : "",
+          !cleanText(values.selectedGo) ? "Go rule" : "",
+          !cleanText(values.selectedNoGo) ? "No-Go rule" : ""
+        ].filter(Boolean);
+        const button = section.querySelector("#setWeeklyReviewReady");
+        const nextStep = section.querySelector("#weeklySetupNextStep");
+        button.disabled = missingItems.length > 0;
+        button.textContent = missingItems.length ? "Complete the missing setup items below" : "Set weekly review ready and continue";
+        nextStep.innerHTML = missingItems.length
+          ? `<strong>Next: complete ${missingItems.length} setup ${missingItems.length === 1 ? "item" : "items"}</strong><p>Complete: ${escapeHtml(missingItems.join(", "))}. The ready button will become available when nothing is missing.</p>`
+          : "<strong>Ready to finish setup</strong><p>Everything required is present. Mark the weekly review ready and continue.</p>";
+      };
+      const save = async (complete) => {
+        const { selectedOwner, selectedCrm, selectedDay, selectedGo, selectedNoGo } = currentSetupValues();
         if (complete && [selectedOwner, cadence, selectedCrm, selectedDay, selectedGo, selectedNoGo].some((value) => !cleanText(value))) {
-          section.querySelector("#weeklyReviewSetupStatus").textContent = "Complete the one missing owner, CRM, meeting-day, or Go / No-Go recommendation before marking ready.";
+          refreshWeeklySetupReadiness();
           return;
         }
         if (selectedOwner) {
@@ -21043,8 +21076,13 @@
           renderWeeklyReviewSetup(data);
         }
       };
+      section.querySelectorAll("#weeklySetupOwner, #weeklySetupCrm, #weeklySetupDay, #weeklySetupGoNoGo").forEach((control) => {
+        control.addEventListener("input", refreshWeeklySetupReadiness);
+        control.addEventListener("change", refreshWeeklySetupReadiness);
+      });
       section.querySelector("#saveWeeklyReviewSetup").addEventListener("click", () => save(false));
       section.querySelector("#setWeeklyReviewReady").addEventListener("click", () => save(true));
+      refreshWeeklySetupReadiness();
       setupReportNavigation();
       configureAssetPdfExport("weekly-review-setup", data);
     }

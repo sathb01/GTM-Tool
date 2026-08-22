@@ -4,6 +4,12 @@ Last updated: 2026-08-21
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-08-21 — Clear weekly review setup next step
+
+- Added an upfront next-step callout that names the exact missing Weekly GTM Review setup items before the user attempts completion.
+- Disabled the ready-and-continue action while required setup information is missing and enabled it immediately when the owner, CRM, review day, and decision rules are complete.
+- Replaced the post-click generic error with live, specific readiness guidance.
+
 ## 2026-08-21 — Plain-language validation plan summary
 
 - Updated the pre-revenue Plan Summary to use the saved plain-language customer description for the decision and first-segment fields when it is available.
