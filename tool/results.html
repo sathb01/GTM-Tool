@@ -7443,7 +7443,11 @@
       const currentIndex = setup.tools.findIndex((tool) => tool.id === taskId);
       const next = setup.tools.slice(Math.max(0, currentIndex + 1))
         .find((tool) => !["Ready", "Complete", "Skip for now"].includes(setup.statuses[tool.id]));
-      return next ? guidedToolWorkspaceUrl(next.id, origin) : guidedToolReturnUrl(origin);
+      if (next) return guidedToolWorkspaceUrl(next.id, origin);
+      if (setup.ready) {
+        return reportAssetUrlWithState("active", { focusedTest: "1", handoff: "setup-complete" });
+      }
+      return guidedToolReturnUrl(origin);
     }
 
     async function saveGuidedToolState(data, taskId, status, reason = "", statusElement = null) {
@@ -7576,7 +7580,7 @@
         section.insertBefore(guide, cards);
       }
       if (guide) {
-        guide.innerHTML = `<h3>Start here</h3><p>${blockerReady ? "No active blocker remains. Continue with the exact setup, launch, or This Week action shown below." : "Use the launch decision to address the active blocker or accept the remaining uncertainty in a focused test."} Priority Opportunity explains what matters; This Week sequences the commitments that advance it.</p>`;
+        guide.innerHTML = `<h3>Next: ${escapeHtml(resume.actionLabel)}</h3><p>${escapeHtml(resume.copy)}</p><div class="card-actions no-print"><a href="${escapeHtml(resume.href)}">${escapeHtml(resume.actionLabel)}</a></div><p class="muted">Priority Opportunity explains why this work matters. This is the one action to continue now.</p>`;
       }
 
       cards.innerHTML = "";
@@ -13393,7 +13397,7 @@
       const reviewReady = reportDataForNavigation.weeklyGtmReviewSetupWorkspace?.status === "ready"
         || reportDataForNavigation.weeklyReviewWorkspace?.updatedAt;
       if (reviewReady || currentAsset === "weekly-review") {
-        addNavItem("Work Tools", "Evidence This Week", reportAssetUrl("weekly-review"), null, "weekly-review");
+        addNavItem("Work Tools", "Weekly GTM Review", reportAssetUrl("weekly-review"), null, "weekly-review");
       }
       if (currentAsset === "validation-workspace" || document.getElementById("plan-decision") || document.getElementById("draft-icp")) {
         addNavItem("Work Tools", "Validation Workspace", reportAssetUrl("validation-workspace"), null, "validation-workspace");
@@ -17961,6 +17965,16 @@
         ? `<div class="active-plan-tool-ready"><div><strong>Tool Setup is complete.</strong><br><span class="muted">Review or change a tool only when the work has changed.</span></div><button type="button" class="secondary" id="toggleToolSetup">Review Tool Setup</button></div><div class="active-plan-tool-setup" id="activePlanToolSetupDetails" hidden><h2>Tool Setup</h2><p>Before weekly work begins, make sure the reference assets and working tools are usable. Mark a tool Ready or Skip for now.</p><div class="active-plan-tool-grid">${toolCards}</div><div class="active-plan-save-row"><button type="button" id="saveToolSetupButton">Save Tool Setup</button><span class="active-plan-save-status" id="toolSetupStatus"></span></div></div>`
         : `<div class="active-plan-tool-setup"><div><h2>${plan.type === "validation" ? "Prepare the Tools for Week 1" : "Tool Setup"}</h2><p>${plan.type === "validation" ? "Your ICP Brief and Persona Brief were generated from the completed Company Information and are ready to use as references. Now prepare only the working tools needed to run the validation plan." : "Before weekly work begins, make sure the reference assets and working tools are usable."}</p><p><strong>${completedSetupCount} of ${toolSetup.tools.length} complete.</strong> Only the current setup task is shown. Finish it or choose Continue later to move to the next tool.</p></div><div class="active-plan-tool-grid">${toolCards}</div><div class="active-plan-save-row"><button type="button" class="secondary" id="saveToolSetupButton">${toolSetup.reasons?.[currentSetupTool?.id] ? "Update blocker" : "Save blocker"}</button>${toolSetup.reasons?.[currentSetupTool?.id] ? '<button type="button" class="secondary" id="clearToolSetupBlockerButton">Clear blocker and continue</button>' : ""}${toolSetup.ready ? '<button type="button" id="startWeekOneButton">Start Week 1</button>' : ""}<span class="active-plan-save-status" id="toolSetupStatus"></span></div></div>`;
       main.appendChild(objective);
+
+      if (new URLSearchParams(window.location.search).get("handoff") === "setup-complete" && toolSetup.ready) {
+        const handoff = document.createElement("section");
+        const firstPriority = weeklyWorkspace.currentPriorities.find((priority) => priority.status !== "Complete") || weeklyWorkspace.currentPriorities[0];
+        handoff.id = "setup-complete-handoff";
+        handoff.dataset.toc = "Next Step";
+        handoff.className = "workspace-section";
+        handoff.innerHTML = `<h2>Setup complete. Next: begin Week ${escapeHtml(weeklyWorkspace.currentWeek || 1)}</h2><p>${escapeHtml(firstPriority?.title || "Start the first saved weekly priority.")}</p><p>Use This Week as the place to continue the plan. Record the result in the priority card, then use Weekly GTM Review when it is time to review evidence and decide what changes next.</p><div class="card-actions no-print"><a href="#active-plan-this-week">Start the first priority</a><a class="secondary" href="${escapeHtml(reportAssetUrl("weekly-review"))}">Open Weekly GTM Review</a></div>`;
+        main.insertBefore(handoff, objective);
+      }
 
       const syncToolSetup = () => {
         toolSetup.reasons = toolSetup.reasons && typeof toolSetup.reasons === "object" ? toolSetup.reasons : {};

@@ -4,6 +4,14 @@ Last updated: 2026-08-21
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-08-22 — Continuous setup-to-execution handoff
+
+- Replaced the final Tool Setup return-to-summary behavior with a direct Week 1 handoff to This Week, regardless of which page originally opened the setup task.
+- Added a setup-complete panel that names the first weekly priority and provides direct routes to start it or open Weekly GTM Review.
+- Kept Weekly GTM Review visible by name after setup instead of replacing it with the less recognizable Evidence This Week label.
+- Turned the Plan Summary introduction into a state-aware next-action banner with one direct continuation button.
+- Updated shared readiness navigation language so a completed setup clearly says Start Week 1 before execution begins and Resume This Week afterward.
+
 ## 2026-08-21 — Clear weekly review setup next step
 
 - Added an upfront next-step callout that names the exact missing Weekly GTM Review setup items before the user attempts completion.

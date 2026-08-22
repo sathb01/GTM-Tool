@@ -41,6 +41,9 @@ check("All tasks", "no status-only primary completion", !/data-mark-tool-ready/.
 check("All tasks", "sticky workspace clearance", /workspace-return-bar \{ position: sticky; top: 70px/.test(source) && /scroll-padding-top: 250px/.test(source) && /workspace-section \{ scroll-margin-top: 250px/.test(source) && /The browser resolves a hash before this sticky return bar exists\./.test(source));
 check("All tasks", "return bar stays in the workspace column", /currentNav\.insertAdjacentElement\("afterend", bar\)/.test(source) && /Prepending this[\s\S]{0,180}sidebar's grid area/.test(source));
 check("All tasks", "origin-specific returns", /taskOrigin === "this-week" \? "This Week" : "Plan Summary"/.test(source) && /guidedToolReturnUrl\(origin\)/.test(source));
+check("All tasks", "final setup completion starts Week 1", /if \(setup\.ready\) \{[\s\S]*?reportAssetUrlWithState\("active", \{ focusedTest: "1", handoff: "setup-complete" \}\)/.test(source));
+check("All tasks", "setup-complete handoff names the next priority", /id = "setup-complete-handoff"[\s\S]*?Setup complete\. Next: begin Week[\s\S]*?Start the first priority/.test(source));
+check("All tasks", "weekly review remains visible after setup", /addNavItem\("Work Tools", "Weekly GTM Review", reportAssetUrl\("weekly-review"\)/.test(source));
 
 const failed = checks.filter((item) => !item.passed);
 const matrix = tasks.map((task) => ({

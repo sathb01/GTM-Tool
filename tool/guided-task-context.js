@@ -139,11 +139,11 @@
       };
     }
     return {
-      label: "This Week",
-      meta: context.started ? "In progress" : "Ready to start",
-      title: context.started ? "Resume This Week" : "Start This Week",
+      label: context.started ? "This Week" : "Start Week 1",
+      meta: context.started ? "In progress" : "Ready to begin Week 1",
+      title: context.started ? "Resume This Week" : "Start Week 1",
       copy: "Tool Setup is ready. Continue with the saved weekly execution plan.",
-      actionLabel: context.started ? "Resume This Week" : "Start This Week"
+      actionLabel: context.started ? "Resume This Week" : "Start Week 1"
     };
   }
 
