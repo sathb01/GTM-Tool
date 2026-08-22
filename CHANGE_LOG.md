@@ -4,6 +4,16 @@ Last updated: 2026-08-21
 
 This file records the major actions and changes made during the GTM Tool refinement work.
 
+## 2026-08-22 — Plan Summary and plain-language customer context
+
+- Kept the existing customer/account description field compatible with completed saved records while requiring it at the point a new pre-revenue plan is generated.
+- Added a focused validation message that returns users to the missing plain-language customer description before plan generation.
+- Expanded saved-data fallback handling so legitimate custom segment descriptions are used instead of structured category labels.
+- Rebuilt the pre-revenue Plan Summary as a true summary of the objective, priority customer, decision, four-week path, created assets, and immediate next step; the ICP Brief is now a separate reference asset.
+- Moved Plan Outlook from the Weekly workspace to the top of Plan Summary and added the same overview to the post-revenue summary.
+- Placed Plan Summary first in the Plan sidebar navigation and added a quick overview of the assets created for the plan.
+- Preserved the selected record ID when a company is opened from the home page and corrected the misleading “intake has not been filled out” fallback when a requested company record fails to load.
+
 ## 2026-08-22 — Continuous setup-to-execution handoff
 
 - Replaced the final Tool Setup return-to-summary behavior with a direct Week 1 handoff to This Week, regardless of which page originally opened the setup task.

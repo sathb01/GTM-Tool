@@ -3547,9 +3547,10 @@
       <button class="secondary" id="toggleSectionsButton" type="button">Expand all</button>
     </nav>
 
-    <section class="workspace-section" id="decision-summary" data-toc="Decision Summary">
-      <h2>Decision Summary</h2>
+    <section class="workspace-section" id="decision-summary" data-toc="Plan Summary">
+      <h2>Plan Summary</h2>
       <div class="workspace-summary-grid" id="workspaceSummaryCards"></div>
+      <div class="plan-summary-assets"><h3>Assets Created for This Plan</h3><div id="workspacePlanAssets"></div></div>
       <div class="summary-detail-stack" id="workspaceRecommendation"></div>
     </section>
 
@@ -7573,17 +7574,26 @@
       });
 
       const section = cards.closest("section");
+      let outlook = section?.querySelector(".plan-summary-outlook");
+      if (!outlook && section) {
+        outlook = document.createElement("div");
+        outlook.className = "plan-summary-outlook";
+        outlook.innerHTML = `<h3>Plan Outlook</h3>${planOutlookMarkup(model.data)}`;
+        section.insertBefore(outlook, cards);
+      }
       let guide = section?.querySelector(".decision-summary-guide");
       if (!guide && section) {
         guide = document.createElement("div");
         guide.className = "overview-note decision-summary-guide";
-        section.insertBefore(guide, cards);
+        section.insertBefore(guide, outlook?.nextSibling || cards);
       }
       if (guide) {
         guide.innerHTML = `<h3>Next: ${escapeHtml(resume.actionLabel)}</h3><p>${escapeHtml(resume.copy)}</p><div class="card-actions no-print"><a href="${escapeHtml(resume.href)}">${escapeHtml(resume.actionLabel)}</a></div><p class="muted">Priority Opportunity explains why this work matters. This is the one action to continue now.</p>`;
       }
 
       cards.innerHTML = "";
+      const assets = document.getElementById("workspacePlanAssets");
+      if (assets) renderPlanAssetOverview(assets, model.data);
       renderMetricCard(cards, {
         label: "GTM Readiness Score",
         value: status.label,
@@ -10431,7 +10441,7 @@
       const version = params.get("v") || "20260712-pre-revenue-assets";
       const recordId = activeReportRecordId();
       const query = new URLSearchParams({ v: version, asset });
-      const hashes = { health: "plan-health-dashboard", active: "active-plan-objective", validation: "validation-plan-handoff", "validation-workspace": "", gtm: "draft-icp", icp: "icp-brief", personas: "persona-overview", messaging: "messaging-workspace", targets: "target-company-discovery", "proof-assets": "proof-asset-workspace", outreach: "outreach-sequence-workspace", "weekly-review-setup": "weekly-review-setup-workspace", "weekly-review": "weekly-review-workspace", reconciliation: "evidence-reconciliation-workspace" };
+      const hashes = { health: "plan-health-dashboard", active: "active-plan-objective", validation: "validation-plan-handoff", "validation-workspace": "", gtm: "plan-summary-overview", icp: "icp-brief", personas: "persona-overview", messaging: "messaging-workspace", targets: "target-company-discovery", "proof-assets": "proof-asset-workspace", outreach: "outreach-sequence-workspace", "weekly-review-setup": "weekly-review-setup-workspace", "weekly-review": "weekly-review-workspace", reconciliation: "evidence-reconciliation-workspace" };
       const hash = Object.prototype.hasOwnProperty.call(hashes, asset) ? hashes[asset] : "draft-icp";
       if (recordId) {
         query.set("recordId", recordId);
@@ -13378,8 +13388,8 @@
         item.appendChild(link);
         sectionToc.appendChild(item);
       };
-      addNavItem("Plan", setupNavigation.guidance.label, setupNavigation.href, null, "active");
       addNavItem("Plan", "Plan Summary", reportAssetUrl("gtm"), null, "gtm");
+      addNavItem("Plan", setupNavigation.guidance.label, setupNavigation.href, null, "active");
       if (currentAsset === "validation-workspace" || document.getElementById("plan-decision") || document.getElementById("draft-icp")) {
         addNavItem("Plan", "30-Day Validation Plan", reportAssetUrl("validation"), null, "validation");
       }
@@ -15487,8 +15497,14 @@
     }
 
     function preRevenueSpecificSegmentDefinition(data, row) {
+      const otherDetail = (value) => preRevenueListParts(value)
+        .map((item) => cleanText(item).match(/^Other:\s*(.+)$/i)?.[1] || "")
+        .find(Boolean) || "";
       return cleanText(
-        row?.values.specificUseCaseDefinition
+        row?.values.specificUseCaseDefinition__other
+        || otherDetail(row?.values.specificUseCaseDefinition)
+        || row?.values.description__other
+        || otherDetail(row?.values.description)
         || row?.values.segmentName__other
         || row?.values.specificDefinition
         || data?.preHypothesisNotes
@@ -15515,7 +15531,10 @@
     function preRevenuePlainLanguageSegmentContext(data, row) {
       const specific = preRevenueSpecificSegmentDefinition(data, row);
       const savedContext = cleanText(data?.customerContextStarter);
-      if (!specific || preRevenueIsFrameworkTraitList(specific)) return savedContext;
+      const quickContext = cleanText(data?.quickBestFitCustomer);
+      if (!specific || preRevenueIsFrameworkTraitList(specific)) {
+        return savedContext || (!preRevenueIsFrameworkTraitList(quickContext) ? quickContext : "");
+      }
       return specific || savedContext;
     }
 
@@ -17883,6 +17902,29 @@
       configureAssetPdfExport();
     }
 
+    function planOutlookMarkup(data) {
+      const plan = activePlanDefinition(data);
+      const weeklyWorkspace = activePlanWeeklyWorkspace(data, plan);
+      return `<p class="muted">This is the four-week path. Use This Week for the work that is active now.</p><div class="active-plan-week-grid">${plan.weeks.slice(0, 4).map((week, weekIndex) => {
+        const state = weekIndex + 1 === weeklyWorkspace.currentWeek ? "Current week" : weekIndex + 1 < weeklyWorkspace.currentWeek ? "Closed" : "Upcoming";
+        const className = `active-plan-week${weekIndex + 1 === weeklyWorkspace.currentWeek ? " current" : ""}${weekIndex + 1 < weeklyWorkspace.currentWeek ? " complete" : ""}`;
+        return `<article class="${className}"><h3>${escapeHtml(week.label)}</h3><p class="active-plan-week-state">${state}</p><ul>${week.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></article>`;
+      }).join("")}</div>`;
+    }
+
+    function renderPlanAssetOverview(container, data) {
+      const assets = [
+        ["icp", "ICP Brief", "Defines which accounts or customers belong in the plan."],
+        ["personas", "Persona Brief", "Identifies who to engage and what matters to them."],
+        ["targets", "Target List", "Turns the ICP into a workable list of qualified targets."],
+        ["messaging", "Messaging Kit", "Provides the language used to start and advance conversations."],
+        ["proof", "Proof Asset Builder", "Builds evidence that supports the offer and reduces buyer risk."],
+        ["outreach", "Outreach Sequence", "Organizes the contact steps used to test the message."],
+        ["weekly-review", "Weekly GTM Review", "Captures results, learning, blockers, and the next decision."]
+      ];
+      container.innerHTML = `<div class="messaging-version-list">${assets.map(([asset, label, purpose]) => `<div class="messaging-version-row"><div><strong>${escapeHtml(label)}</strong><span>${escapeHtml(purpose)}</span></div><div><strong>${escapeHtml(assetNavigationMeta(asset, data))}</strong><span>Current status</span></div><div></div><div class="card-actions no-print"><a class="secondary" href="${escapeHtml(reportAssetUrl(asset))}">View asset</a></div></div>`).join("")}</div>`;
+    }
+
     function renderActivePlanWorkspace(data) {
       const main = document.querySelector("main");
       const plan = activePlanDefinition(data);
@@ -18132,21 +18174,6 @@
         }, 50);
       }
 
-      const weeks = document.createElement("section");
-      weeks.id = "active-plan-weeks";
-      weeks.dataset.toc = "Plan Outlook";
-      weeks.dataset.defaultOpen = "false";
-      weeks.innerHTML = "<h2>Plan Outlook</h2><p class=\"muted\">Use this only to understand what may come next. The current week remains the source of truth.</p><div class=\"active-plan-week-grid\"></div>";
-      const weekGrid = weeks.querySelector(".active-plan-week-grid");
-      plan.weeks.slice(0, 4).forEach((week, weekIndex) => {
-        const card = document.createElement("article");
-        const items = week.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
-        card.className = `active-plan-week${weekIndex + 1 === weeklyWorkspace.currentWeek ? " current" : ""}${weekIndex + 1 < weeklyWorkspace.currentWeek ? " complete" : ""}`;
-        card.innerHTML = `<h3>${escapeHtml(week.label)}</h3><p class="active-plan-week-state">${weekIndex + 1 === weeklyWorkspace.currentWeek ? "Current week" : weekIndex + 1 < weeklyWorkspace.currentWeek ? "Closed" : "Upcoming"}</p><ul>${items}</ul>`;
-        weekGrid.appendChild(card);
-      });
-      main.appendChild(weeks);
-
       const review = document.createElement("section");
       review.id = "active-plan-review";
       review.dataset.toc = "Close the Week";
@@ -18366,6 +18393,39 @@
 
       const allSections = [
         {
+          asset: "gtm",
+          id: "plan-summary-overview",
+          title: "Plan Summary",
+          rows: [
+            ["What this plan is designed to achieve", preRevenueBulletAnswer(activePlanDefinition(data).goal || "Create enough customer evidence to make the next GTM decision with confidence.")],
+            ["Priority customer or account", preRevenueBulletAnswer(target)],
+            ["Problem to validate", preRevenueListAnswer(preRevenueKnownOrClue(primary?.values.problem, primary?.values.problemUnknown), "Confirm the most important problem in real customer conversations.")],
+            ["Decision this plan should make", preRevenueBulletAnswer(`Decide whether ${target} should be validated further, revised, or replaced based on the evidence collected during the plan.`)],
+            ["Why this is the first focus", preRevenueListAnswer(preRevenueWhyFirst(primary), "This is the current first-win hypothesis. The plan will test whether it deserves continued focus.")]
+          ]
+        },
+        {
+          asset: "gtm",
+          id: "plan-summary-outlook",
+          title: "Plan Outlook",
+          render: (container) => { container.innerHTML = planOutlookMarkup(data); }
+        },
+        {
+          asset: "gtm",
+          id: "plan-summary-assets",
+          title: "Assets Created for This Plan",
+          render: (container) => renderPlanAssetOverview(container, data)
+        },
+        {
+          asset: "gtm",
+          id: "plan-summary-next",
+          title: "What Happens Next",
+          render: (container) => {
+            const navigation = toolSetupNavigationState(data);
+            container.innerHTML = `<div class="overview-note"><h3>Next: ${escapeHtml(navigation.guidance.title || navigation.guidance.label)}</h3><p>${escapeHtml(navigation.guidance.copy)}</p><p>Complete the current setup or weekly action, record the result, and return to Plan Summary to see the updated plan status and next step.</p><div class="card-actions no-print"><a href="${escapeHtml(navigation.href)}">${escapeHtml(navigation.guidance.actionLabel || navigation.guidance.label)}</a></div></div>`;
+          }
+        },
+        {
           asset: "validation",
           id: "plan-decision",
           title: "Plan Decision",
@@ -18393,7 +18453,7 @@
           rows: preRevenueDecisionRuleRows(data, scoreModel)
         },
         {
-          asset: "gtm icp",
+          asset: "icp",
           id: "draft-icp",
           title: "ICP Brief",
           rows: [
@@ -18411,7 +18471,7 @@
           ]
         },
         {
-          asset: "both",
+          asset: "validation",
           id: "evidence",
           title: "Evidence to Review or Add",
           rows: [
@@ -18423,13 +18483,13 @@
           ]
         },
         {
-          asset: "gtm",
+          asset: "validation",
           id: "discovery-questions",
           title: "Discovery Questions to Ask",
           rows: preRevenueDiscoveryQuestions(primary).map((question, index) => [`Question ${index + 1}`, preRevenueBulletAnswer(question)])
         },
         {
-          asset: "gtm",
+          asset: "validation",
           id: "supporting-context",
           title: "Supporting Context",
           rows: [
@@ -18449,7 +18509,7 @@
           ]
         },
         {
-          asset: "gtm",
+          asset: "validation",
           id: "score-details",
           title: "Score Details",
           rows: scoreModel.components.map((item) => [item.label, [`${item.score}/100`, item.explanation]])
@@ -21784,7 +21844,11 @@
         && String(value || "").trim()
       ));
       if (!hasReportData) {
-        window.location.replace("index.html?reportNotice=empty");
+        const recordId = requestedRecordId();
+        const notice = recordId ? "record-unavailable" : "empty";
+        const query = new URLSearchParams({ reportNotice: notice });
+        if (recordId) query.set("recordId", recordId);
+        window.location.replace(`index.html?${query.toString()}`);
         return;
       }
       const requestedAsset = new URLSearchParams(window.location.search).get("asset") || "";

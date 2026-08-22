@@ -6099,7 +6099,7 @@ function resultsUrl(version = "20260712-pre-revenue-assets", asset = "") {
   const assetAnchors = {
     active: "active-plan-objective",
     validation: "validation-plan-handoff",
-    gtm: "draft-icp",
+    gtm: "plan-summary-overview",
     icp: "icp-brief",
     personas: "persona-overview",
     messaging: "messaging-workspace",
@@ -6273,7 +6273,7 @@ function switchToRecord(recordId) {
   }
 
   setActiveRecordId(recordId);
-  window.location.href = "index.html";
+  window.location.href = `index.html?recordId=${encodeURIComponent(recordId)}`;
 }
 
 function listValues(data, listId) {
@@ -8675,6 +8675,19 @@ function validatePreRevenueFirstWinSegments() {
     return broadOnlyPattern.test(text) && !String(row.values.problem || "").trim() && !String(row.values.reachability || "").trim();
   });
 
+  if (!String(data.customerContextStarter || "").trim()) {
+    if (status) {
+      status.textContent = "Describe the customer, user, buyer, or account you most want to reach in plain language before generating the plan. This description is used in the Plan Summary and ICP Brief.";
+    }
+    switchActiveSection("preRevenueHypotheses");
+    window.setTimeout(() => {
+      const field = document.querySelector('[name="customerContextStarter"]');
+      field?.scrollIntoView({ block: "center" });
+      field?.focus();
+    }, 50);
+    return false;
+  }
+
   if (segments.length < 2) {
     if (status) {
       status.textContent = "Add at least two candidate first-win segments before generating the validation plan. This module needs comparison, not a single broad ICP guess.";
@@ -10389,6 +10402,16 @@ async function initializeIntake() {
 
   if (reportNotice === "empty") {
     const message = "I would love to provide a report! Unfortunately, it looks like the intake has not been filled out yet.";
+    const status = document.getElementById("saveStatus");
+    if (status) status.textContent = message;
+    window.alert(message);
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete("reportNotice");
+    window.history.replaceState({}, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+  }
+
+  if (reportNotice === "record-unavailable") {
+    const message = "The selected company record could not be loaded. Your intake has not been marked incomplete. Choose the company again from Saved Companies, then reopen Plan Summary.";
     const status = document.getElementById("saveStatus");
     if (status) status.textContent = message;
     window.alert(message);

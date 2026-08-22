@@ -1144,7 +1144,7 @@ const GTM_INTAKE_SCHEMA = {
           title: "Start With the Customer Context",
           hint: "Write the richest version of the customer, user, or buyer you want to reach. The structured questions that follow will turn this into a testable ICP.",
           fields: [
-            { id: "customerContextStarter", label: "Describe the customer, user, or buyer you most want to reach", type: "textarea", full: true, hint: "Include who they are, the situation they are in, what they are trying to do, what is difficult today, and details that would help find more of them. This is source context for the structured ICP questions below.", placeholder: "Add a detailed customer description or generate a company-specific example below." }
+            { id: "customerContextStarter", label: "Describe the customer, user, or buyer you most want to reach", type: "textarea", full: true, hint: "Include who they are, the situation they are in, what they are trying to do, what is difficult today, and details that would help find more of them. This plain-language description is used in the Plan Summary and ICP Brief.", placeholder: "Add a detailed customer description or generate a company-specific example below." }
           ]
         },
         {
@@ -1426,7 +1426,7 @@ const GTM_INTAKE_SCHEMA = {
           title: "Start With the Customer Context",
           hint: "Describe the customer in plain language before scoring customer-group hypotheses. The ICP Brief uses this as qualitative source context.",
           fields: [
-            { id: "customerContextStarter", label: "Describe the company, account, channel, or paying customer you most want to reach", type: "textarea", full: true, hint: "Describe the account itself: business or customer type, size or stage, geography, operating situation, buying pattern, and details that would help find more accounts like it. Describe individual decision-makers later in Buyer Personas.", placeholder: "Example: Independent Pilates studios in the United States with a retail area, premium positioning, and regular seasonal assortment decisions." }
+            { id: "customerContextStarter", label: "Describe the company, account, channel, or paying customer you most want to reach", type: "textarea", full: true, hint: "Describe the account itself: business or customer type, size or stage, geography, operating situation, buying pattern, and details that would help find more accounts like it. This plain-language description is used in the Plan Summary and ICP Brief. Describe individual decision-makers later in Buyer Personas.", placeholder: "Example: Independent Pilates studios in the United States with a retail area, premium positioning, and regular seasonal assortment decisions." }
           ]
         },
         {
