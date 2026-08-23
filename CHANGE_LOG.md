@@ -13,6 +13,8 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Moved Plan Outlook from the Weekly workspace to the top of Plan Summary and added the same overview to the post-revenue summary.
 - Placed Plan Summary first in the Plan sidebar navigation and added a quick overview of the assets created for the plan.
 - Preserved the selected record ID when a company is opened from the home page and corrected the misleading “intake has not been filled out” fallback when a requested company record fails to load.
+- Removed the internal “Customer segment not described yet” placeholder from generated plans. When a saved record lacks a complete plain-language segment description, the report now composes a usable customer phrase from the buying path, buyer type, offer/category, problem, and timing already captured in the intake.
+- Applied the composed customer phrase through the shared segment formatter so Plan Summary, Validation Plan, ICP, Persona, Target List, Messaging, and weekly execution views use the same natural-language segment context.
 
 ## 2026-08-22 — Continuous setup-to-execution handoff
 

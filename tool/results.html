@@ -15546,21 +15546,40 @@
       return /^(?:channel buyers or partners|small businesses or teams|marketplace participants|problem-aware buyers|owners,? operators,? or founders|candidate segment|other)$/i.test(cleanText(value));
     }
 
-    function preRevenueTargetLabel(data, row) {
+    function preRevenueNaturalLanguageSegment(data, row) {
+      const values = row?.values || {};
       const specific = preRevenuePlainLanguageSegmentContext(data, row)
         .replace(/^(?:start with|the first-win segment is)\s+/i, "")
         .replace(/[.!?]+$/, "");
-      const segmentValue = preRevenueSegmentName(row);
-      const segment = preRevenueIsFrameworkTraitList(segmentValue) ? "Customer segment not described yet" : segmentValue;
+      const namedSegment = preRevenueSegmentName(row);
+      if (specific && !preRevenueIsFrameworkTraitList(specific)) return specific;
+      if (namedSegment && !preRevenueIsFrameworkTraitList(namedSegment) && !preRevenueIsGenericSegmentName(namedSegment)) return namedSegment;
+
       const pathKind = preRevenuePathKindForRow(row);
-      if (pathKind === "channel") {
-        if (specific && preRevenueLooksLikeBuyingAccount(specific) && preRevenueIsGenericSegmentName(segment)) return specific;
-        if (segment && !/^end users?\b/i.test(segment)) return segment;
-        const accountContext = cleanText(data?.customerContextStarter);
-        if (accountContext && preRevenueLooksLikeBuyingAccount(accountContext)) return accountContext;
-        return preRevenueFirstListItem(row?.values?.likelyBuyerChannel, "Channel buyer or business account");
-      }
-      return specific || segment;
+      const route = cleanText(values.likelyBuyerPath || data?.preRevenueRouteToMarket || data?.routeToMarket);
+      const channelActor = preRevenueFirstListItem(values.likelyBuyerChannel);
+      const directActor = preRevenueFirstListItem(values.likelyBuyerDtc);
+      let actor = pathKind === "channel" ? channelActor : directActor;
+      actor = cleanText(actor).replace(/\s*\/\s*/g, " or ");
+      if (/^retail buyer or merchant$/i.test(actor)) actor = "Retail buyers or merchants";
+      if (/^channel buyer or account$/i.test(actor)) actor = "Channel buyers or business accounts";
+      if (!actor && /retail|wholesale/i.test(route)) actor = "Retail or wholesale buyers";
+      if (!actor && /partner|channel|distributor|reseller/i.test(route)) actor = "Channel partners or business buyers";
+      if (!actor && /direct|consumer|e-?commerce/i.test(route)) actor = "Prospective end customers";
+      if (!actor) actor = pathKind === "channel" ? "Prospective business or channel buyers" : "Prospective customers";
+
+      const offer = cleanText(data?.primaryOfferName || data?.preBroadMarket || data?.quickOfferPromise);
+      const problem = preRevenueFirstListItem(preRevenueKnownOrClue(values.problem, values.problemUnknown));
+      const timing = preRevenueFirstListItem(preRevenueKnownOrClue(values.whyNow, values.whyNowUnknown));
+      const details = [];
+      if (offer && !preRevenueIsFrameworkTraitList(offer)) details.push(`considering ${offer.replace(/[.!?]+$/, "")}`);
+      if (problem) details.push(`who report that ${problem.replace(/[.!?]+$/, "").toLowerCase()}`);
+      if (timing) details.push(`with ${timing.replace(/[.!?]+$/, "").toLowerCase()}`);
+      return [actor, details.length ? details.join(", ") : "who can be reached for a focused first test"].join(" ");
+    }
+
+    function preRevenueTargetLabel(data, row) {
+      return preRevenueNaturalLanguageSegment(data, row);
     }
 
     function preRevenueIcpHypothesis(row, data = {}) {
