@@ -15,6 +15,8 @@ This file records the major actions and changes made during the GTM Tool refinem
 - Preserved the selected record ID when a company is opened from the home page and corrected the misleading “intake has not been filled out” fallback when a requested company record fails to load.
 - Removed the internal “Customer segment not described yet” placeholder from generated plans. When a saved record lacks a complete plain-language segment description, the report now composes a usable customer phrase from the buying path, buyer type, offer/category, problem, and timing already captured in the intake.
 - Applied the composed customer phrase through the shared segment formatter so Plan Summary, Validation Plan, ICP, Persona, Target List, Messaging, and weekly execution views use the same natural-language segment context.
+- Replaced the Plan Summary's inherited two-column field grid with deliberate full-width sections so Plan Outlook, asset status, and next-step content use the available page width consistently.
+- Rebuilt the asset overview as a responsive three-part row—asset and purpose, status, and action—with a clean single-column mobile layout instead of empty grid columns.
 
 ## 2026-08-22 — Continuous setup-to-execution handoff
 

@@ -945,6 +945,10 @@
       gap: 12px;
     }
 
+    .grid.plan-summary-full {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
     .field {
       border-top: 1px solid var(--border);
       padding-top: 10px;
@@ -1555,6 +1559,57 @@
 
     .active-plan-week ul {
       padding-left: 18px;
+    }
+
+    .plan-summary-outlook,
+    .plan-summary-assets {
+      min-width: 0;
+    }
+
+    .plan-summary-outlook {
+      margin-bottom: 18px;
+    }
+
+    .plan-summary-assets {
+      margin-top: 22px;
+    }
+
+    .plan-asset-list {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .plan-asset-row {
+      align-items: center;
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(260px, 1fr) minmax(150px, 0.35fr) auto;
+      padding: 14px 16px;
+    }
+
+    .plan-asset-row + .plan-asset-row {
+      border-top: 1px solid var(--border);
+    }
+
+    .plan-asset-row:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    .plan-asset-row strong,
+    .plan-asset-row span {
+      display: block;
+    }
+
+    .plan-asset-row span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .plan-asset-row .card-actions {
+      justify-content: flex-end;
+      margin: 0;
     }
 
     .active-plan-save-row {
@@ -3369,6 +3424,15 @@
 
       .active-plan-week-progress {
         flex-basis: auto;
+      }
+
+      .plan-asset-row {
+        align-items: start;
+        grid-template-columns: 1fr;
+      }
+
+      .plan-asset-row .card-actions {
+        justify-content: flex-start;
       }
 
       .decision-summary-status {
@@ -17941,7 +18005,7 @@
         ["outreach", "Outreach Sequence", "Organizes the contact steps used to test the message."],
         ["weekly-review", "Weekly GTM Review", "Captures results, learning, blockers, and the next decision."]
       ];
-      container.innerHTML = `<div class="messaging-version-list">${assets.map(([asset, label, purpose]) => `<div class="messaging-version-row"><div><strong>${escapeHtml(label)}</strong><span>${escapeHtml(purpose)}</span></div><div><strong>${escapeHtml(assetNavigationMeta(asset, data))}</strong><span>Current status</span></div><div></div><div class="card-actions no-print"><a class="secondary" href="${escapeHtml(reportAssetUrl(asset))}">View asset</a></div></div>`).join("")}</div>`;
+      container.innerHTML = `<div class="plan-asset-list">${assets.map(([asset, label, purpose]) => `<div class="plan-asset-row"><div><strong>${escapeHtml(label)}</strong><span>${escapeHtml(purpose)}</span></div><div><strong>${escapeHtml(assetNavigationMeta(asset, data))}</strong><span>Current status</span></div><div class="card-actions no-print"><a class="secondary" href="${escapeHtml(reportAssetUrl(asset))}">View asset</a></div></div>`).join("")}</div>`;
     }
 
     function renderActivePlanWorkspace(data) {
@@ -18415,6 +18479,7 @@
           asset: "gtm",
           id: "plan-summary-overview",
           title: "Plan Summary",
+          fullWidth: true,
           rows: [
             ["What this plan is designed to achieve", preRevenueBulletAnswer(activePlanDefinition(data).goal || "Create enough customer evidence to make the next GTM decision with confidence.")],
             ["Priority customer or account", preRevenueBulletAnswer(target)],
@@ -18427,18 +18492,21 @@
           asset: "gtm",
           id: "plan-summary-outlook",
           title: "Plan Outlook",
+          fullWidth: true,
           render: (container) => { container.innerHTML = planOutlookMarkup(data); }
         },
         {
           asset: "gtm",
           id: "plan-summary-assets",
           title: "Assets Created for This Plan",
+          fullWidth: true,
           render: (container) => renderPlanAssetOverview(container, data)
         },
         {
           asset: "gtm",
           id: "plan-summary-next",
           title: "What Happens Next",
+          fullWidth: true,
           render: (container) => {
             const navigation = toolSetupNavigationState(data);
             container.innerHTML = `<div class="overview-note"><h3>Next: ${escapeHtml(navigation.guidance.title || navigation.guidance.label)}</h3><p>${escapeHtml(navigation.guidance.copy)}</p><p>Complete the current setup or weekly action, record the result, and return to Plan Summary to see the updated plan status and next step.</p><div class="card-actions no-print"><a href="${escapeHtml(navigation.href)}">${escapeHtml(navigation.guidance.actionLabel || navigation.guidance.label)}</a></div></div>`;
@@ -18550,7 +18618,7 @@
         section.dataset.toc = sectionData.title;
         heading.textContent = sectionData.title;
         section.appendChild(heading);
-        grid.className = "grid";
+        grid.className = sectionData.fullWidth ? "grid plan-summary-full" : "grid";
         section.appendChild(grid);
         if (sectionData.render) {
           sectionData.render(grid);
